@@ -35,6 +35,7 @@
 	<module>metamorphosis-dashboard</module>
 	<module>metamorphosis-commons</module>
 	<module>metamorphosis-server-wrapper</module>
+	<module>metamorphosis-example</module>
   </modules>
     <properties>
         <project.build.sourceEncoding>GBK</project.build.sourceEncoding>
