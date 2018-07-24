@@ -21,11 +21,9 @@ import com.taobao.metamorphosis.exception.InvalidSystemClock;
 
 
 /**
- * 来自于twitter项目<a
- * href="https://github.com/twitter/snowflake">snowflake</a>的id产生方案，全局唯一，时间有序
+ * 来自于twitter项目snowflake的id产生方案，全局唯一，时间有序
  * 
- * 
- * @see https://github.com/twitter/snowflake
+ * @see <a href="https://github.com/twitter/snowflake">snowflake</a>
  * @author boyan
  * @Date 2011-4-27
  * 
@@ -44,7 +42,6 @@ public class IdWorker {
 
     private long lastTimestamp = -1L;
 
-
     public IdWorker(final long workerId) {
         super();
         if (workerId > this.maxWorkerId || workerId < 0) {
@@ -53,7 +50,6 @@ public class IdWorker {
         }
         this.workerId = workerId;
     }
-
 
     public synchronized long nextId() {
         long timestamp = this.timeGen();
@@ -75,7 +71,6 @@ public class IdWorker {
         return timestamp - twepoch << this.timestampLeftShift | this.workerId << this.workerIdShift | this.sequence;
     }
 
-
     private long tilNextMillis(final long lastTimestamp) {
         long timestamp = this.timeGen();
         while (timestamp <= lastTimestamp) {
@@ -83,7 +78,6 @@ public class IdWorker {
         }
         return timestamp;
     }
-
 
     private long timeGen() {
         return System.nanoTime() / 1000000;

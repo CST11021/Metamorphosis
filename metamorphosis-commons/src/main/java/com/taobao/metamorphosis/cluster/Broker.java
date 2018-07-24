@@ -34,16 +34,34 @@ import com.taobao.metamorphosis.utils.URIUtils;
  * @Date 2011-6-26
  */
 public class Broker {
-    private int id;
-    private String host;
-    private int port;
-    private int slaveId = -1;
 
+    private int id;             // 集群机器id
+    private String host;        // host
+    private int port;           // 端口
+    private int slaveId = -1;   // 标识是否为slave服务器，-1表示master服务器
+
+
+    /**
+     * @param id
+     * @param data meta://host:port or meta://host:port?slaveId=xx
+     *
+     * */
+    public Broker(final int id, final String data) {
+        this.id = id;
+        try {
+            final URI uri = new URI(data);
+            this.host = uri.getHost();
+            this.port = uri.getPort();
+            this.slaveId = slaveIdByUri(uri);
+        }
+        catch (final URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public Broker(final int id, final String host, final int port) {
         this(id, host, port, -1);
     }
-
 
     public Broker(final int id, final String host, final int port, final int slaveId) {
         super();
@@ -53,6 +71,10 @@ public class Broker {
         this.slaveId = slaveId;
     }
 
+    static int slaveIdByUri(final URI uri) {
+        final String slaveIdStr = URIUtils.parseParameters(uri, "UTF-8").get("slaveId");
+        return StringUtils.isNotBlank(slaveIdStr) ? Integer.parseInt(slaveIdStr) : -1;
+    }
 
     /**
      * 返回broker节点数据字符串 meta://host:port
@@ -74,78 +96,38 @@ public class Broker {
         }
     }
 
-
     public int getId() {
         return this.id;
     }
-
-
     public void setId(final int id) {
         this.id = id;
     }
 
-
-    /**
-     * @param id
-     * @param data
-     *            , meta://host:port or meta://host:port?slaveId=xx
-     * 
-     * */
-    public Broker(final int id, final String data) {
-        this.id = id;
-        try {
-            final URI uri = new URI(data);
-            this.host = uri.getHost();
-            this.port = uri.getPort();
-            this.slaveId = slaveIdByUri(uri);
-        }
-        catch (final URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    static int slaveIdByUri(final URI uri) {
-        final String slaveIdStr = URIUtils.parseParameters(uri, "UTF-8").get("slaveId");
-        return StringUtils.isNotBlank(slaveIdStr) ? Integer.parseInt(slaveIdStr) : -1;
-    }
-
-
     public String getHost() {
         return this.host;
     }
-
-
     public void setHost(final String host) {
         this.host = host;
     }
 
-
     public int getPort() {
         return this.port;
     }
-
-
     public void setPort(final int port) {
         this.port = port;
     }
 
-
     public boolean isSlave() {
         return this.slaveId >= 0;
     }
-
-
     public int getSlaveId() {
         return this.slaveId;
     }
-
 
     @Override
     public String toString() {
         return this.getZKString();
     }
-
 
     @Override
     public int hashCode() {
@@ -157,7 +139,6 @@ public class Broker {
         result = prime * result + this.slaveId >= 0 ? this.slaveId : -1;
         return result;
     }
-
 
     @Override
     public boolean equals(final Object obj) {

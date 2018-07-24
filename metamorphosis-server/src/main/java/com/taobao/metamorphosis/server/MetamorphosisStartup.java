@@ -42,7 +42,11 @@ import com.taobao.metamorphosis.server.utils.MetaConfig;
 public class MetamorphosisStartup {
     static final Log log = LogFactory.getLog(MetamorphosisStartup.class);
 
-
+    /**
+     * MetaQ服务启动，启动时需要携带配置文件，例如：
+     * 在Program arguments中配置：-f /Users/wanghongzhan/whz/ideaProject/Metamorphosis/metamorphosis-dashboard/dev/server.ini
+     * @param args
+     */
     public static void main(final String[] args) {
         final String configFilePath = getConfigFilePath(args);
         final MetaConfig metaConfig = getMetaConfig(configFilePath);
@@ -51,7 +55,11 @@ public class MetamorphosisStartup {
 
     }
 
-
+    /**
+     * 读取配置MetaQ配置文件，并返回一个 {@link MetaConfig} 对象
+     * @param configFilePath 配置文件的绝对路径
+     * @return
+     */
     static MetaConfig getMetaConfig(final String configFilePath) {
         final MetaConfig metaConfig = new MetaConfig();
         metaConfig.loadFromFile(configFilePath);
@@ -61,7 +69,12 @@ public class MetamorphosisStartup {
         return metaConfig;
     }
 
-
+    /**
+     * 解析 {@link MetamorphosisStartup#main(String[])} 方法的入参,返回MetaQ配置文件路径
+     * @param args
+     * @return
+     * @throws MetamorphosisServerStartupException
+     */
     static String getConfigFilePath(final String[] args) throws MetamorphosisServerStartupException {
         final Options options = new Options();
         final Option file = new Option("f", true, "Configuration file path");

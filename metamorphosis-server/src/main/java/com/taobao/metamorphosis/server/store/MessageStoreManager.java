@@ -45,7 +45,6 @@ import static org.quartz.CronScheduleBuilder.cronSchedule;
 import static org.quartz.JobBuilder.newJob;
 import static org.quartz.TriggerBuilder.newTrigger;
 
-
 /**
  * 消息存储管理器
  * 
@@ -56,14 +55,14 @@ import static org.quartz.TriggerBuilder.newTrigger;
  */
 public class MessageStoreManager implements Service {
 
+    static final Log log = LogFactory.getLog(MessageStoreManager.class);
+
     private final class FlushRunner implements Runnable {
         int unflushInterval;
-
 
         FlushRunner(final int unflushInterval) {
             this.unflushInterval = unflushInterval;
         }
-
 
         @Override
         public void run() {
@@ -84,41 +83,45 @@ public class MessageStoreManager implements Service {
         }
     }
 
-    private final ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Integer/* partition */, MessageStore>> stores =
-            new ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>>();
+    /** Map<topic, Map<partition, MessageStore>> 用于存储消息 */
+    private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>> stores = new ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>>();
     private final MetaConfig metaConfig;
-    private ScheduledThreadPoolExecutor scheduledExecutorService;// =
+    private ScheduledThreadPoolExecutor scheduledExecutorService;
     // Executors.newScheduledThreadPool(2);
-    static final Log log = LogFactory.getLog(MessageStoreManager.class);
 
+    /** 文件的删除策略 */
     private final DeletePolicy deletePolicy;
 
+    /** topic文件删除策略选择器 */
     private DeletePolicySelector deletePolicySelector;
 
     public static final int HALF_DAY = 1000 * 60 * 60 * 12;
 
     private final Set<Pattern> topicsPatSet = new HashSet<Pattern>();
 
-    private final ConcurrentHashMap<Integer, ScheduledFuture<?>> unflushIntervalMap =
-            new ConcurrentHashMap<Integer, ScheduledFuture<?>>();
+    private final ConcurrentHashMap<Integer, ScheduledFuture<?>> unflushIntervalMap = new ConcurrentHashMap<Integer, ScheduledFuture<?>>();
 
     private Scheduler scheduler;
-
 
     public MessageStoreManager(final MetaConfig metaConfig, final DeletePolicy deletePolicy) {
         super();
         this.metaConfig = metaConfig;
         this.deletePolicy = deletePolicy;
         this.newDeletePolicySelector();
+
+        // 给topics参数添加监听，当topics参数改变时触发监听器
         this.metaConfig.addPropertyChangeListener("topics", new PropertyChangeListener() {
+
             @Override
             public void propertyChange(final PropertyChangeEvent evt) {
                 MessageStoreManager.this.makeTopicsPatSet();
                 MessageStoreManager.this.newDeletePolicySelector();
                 MessageStoreManager.this.rescheduleDeleteJobs();
             }
+
         });
 
+        // 给unflushInterval参数添加监听，当topics参数改变时触发监听器
         this.metaConfig.addPropertyChangeListener("unflushInterval", new PropertyChangeListener() {
             @Override
             public void propertyChange(final PropertyChangeEvent evt) {
@@ -127,14 +130,12 @@ public class MessageStoreManager implements Service {
         });
 
         this.makeTopicsPatSet();
-
+        // 初始化定时线程池
         this.initScheduler();
-
         // 定时flush
         this.scheduleFlushTask();
 
     }
-
 
     /** 根据flush时间间隔分类，分别提交定时任务 */
     private void scheduleFlushTask() {
@@ -152,9 +153,8 @@ public class MessageStoreManager implements Service {
         // 新的有，旧的没有，提交任务
         for (final Integer unflushInterval : newUnflushIntervals) {
             if (!this.unflushIntervalMap.containsKey(unflushInterval) && unflushInterval > 0) {
-                final ScheduledFuture<?> future =
-                        this.scheduledExecutorService.scheduleAtFixedRate(new FlushRunner(unflushInterval),
-                            unflushInterval, unflushInterval, TimeUnit.MILLISECONDS);
+                final ScheduledFuture<?> future = this.scheduledExecutorService.scheduleAtFixedRate(
+                        new FlushRunner(unflushInterval), unflushInterval, unflushInterval, TimeUnit.MILLISECONDS);
                 this.unflushIntervalMap.put(unflushInterval, future);
                 log.info("Create flush task,unflushInterval=" + unflushInterval);
             }
@@ -177,7 +177,6 @@ public class MessageStoreManager implements Service {
             + ",current pool size=" + this.scheduledExecutorService.getPoolSize());
     }
 
-
     /** 初始化定时线程池 */
     private void initScheduler() {
         // 根据定时flush时间间隔分类,计算定时线程池大小,并初始化
@@ -199,11 +198,12 @@ public class MessageStoreManager implements Service {
         }
     }
 
-
+    /**
+     * 创建文件删除策略的对象
+     */
     private void newDeletePolicySelector() {
         this.deletePolicySelector = new DeletePolicySelector(this.metaConfig);
     }
-
 
     private void makeTopicsPatSet() {
         for (String topic : this.metaConfig.getTopics()) {
@@ -213,34 +213,41 @@ public class MessageStoreManager implements Service {
     }
 
     /**
+     * topic的文件删除策略选择器
      * @author wuhua
      */
     static class DeletePolicySelector {
-        private final Map<String, DeletePolicy> deletePolicyMap = new HashMap<String, DeletePolicy>();
 
+        /** Map<topic, DeletePolicy> */
+        private final Map<String, DeletePolicy> deletePolicyMap = new HashMap<String, DeletePolicy>();
 
         DeletePolicySelector(final MetaConfig metaConfig) {
             for (final String topic : metaConfig.getTopics()) {
                 final TopicConfig topicConfig = metaConfig.getTopicConfig(topic);
-                final String deletePolicy =
-                        topicConfig != null ? topicConfig.getDeletePolicy() : metaConfig.getDeletePolicy();
-                        this.deletePolicyMap.put(topic, DeletePolicyFactory.getDeletePolicy(deletePolicy));
+                // 如果topicConfig没有配置，则使用全局配置
+                final String deletePolicy = topicConfig != null ? topicConfig.getDeletePolicy() : metaConfig.getDeletePolicy();
+                this.deletePolicyMap.put(topic, DeletePolicyFactory.getDeletePolicy(deletePolicy));
             }
         }
 
-
+        /**
+         * 获取指定topic的文件删除策略
+         * @param topic             topic名称
+         * @param defaultPolicy     默认策略
+         * @return
+         */
         DeletePolicy select(final String topic, final DeletePolicy defaultPolicy) {
             final DeletePolicy deletePolicy = this.deletePolicyMap.get(topic);
             return deletePolicy != null ? deletePolicy : defaultPolicy;
         }
     }
 
-
-    public Map<String/* topic */, ConcurrentHashMap<Integer/* partition */, MessageStore>> getMessageStores() {
+    /** Map<topic, Map<partition, MessageStore>> */
+    public Map<String, ConcurrentHashMap<Integer, MessageStore>> getMessageStores() {
         return Collections.unmodifiableMap(this.stores);
     }
 
-
+    /** 统计消息数量 */
     public long getTotalMessagesCount() {
         long rt = 0;
         for (final ConcurrentHashMap<Integer/* partition */, MessageStore> subMap : MessageStoreManager.this.stores
@@ -256,7 +263,7 @@ public class MessageStoreManager implements Service {
         return rt;
     }
 
-
+    /** 统计topic数量 */
     public int getTopicCount() {
         List<String> topics = this.metaConfig.getTopics();
         int count = this.stores.size();
@@ -268,11 +275,17 @@ public class MessageStoreManager implements Service {
         return count;
     }
 
-
+    /**
+     * 根据配置返回所有消息存储在磁盘的目录，不同的topic，不通的分区都有对应的目录
+     * @param metaConfig
+     * @return
+     * @throws IOException
+     */
     private Set<File> getDataDirSet(final MetaConfig metaConfig) throws IOException {
         final Set<String> paths = new HashSet<String>();
-        // public data path
+        // 公共的消息存储路径
         paths.add(metaConfig.getDataPath());
+
         // topic data path
         for (final String topic : metaConfig.getTopics()) {
             final TopicConfig topicConfig = metaConfig.getTopicConfig(topic);
@@ -287,52 +300,70 @@ public class MessageStoreManager implements Service {
         return fileSet;
     }
 
-
+    /**
+     * 将磁盘中的消息加载到内存
+     * @param metaConfig
+     * @throws IOException
+     * @throws InterruptedException
+     */
     private void loadMessageStores(final MetaConfig metaConfig) throws IOException, InterruptedException {
         for (final File dir : this.getDataDirSet(metaConfig)) {
             this.loadDataDir(metaConfig, dir);
         }
     }
 
-
+    /**
+     * 将指定目录的topic消息保存到内存
+     * @param metaConfig    配置信息，获取消息保存时行为参数
+     * @param dir           topic对应消息的所在目录
+     * @throws IOException
+     * @throws InterruptedException
+     */
     private void loadDataDir(final MetaConfig metaConfig, final File dir) throws IOException, InterruptedException {
         log.warn("Begin to scan data path:" + dir.getAbsolutePath());
         final long start = System.currentTimeMillis();
+
         final File[] ls = dir.listFiles();
+        // java.lang.Runtime.availableProcessors() 方法: 返回可用处理器的Java虚拟机的数量
         int nThreads = Runtime.getRuntime().availableProcessors() + 2;
+        // 该线程池用于将MQ中的消息存储到磁盘
         ExecutorService executor = Executors.newFixedThreadPool(nThreads);
+
         int count = 0;
         List<Callable<MessageStore>> tasks = new ArrayList<Callable<MessageStore>>();
         for (final File subDir : ls) {
-
             count++;
 
             if (!subDir.isDirectory()) {
                 log.warn("Ignore not directory path:" + subDir.getAbsolutePath());
             }
             else {
+                // topic消息保存的目录（subDir）, subDir目录下还有分区目录
                 final String name = subDir.getName();
+                // 获取分区索引
                 final int index = name.lastIndexOf('-');
                 if (index < 0) {
                     log.warn("Ignore invlaid directory:" + subDir.getAbsolutePath());
                     continue;
                 }
 
+                // 添加任务：将MQ内存中的消息保存到硬盘的任务
                 tasks.add(new Callable<MessageStore>() {
                     @Override
                     public MessageStore call() throws Exception {
                         log.warn("Loading data directory:" + subDir.getAbsolutePath() + "...");
                         final String topic = name.substring(0, index);
+                        // 获取topic下的分区
                         final int partition = Integer.parseInt(name.substring(index + 1));
-                        final MessageStore messageStore =
-                                new MessageStore(topic, partition, metaConfig,
-                                    MessageStoreManager.this.deletePolicySelector.select(topic,
-                                        MessageStoreManager.this.deletePolicy));
+                        // 表示一个消息
+                        final MessageStore messageStore = new MessageStore(topic, partition, metaConfig,
+                                    MessageStoreManager.this.deletePolicySelector.select(topic, MessageStoreManager.this.deletePolicy));
                         return messageStore;
                     }
                 });
 
                 if (count % nThreads == 0 || count == ls.length) {
+                    // 并行存储到磁盘
                     if (metaConfig.isLoadMessageStoresInParallel()) {
                         this.loadStoresInParallel(executor, tasks);
                     }
@@ -343,11 +374,17 @@ public class MessageStoreManager implements Service {
                 }
             }
         }
+        // 存储完成后将线程池关闭
         executor.shutdownNow();
         log.warn("End to scan data path in " + (System.currentTimeMillis() - start) / 1000 + " secs");
     }
 
-
+    /**
+     * 以串行的方式处理消息存储
+     * @param tasks
+     * @throws IOException
+     * @throws InterruptedException
+     */
     private void loadStores(List<Callable<MessageStore>> tasks) throws IOException, InterruptedException {
         for (Callable<MessageStore> task : tasks) {
             MessageStore messageStore;
@@ -372,9 +409,13 @@ public class MessageStoreManager implements Service {
         }
     }
 
-
-    private void loadStoresInParallel(ExecutorService executor, List<Callable<MessageStore>> tasks)
-            throws InterruptedException {
+    /**
+     * 以并行的方式处理消息存储
+     * @param executor  并行处理时使用的线程池服务
+     * @param tasks     表示消息存储的任务
+     * @throws InterruptedException
+     */
+    private void loadStoresInParallel(ExecutorService executor, List<Callable<MessageStore>> tasks) throws InterruptedException {
         CompletionService<MessageStore> completionService = new ExecutorCompletionService<MessageStore>(executor);
         for (Callable<MessageStore> task : tasks) {
             completionService.submit(task);
@@ -396,7 +437,12 @@ public class MessageStoreManager implements Service {
         }
     }
 
-
+    /**
+     * 根据路径创建一个File对象
+     * @param path
+     * @return
+     * @throws IOException
+     */
     private File getDataDir(final String path) throws IOException {
         final File dir = new File(path);
         if (!dir.exists() && !dir.mkdir()) {
@@ -410,17 +456,24 @@ public class MessageStoreManager implements Service {
 
     private final Random random = new Random();
 
-
+    /**
+     * 返回指定topic的一个随机分区
+     * @param topic
+     * @return
+     */
     public int chooseRandomPartition(final String topic) {
         return this.random.nextInt(this.getNumPartitions(topic));
     }
 
-
+    /**
+     * 获取topic的分区数
+     * @param topic
+     * @return
+     */
     public int getNumPartitions(final String topic) {
         final TopicConfig topicConfig = this.metaConfig.getTopicConfig(topic);
         return topicConfig != null ? topicConfig.getNumPartitions() : this.metaConfig.getNumPartitions();
     }
-
 
     @Override
     public void dispose() {
@@ -451,7 +504,6 @@ public class MessageStoreManager implements Service {
         }
         this.stores.clear();
     }
-
 
     @Override
     public void init() {
@@ -534,14 +586,12 @@ public class MessageStoreManager implements Service {
 
     }
 
-
     public Set<String> getAllTopics() {
         final Set<String> rt = new TreeSet<String>();
         rt.addAll(this.metaConfig.getTopics());
         rt.addAll(this.getMessageStores().keySet());
         return rt;
     }
-
 
     public MessageStore getMessageStore(final String topic, final int partition) {
         final ConcurrentHashMap<Integer/* partition */, MessageStore> map = this.stores.get(topic);
@@ -551,7 +601,6 @@ public class MessageStoreManager implements Service {
         return map.get(partition);
     }
 
-
     Collection<MessageStore> getMessageStoresByTopic(final String topic) {
         final ConcurrentHashMap<Integer/* partition */, MessageStore> map = this.stores.get(topic);
         if (map == null) {
@@ -560,20 +609,15 @@ public class MessageStoreManager implements Service {
         return map.values();
     }
 
-
     public MessageStore getOrCreateMessageStore(final String topic, final int partition) throws IOException {
         return this.getOrCreateMessageStoreInner(topic, partition, 0);
     }
 
-
-    public MessageStore getOrCreateMessageStore(final String topic, final int partition, final long offsetIfCreate)
-            throws IOException {
+    public MessageStore getOrCreateMessageStore(final String topic, final int partition, final long offsetIfCreate) throws IOException {
         return this.getOrCreateMessageStoreInner(topic, partition, offsetIfCreate);
     }
 
-
-    private MessageStore getOrCreateMessageStoreInner(final String topic, final int partition, final long offsetIfCreate)
-            throws IOException {
+    private MessageStore getOrCreateMessageStoreInner(final String topic, final int partition, final long offsetIfCreate) throws IOException {
         if (!this.isLegalTopic(topic)) {
             throw new IllegalTopicException("The server do not accept topic " + topic);
         }
@@ -613,7 +657,6 @@ public class MessageStoreManager implements Service {
         }
         return messageStore;
     }
-
 
     boolean isLegalTopic(final String topic) {
         for (final Pattern pat : this.topicsPatSet) {

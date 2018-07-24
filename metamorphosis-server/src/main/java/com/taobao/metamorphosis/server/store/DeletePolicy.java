@@ -37,7 +37,6 @@ public interface DeletePolicy {
      */
     public boolean canDelete(File file, long checkTimestamp);
 
-
     /**
      * 处理过期文件
      * 
@@ -45,14 +44,12 @@ public interface DeletePolicy {
      */
     public void process(File file);
 
-
     /**
      * 策略名称
      * 
      * @return
      */
     public String name();
-
 
     /**
      * 初始化

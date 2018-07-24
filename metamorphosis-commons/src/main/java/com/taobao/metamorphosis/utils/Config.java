@@ -6,8 +6,11 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
-
+/**
+ * 配置文件对象的抽象父类，MetaConfig、SlaveConfig、TopicConfig和ZKConfig 都继承自该类
+ */
 public abstract class Config {
+
     public Set<String> getFieldSet() {
         Class<? extends Config> clazz = this.getClass();
         Field[] fields = clazz.getDeclaredFields();
@@ -35,7 +38,6 @@ public abstract class Config {
         return rt;
     }
 
-
     public String findBestMatchField(Set<String> fields, String value) {
         int minScore = Integer.MAX_VALUE;
         String matchedField = null;
@@ -49,7 +51,6 @@ public abstract class Config {
         return matchedField;
     }
 
-
     public void checkConfigKeys(Set<String> configKeySet, Set<String> validKeySet) {
         for (String key : configKeySet) {
             if (!validKeySet.contains(key)) {
@@ -58,4 +59,5 @@ public abstract class Config {
             }
         }
     }
+
 }

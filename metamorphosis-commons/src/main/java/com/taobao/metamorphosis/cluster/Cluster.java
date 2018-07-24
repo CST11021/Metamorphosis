@@ -23,7 +23,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 /**
  * Broker集群
  * 
@@ -34,16 +33,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * 
  */
 public class Cluster {
-    private final ConcurrentHashMap<Integer/* broker id */, Set<Broker>> brokers =
-            new ConcurrentHashMap<Integer, Set<Broker>>();
+
+    private final ConcurrentHashMap<Integer/* broker id */, Set<Broker>> brokers = new ConcurrentHashMap<Integer, Set<Broker>>();
 
     transient private final static Random random = new Random();
-
 
     public ConcurrentHashMap<Integer, Set<Broker>> getBrokers() {
         return this.brokers;
     }
-
 
     /** 返回broker总数,包括master和slave */
     public int size() {
@@ -56,7 +53,6 @@ public class Cluster {
         }
         return size;
     }
-
 
     public Broker getBrokerRandom(int id) {
         Set<Broker> set = this.brokers.get(id);
@@ -75,7 +71,6 @@ public class Cluster {
         return (Broker) set.toArray()[random.nextInt(set.size())];
     }
 
-
     public Broker getMasterBroker(int id) {
         Set<Broker> set = this.brokers.get(id);
         if (set == null || set.size() <= 0) {
@@ -89,7 +84,6 @@ public class Cluster {
         return null;
     }
 
-
     public void addBroker(int id, Broker broker) {
         Set<Broker> set = this.brokers.get(id);
         if (set == null) {
@@ -98,7 +92,6 @@ public class Cluster {
         }
         set.add(broker);
     }
-
 
     public void addBroker(int id, Set<Broker> brokers) {
         Set<Broker> set = this.brokers.get(id);
@@ -109,11 +102,9 @@ public class Cluster {
         set.addAll(brokers);
     }
 
-
     public Set<Broker> remove(int id) {
         return this.brokers.remove(id);
     }
-
 
     public Cluster masterCluster() {
         Cluster cluster = new Cluster();
@@ -132,7 +123,6 @@ public class Cluster {
         return cluster;
     }
 
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -144,7 +134,6 @@ public class Cluster {
         }
         return false;
     }
-
 
     @Override
     public int hashCode() {

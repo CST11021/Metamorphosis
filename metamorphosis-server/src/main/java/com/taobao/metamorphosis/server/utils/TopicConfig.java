@@ -31,27 +31,27 @@ import com.taobao.metamorphosis.utils.Config;
  */
 // TODO 将其他针对某个topic的特殊配置项移到这里
 public class TopicConfig extends Config {
+
     private String topic;
+    /** 每隔多少秒做一次磁盘sync，覆盖系统配置，可选 */
     private int unflushThreshold;
+    /** 每隔多少条消息做一次磁盘sync，覆盖系统配置，可选 */
     private int unflushInterval;
+    /** 表示该topic下的消息存储在磁盘的路径 */
     private String dataPath;
+    /** 删除策略的执行时间，覆盖系统配置，可选。何时执行删除策略的cron表达式默认是0 0 6,18 * * ?，也就是每天的早晚6点执行处理策略 */
     private String deleteWhen;
+    /** topic的删除策略，覆盖系统配置，可选 */
     private String deletePolicy;
+    /** 该topic在本服务器的分区总数，覆盖系统配置，可选 */
     private int numPartitions;
+    /** 是否接收该topic的消息，覆盖系统配置，可选 */
     private boolean acceptPublish = true;
+    /** 是否接受消费者的订阅，覆盖系统配置，可选 */
     private boolean acceptSubscribe = true;
+    /** 是否启用实时统计，启用则会在服务端对该topic的请求做实时统计，可以通过stats topic-name协议观察到该topic运行状况，可选 */
     private boolean stat;
     private Map<String/* group name */, String/* class name */> filterClassNames = new HashMap<String, String>();
-
-
-    public final void addFilterClass(String group, String className) {
-        this.filterClassNames.put(group, className);
-    }
-
-
-    public final String getFilterClass(String group) {
-        return this.filterClassNames.get(group);
-    }
 
 
     public TopicConfig(final String topic, final MetaConfig metaConfig) {
@@ -67,10 +67,17 @@ public class TopicConfig extends Config {
         this.stat = metaConfig.isStat();
     }
 
-
-    public TopicConfig(String topic, int unflushThreshold, int unflushInterval, String dataPath, String deleteWhen,
-            String deletePolicy, int numPartitions, boolean acceptPublish, boolean acceptSubscribe, boolean stat,
-            Map<String/* group name */, String/* class name */> filterClassNames) {
+    public TopicConfig(String topic,
+                       int unflushThreshold,
+                       int unflushInterval,
+                       String dataPath,
+                       String deleteWhen,
+                       String deletePolicy,
+                       int numPartitions,
+                       boolean acceptPublish,
+                       boolean acceptSubscribe,
+                       boolean stat,
+                       Map<String/* group name */, String/* class name */> filterClassNames) {
         super();
         this.topic = topic;
         this.unflushThreshold = unflushThreshold;
@@ -86,113 +93,96 @@ public class TopicConfig extends Config {
     }
 
 
-    @Override
-    public TopicConfig clone() {
-        return new TopicConfig(this.topic, this.unflushThreshold, this.unflushInterval, this.dataPath, this.deleteWhen,
-            this.deletePolicy, this.numPartitions, this.acceptPublish, this.acceptSubscribe, this.stat,
-            this.filterClassNames);
+    public final void addFilterClass(String group, String className) {
+        this.filterClassNames.put(group, className);
     }
+
+    public final String getFilterClass(String group) {
+        return this.filterClassNames.get(group);
+    }
+
+
+    // --------------------
+    // getter and setter ...
+    // --------------------
 
 
     public boolean isAcceptPublish() {
         return this.acceptPublish;
     }
-
-
     public void setAcceptPublish(boolean acceptPublish) {
         this.acceptPublish = acceptPublish;
     }
 
-
     public boolean isAcceptSubscribe() {
         return this.acceptSubscribe;
     }
-
-
     public void setAcceptSubscribe(boolean acceptSubscribe) {
         this.acceptSubscribe = acceptSubscribe;
     }
 
-
     public int getNumPartitions() {
         return this.numPartitions;
     }
-
-
     public void setNumPartitions(final int numPartitions) {
         this.numPartitions = numPartitions;
     }
 
-
     public String getDeletePolicy() {
         return this.deletePolicy;
     }
-
-
-    public boolean isStat() {
-        return this.stat;
-    }
-
-
-    public void setStat(boolean stat) {
-        this.stat = stat;
-    }
-
-
     public void setDeletePolicy(final String deletePolicy) {
         this.deletePolicy = deletePolicy;
     }
 
+    public boolean isStat() {
+        return this.stat;
+    }
+    public void setStat(boolean stat) {
+        this.stat = stat;
+    }
 
     public String getDeleteWhen() {
         return this.deleteWhen;
     }
-
-
     public void setDeleteWhen(final String deleteWhen) {
         this.deleteWhen = deleteWhen;
     }
 
-
     public String getDataPath() {
         return this.dataPath;
     }
-
-
     public void setDataPath(final String dataPath) {
         this.dataPath = dataPath;
     }
 
-
     public String getTopic() {
         return this.topic;
     }
-
-
     public void setTopic(final String topic) {
         this.topic = topic;
     }
 
-
     public int getUnflushThreshold() {
         return this.unflushThreshold;
     }
-
-
     public void setUnflushThreshold(final int unflushThreshold) {
         this.unflushThreshold = unflushThreshold;
     }
 
-
     public int getUnflushInterval() {
         return this.unflushInterval;
     }
-
-
     public void setUnflushInterval(final int unflushInterval) {
         this.unflushInterval = unflushInterval;
     }
 
+    @Override
+    public TopicConfig clone() {
+        return new TopicConfig(this.topic, this.unflushThreshold, this.unflushInterval, this.dataPath, this.deleteWhen,
+                this.deletePolicy, this.numPartitions, this.acceptPublish, this.acceptSubscribe, this.stat,
+                this.filterClassNames);
+    }
 
     @Override
     public int hashCode() {
@@ -211,7 +201,6 @@ public class TopicConfig extends Config {
         result = prime * result + this.unflushThreshold;
         return result;
     }
-
 
     @Override
     public boolean equals(Object obj) {
@@ -285,7 +274,6 @@ public class TopicConfig extends Config {
         }
         return true;
     }
-
 
     @Override
     public String toString() {

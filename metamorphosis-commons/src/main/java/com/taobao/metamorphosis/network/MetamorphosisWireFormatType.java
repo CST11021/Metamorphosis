@@ -40,7 +40,6 @@ import com.taobao.metamorphosis.transaction.TransactionId;
 import com.taobao.metamorphosis.transaction.TransactionInfo;
 import com.taobao.metamorphosis.transaction.TransactionInfo.TransactionType;
 
-
 /**
  * Metamorphosis wire format type
  * 
@@ -50,60 +49,61 @@ import com.taobao.metamorphosis.transaction.TransactionInfo.TransactionType;
  */
 public class MetamorphosisWireFormatType extends WireFormatType {
 
-    public static final String SCHEME = "meta";
+    static final Log log = LogFactory.getLog(MetaCodecFactory.class);
 
+    public static final String SCHEME = "meta";
 
     @Override
     public String getScheme() {
         return SCHEME;
     }
 
-
     @Override
     public String name() {
         return "metamorphosis";
     }
-
 
     @Override
     public CodecFactory newCodecFactory() {
         return new MetaCodecFactory();
     }
 
-
     @Override
     public CommandFactory newCommandFactory() {
         return new MetaCommandFactory();
     }
 
+
     static final ByteBufferMatcher LINE_MATCHER = new ShiftAndByteBufferMatcher(IoBuffer.wrap(MetaEncodeCommand.CRLF));
     static final Pattern SPLITER = Pattern.compile(" ");
 
+    /**
+     * 命令工厂
+     */
     static class MetaCommandFactory implements CommandFactory {
 
         @Override
-        public BooleanAckCommand createBooleanAckCommand(final CommandHeader request,
-                final ResponseStatus responseStatus, final String errorMsg) {
+        public BooleanAckCommand createBooleanAckCommand(final CommandHeader request, final ResponseStatus responseStatus, final String errorMsg) {
             int httpCode = -1;
             switch (responseStatus) {
-            case NO_ERROR:
-                httpCode = HttpStatus.Success;
-                break;
-            case THREADPOOL_BUSY:
-            case NO_PROCESSOR:
-                httpCode = HttpStatus.ServiceUnavilable;
-                break;
-            case TIMEOUT:
-                httpCode = HttpStatus.GatewayTimeout;
-                break;
-            default:
-                httpCode = HttpStatus.InternalServerError;
-                break;
+                case NO_ERROR:
+                    httpCode = HttpStatus.Success;
+                    break;
+                case THREADPOOL_BUSY:
+                case NO_PROCESSOR:
+                    httpCode = HttpStatus.ServiceUnavilable;
+                    break;
+                case TIMEOUT:
+                    httpCode = HttpStatus.GatewayTimeout;
+                    break;
+                default:
+                    httpCode = HttpStatus.InternalServerError;
+                    break;
             }
             return new BooleanCommand(httpCode, errorMsg, request.getOpaque());
         }
 
-
+        /** 创建心跳命令 */
         @Override
         public HeartBeatRequestCommand createHeartBeatCommand() {
             return new VersionCommand(OpaqueGenerator.getNextOpaque());
@@ -111,8 +111,9 @@ public class MetamorphosisWireFormatType extends WireFormatType {
 
     }
 
-    static final Log log = LogFactory.getLog(MetaCodecFactory.class);
-
+    /**
+     * 用于获取消息的编解码对象
+     */
     static class MetaCodecFactory implements CodecFactory {
 
         @Override
@@ -392,7 +393,6 @@ public class MetamorphosisWireFormatType extends WireFormatType {
 
             };
         }
-
 
         @Override
         public Encoder getEncoder() {

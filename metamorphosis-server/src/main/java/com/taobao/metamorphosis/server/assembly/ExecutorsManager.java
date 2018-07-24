@@ -25,8 +25,8 @@ import com.taobao.metamorphosis.server.Service;
 import com.taobao.metamorphosis.server.utils.MetaConfig;
 import com.taobao.metamorphosis.utils.NamedThreadFactory;
 
-
 public class ExecutorsManager implements Service {
+
     ThreadPoolExecutor getExecutor;
     ThreadPoolExecutor unOrderedPutExecutor;
 
@@ -39,19 +39,11 @@ public class ExecutorsManager implements Service {
         this.unOrderedPutExecutor =
                 (ThreadPoolExecutor) Executors.newFixedThreadPool(metaConfig.getPutProcessThreadCount(),
                     new NamedThreadFactory("PutProcess"));
-
     }
 
-
-    public ThreadPoolExecutor getGetExecutor() {
-        return this.getExecutor;
+    @Override
+    public void init() {
     }
-
-
-    public ThreadPoolExecutor getUnOrderedPutExecutor() {
-        return this.unOrderedPutExecutor;
-    }
-
 
     @Override
     public void dispose() {
@@ -71,9 +63,13 @@ public class ExecutorsManager implements Service {
         }
     }
 
-
-    @Override
-    public void init() {
+    public ThreadPoolExecutor getGetExecutor() {
+        return this.getExecutor;
     }
+
+    public ThreadPoolExecutor getUnOrderedPutExecutor() {
+        return this.unOrderedPutExecutor;
+    }
+
 
 }

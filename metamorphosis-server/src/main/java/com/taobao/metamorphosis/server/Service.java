@@ -25,8 +25,8 @@ package com.taobao.metamorphosis.server;
  * 
  */
 public interface Service {
-    public void init();
 
+    public void init();
 
     public void dispose();
 }

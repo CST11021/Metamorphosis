@@ -53,70 +53,56 @@ import com.taobao.metamorphosis.utils.ZkUtils.ZKConfig;
  * 
  */
 public class BrokerZooKeeper implements PropertyChangeListener {
-    private final MetaConfig config;
-    private ZkClient zkClient;
-
-    private ZKConfig zkConfig;
-
-    private String brokerIdPath;
-
-    private final String masterConfigChecksumPath;
-
-    private final Set<String> topics = new ConcurrentHashSet<String>();
-
-    private final ConcurrentHashMap<String, TopicConfig> cloneTopicConfigs =
-            new ConcurrentHashMap<String, TopicConfig>();
 
     static final Log log = LogFactory.getLog(BrokerZooKeeper.class);
 
+    private final MetaConfig config;
+    private ZkClient zkClient;
+    private ZKConfig zkConfig;
+    private String brokerIdPath;
+    private final String masterConfigChecksumPath;
+    private final Set<String> topics = new ConcurrentHashSet<String>();
+    private final ConcurrentHashMap<String, TopicConfig> cloneTopicConfigs = new ConcurrentHashMap<String, TopicConfig>();
     // private DiamondManager diamondManager;
-
     private volatile boolean registerBrokerInZkFail = false;
-
     private MetaZookeeper metaZookeeper;
 
 
-    public ZkClient getZkClient() {
-        return this.zkClient;
-    }
 
-
-    @Override
-    public void propertyChange(PropertyChangeEvent evt) {
-        if (evt.getPropertyName().equals("configFileChecksum") && !this.config.isSlave()) {
-            try {
-                ZkUtils.updateEphemeralPath(this.zkClient, this.masterConfigChecksumPath,
-                    String.valueOf(this.config.getConfigFileChecksum()));
-            }
-            catch (Exception e) {
-                log.error("Update master config file checksum to zk failed", e);
-            }
-        }
-    }
-
-
-    MetaConfig getConfig() {
-        return this.config;
-    }
-
-
-    public MetaZookeeper getMetaZookeeper() {
-        return this.metaZookeeper;
-    }
-
-
+    /**
+     * 构造器
+     * @param metaConfig
+     */
     public BrokerZooKeeper(final MetaConfig metaConfig) {
         this.config = metaConfig;
         this.zkConfig = metaConfig.getZkConfig();
         if (this.zkConfig == null) {
             this.zkConfig = this.loadZkConfigFromDiamond();
         }
+        // 初始化zk客户端
         this.start(this.zkConfig);
+        // 重新计算brokerIdPath
         this.resetBrokerIdPath();
         this.masterConfigChecksumPath = this.metaZookeeper.masterConfigChecksum(this.config.getBrokerId());
         this.config.addPropertyChangeListener("configFileChecksum", this);
     }
 
+    /**
+     * 当有配置参数发生变更时，则同步到zookeeper
+     * @param evt
+     */
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        if (evt.getPropertyName().equals("configFileChecksum") && !this.config.isSlave()) {
+            try {
+                ZkUtils.updateEphemeralPath(
+                        this.zkClient, this.masterConfigChecksumPath, String.valueOf(this.config.getConfigFileChecksum()));
+            }
+            catch (Exception e) {
+                log.error("Update master config file checksum to zk failed", e);
+            }
+        }
+    }
 
     /**
      * 暂时从zk.properties里加载.为了方便单元测试
@@ -186,16 +172,25 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         // return null;// DiamondUtils.getZkConfig(this.diamondManager, 10000);
     }
 
-
+    /**
+     * 根据zk配置初始化zk客户端
+     * @param zkConfig
+     */
     private void start(final ZKConfig zkConfig) {
         log.info("Initialize zk client...");
-        this.zkClient =
-                new ZkClient(zkConfig.zkConnect, zkConfig.zkSessionTimeoutMs, zkConfig.zkConnectionTimeoutMs,
-                    new ZkUtils.StringSerializer());
+        this.zkClient = new ZkClient(
+                zkConfig.zkConnect, zkConfig.zkSessionTimeoutMs, zkConfig.zkConnectionTimeoutMs, new ZkUtils.StringSerializer()
+        );
         this.zkClient.subscribeStateChanges(new SessionExpireListener());
         this.metaZookeeper = new MetaZookeeper(this.zkClient, zkConfig.zkRoot);
     }
 
+    /**
+     * 重新计算brokerIdPath
+     */
+    public void resetBrokerIdPath() {
+        this.brokerIdPath = this.metaZookeeper.brokerIdsPathOf(this.config.getBrokerId(), this.config.getSlaveId());
+    }
 
     /**
      * 注册broker到zk
@@ -233,7 +228,6 @@ public class BrokerZooKeeper implements PropertyChangeListener {
     // cache it.
     private Broker broker = null;
 
-
     public Broker getBroker() throws Exception {
         if (this.broker != null) {
             return this.broker;
@@ -246,7 +240,6 @@ public class BrokerZooKeeper implements PropertyChangeListener {
             return this.broker;
         }
     }
-
 
     public String getBrokerString() {
         if (this.broker != null) {
@@ -262,13 +255,11 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
-
     public String getBrokerHostName() throws Exception {
         final String hostName =
                 this.config.getHostName() == null ? RemotingUtils.getLocalHost() : this.config.getHostName();
                 return hostName;
     }
-
 
     public void registerMasterConfigFileChecksumInZk() throws Exception {
         if (!this.zkConfig.zkEnable) {
@@ -286,7 +277,6 @@ public class BrokerZooKeeper implements PropertyChangeListener {
             throw e;
         }
     }
-
 
     private void unregisterBrokerInZk() throws Exception {
         if (this.registerBrokerInZkFail) {
@@ -312,13 +302,11 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
-
     private void unregisterTopics() throws Exception {
         for (final String topic : BrokerZooKeeper.this.topics) {
             this.unregisterTopic(topic);
         }
     }
-
 
     public void unregisterEveryThing() {
         try {
@@ -330,29 +318,28 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
-
     private void unregisterTopic(final String topic) {
         try {
             int brokerId = this.config.getBrokerId();
-            final String brokerTopicPath =
-                    this.metaZookeeper.brokerTopicsPathOf(topic, brokerId, this.config.getSlaveId());
-            final String topicPubPath =
-                    this.metaZookeeper.brokerTopicsPathOf(topic, true, brokerId, this.config.getSlaveId());
-            final String topicSubPath =
-                    this.metaZookeeper.brokerTopicsPathOf(topic, false, brokerId, this.config.getSlaveId());
+            // 获取brokerTopic的存储路径
+            final String brokerTopicPath = this.metaZookeeper.brokerTopicsPathOf(topic, brokerId, this.config.getSlaveId());
+            //
+            final String topicPubPath = this.metaZookeeper.brokerTopicsPathOf(topic, true, brokerId, this.config.getSlaveId());
+            //
+            final String topicSubPath = this.metaZookeeper.brokerTopicsPathOf(topic, false, brokerId, this.config.getSlaveId());
 
             // Be compatible with the version before 1.4.3
             ZkUtils.deletePath(this.zkClient, brokerTopicPath);
 
             // added by dennis,since 1.4.3
             ZkUtils.deletePath(this.zkClient, topicPubPath);
+
             ZkUtils.deletePath(this.zkClient, topicSubPath);
         }
         catch (Exception e) {
             log.error("Unregister topic " + topic + " failed,but don't worry about it.", e);
         }
     }
-
 
     /**
      * 注册topic和分区信息到zk
@@ -387,7 +374,6 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
-
     private boolean compareTopicConfigs(TopicConfig c1, TopicConfig c2) {
         if (c1 == null && c2 != null) {
             return false;
@@ -402,17 +388,6 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         return c1.equals(c2);
     }
 
-
-    public ZKConfig getZkConfig() {
-        return this.zkConfig;
-    }
-
-
-    public Set<String> getTopics() {
-        return this.topics;
-    }
-
-
     public void reRegisterEveryThing() throws Exception {
         log.info("re-registering broker info in ZK for broker " + BrokerZooKeeper.this.config.getBrokerId());
         BrokerZooKeeper.this.registerBrokerInZk();
@@ -423,7 +398,6 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         this.registerMasterConfigFileChecksumInZk();
         log.info("done re-registering broker");
     }
-
 
     private void registerTopicInZkInternal(final String topic) throws Exception {
         if (!this.zkConfig.zkEnable) {
@@ -465,7 +439,6 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         log.info("End registering broker topic " + brokerTopicPath);
     }
 
-
     public void close(boolean unregister) {
         try {
             if (unregister && this.zkConfig.zkEnable) {
@@ -502,10 +475,24 @@ public class BrokerZooKeeper implements PropertyChangeListener {
     }
 
 
-    /**
-     * 重新计算brokerIdPath
-     */
-    public void resetBrokerIdPath() {
-        this.brokerIdPath = this.metaZookeeper.brokerIdsPathOf(this.config.getBrokerId(), this.config.getSlaveId());
+    MetaConfig getConfig() {
+        return this.config;
     }
+
+    public ZKConfig getZkConfig() {
+        return this.zkConfig;
+    }
+
+    public Set<String> getTopics() {
+        return this.topics;
+    }
+
+    public ZkClient getZkClient() {
+        return this.zkClient;
+    }
+
+    public MetaZookeeper getMetaZookeeper() {
+        return this.metaZookeeper;
+    }
+
 }

@@ -47,8 +47,10 @@ import com.taobao.metamorphosis.cluster.json.TopicBroker;
  */
 public class MetaZookeeper {
 
-    static{
-        if(Thread.getDefaultUncaughtExceptionHandler()==null){
+    private static Log logger = LogFactory.getLog(MetaZookeeper.class);
+
+    static {
+        if (Thread.getDefaultUncaughtExceptionHandler() == null) {
             Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
                 @Override
                 public void uncaughtException(Thread t, Throwable e) {
@@ -60,7 +62,6 @@ public class MetaZookeeper {
 
     private volatile ZkClient zkClient;
 
-    private static Log logger = LogFactory.getLog(MetaZookeeper.class);
     public final String metaRoot;
     public final String consumersPath;
     public final String brokerIdsPath;
@@ -69,17 +70,6 @@ public class MetaZookeeper {
     // added by dennis,sinace 1.4.3
     public final String brokerTopicsPubPath;
     public final String brokerTopicsSubPath;
-
-
-    public ZkClient getZkClient() {
-        return this.zkClient;
-    }
-
-
-    public void setZkClient(final ZkClient zkClient) {
-        this.zkClient = zkClient;
-    }
-
 
     public MetaZookeeper(final ZkClient zkClient, final String root) {
         this.zkClient = zkClient;
@@ -91,7 +81,11 @@ public class MetaZookeeper {
         this.brokerTopicsSubPath = this.metaRoot + "/brokers/topics-sub";
     }
 
-
+    /**
+     * 格式化root节点的路径，以"/"开始，如果是以"/"结束则干掉
+     * @param root
+     * @return
+     */
     private String normalize(final String root) {
         if (root.startsWith("/")) {
             return this.removeLastSlash(root);
@@ -101,7 +95,11 @@ public class MetaZookeeper {
         }
     }
 
-
+    /**
+     * 如果是以"/"结尾的，则移除"/"
+     * @param root
+     * @return
+     */
     private String removeLastSlash(final String root) {
         if (root.endsWith("/")) {
             return root.substring(0, root.lastIndexOf("/"));
@@ -111,41 +109,16 @@ public class MetaZookeeper {
         }
     }
 
-    public class ZKGroupDirs {
-        public ZKGroupDirs(final String group) {
-            this.consumerGroupDir = this.consumerDir + "/" + group;
-            this.consumerRegistryDir = this.consumerGroupDir + "/ids";
-        }
-
-        public String consumerDir = MetaZookeeper.this.consumersPath;
-        public String consumerGroupDir;
-        public String consumerRegistryDir;
-    }
-
-    public class ZKGroupTopicDirs extends ZKGroupDirs {
-        public ZKGroupTopicDirs(final String topic, final String group) {
-            super(group);
-            this.consumerOffsetDir = this.consumerGroupDir + "/offsets/" + topic;
-            this.consumerOwnerDir = this.consumerGroupDir + "/owners/" + topic;
-        }
-
-        public String consumerOffsetDir;
-        public String consumerOwnerDir;
-    }
-
-
     /**
      * 返回broker集群,包含slave和master
      * 
-     * @param zkClient
      * @return
      */
     public Cluster getCluster() {
         final Cluster cluster = new Cluster();
         final List<String> nodes = ZkUtils.getChildren(this.zkClient, this.brokerIdsPath);
         for (final String node : nodes) {
-            // String brokerZKString = readData(zkClient, brokerIdsPath + "/" +
-            // node);
+            // String brokerZKString = readData(zkClient, brokerIdsPath + "/" + node);
             final int brokerId = Integer.parseInt(node);
             final Set<Broker> brokers = this.getBrokersById(brokerId);
             if (brokers != null && !brokers.isEmpty()) {
@@ -155,10 +128,11 @@ public class MetaZookeeper {
         return cluster;
     }
 
-
     /**
      * 从zk查询一个id下的brokers,包含master和一个或多个slave
-     * */
+     * @param brokerId
+     * @return
+     */
     public Set<Broker> getBrokersById(final int brokerId) {
         final Set<Broker> set = new HashSet<Broker>();
         final Broker masterBroker = this.getMasterBrokerById(brokerId);
@@ -172,10 +146,11 @@ public class MetaZookeeper {
         return set;
     }
 
-
     /**
      * 从zk查询master broker,不存在则返回null
-     * */
+     * @param brokerId
+     * @return
+     */
     public Broker getMasterBrokerById(final int brokerId) {
         final String brokersString = ZkUtils.readDataMaybeNull(this.zkClient, this.brokerIdsPathOf(brokerId, -1));
         if (StringUtils.isNotBlank(brokersString)) {
@@ -184,10 +159,11 @@ public class MetaZookeeper {
         return null;
     }
 
-
     /**
      * 从zk查询slave broker,不存在则返回null
-     * */
+     * @param brokerId
+     * @return
+     */
     private Set<Broker> getSlaveBrokersById(final int brokerId) {
         final Set<Broker> ret = new HashSet<Broker>();
         final List<String> brokers = ZkUtils.getChildren(this.zkClient, this.brokerIdsPath + "/" + brokerId);
@@ -218,10 +194,11 @@ public class MetaZookeeper {
         return ret;
     }
 
-
     /**
      * 返回发布了指定的topic的所有master brokers
-     * */
+     * @param topic
+     * @return
+     */
     public Map<Integer, String> getMasterBrokersByTopic(final String topic) {
         final Map<Integer, String> ret = new TreeMap<Integer, String>();
         final List<String> brokerIds = ZkUtils.getChildren(this.zkClient, this.brokerTopicsPubPath + "/" + topic);
@@ -242,11 +219,10 @@ public class MetaZookeeper {
 
     }
 
-
     /**
      * 返回master的topic到partition映射的map
      * 
-     * @param zkClient
+     * @param topics
      * @param topics
      * @return
      */
@@ -290,16 +266,15 @@ public class MetaZookeeper {
         return ret;
     }
 
-
     private boolean isMaster(final String[] brokerStrs) {
         return brokerStrs != null && brokerStrs.length == 2 && brokerStrs[1].equals("m");
     }
 
-
     /**
      * 返回一个broker发布的所有topics
-     * 
-     * */
+     * @param brokerId
+     * @return
+     */
     public Set<String> getTopicsByBrokerIdFromMaster(final int brokerId) {
         final Set<String> set = new HashSet<String>();
         final List<String> allTopics = ZkUtils.getChildren(this.zkClient, this.brokerTopicsSubPath);
@@ -316,16 +291,14 @@ public class MetaZookeeper {
         return set;
     }
 
-
     /**
      * 返回一个master 下的topic到partition映射的map
      * 
-     * @param zkClient
      * @param topics
+     * @param brokerId
      * @return
      */
-    public Map<String, List<Partition>> getPartitionsForSubTopicsFromMaster(final Collection<String> topics,
-        final int brokerId) {
+    public Map<String, List<Partition>> getPartitionsForSubTopicsFromMaster(final Collection<String> topics, final int brokerId) {
         final Map<String, List<Partition>> ret = new HashMap<String, List<Partition>>();
         if (topics != null) {
             for (final String topic : topics) {
@@ -359,16 +332,14 @@ public class MetaZookeeper {
         return ret;
     }
 
-
     /**
      * 返回一个master下的topic到partition映射的map
      * 
-     * @param zkClient
      * @param topics
+     * @param brokerId
      * @return
      */
-    public Map<String, List<String>> getPartitionStringsForSubTopicsFromMaster(final Collection<String> topics,
-        final int brokerId) {
+    public Map<String, List<String>> getPartitionStringsForSubTopicsFromMaster(final Collection<String> topics, final int brokerId) {
         final Map<String, List<String>> ret = new HashMap<String, List<String>>();
         final Map<String, List<Partition>> tmp = this.getPartitionsForSubTopicsFromMaster(topics, brokerId);
         if (tmp != null && !tmp.isEmpty()) {
@@ -390,11 +361,9 @@ public class MetaZookeeper {
         return ret;
     }
 
-
     /**
      * 返回topic到partition映射的map. 包括master和slave的所有partitions
      * 
-     * @param zkClient
      * @param topics
      * @return
      */
@@ -442,19 +411,16 @@ public class MetaZookeeper {
         return ret;
     }
 
-
     /**
      * brokerId 在zk上注册的path
      * 
      * @param brokerId
-     * @param slaveId
-     *            slave编号, 小于0表示master
+     * @param slaveId slave编号, 小于0表示master
      * 
-     * */
+     */
     public String brokerIdsPathOf(final int brokerId, final int slaveId) {
         return this.brokerIdsPath + "/" + brokerId + (slaveId >= 0 ? "/slave" + slaveId : "/master");
     }
-
 
     /**
      * Master config file checksum path
@@ -466,20 +432,17 @@ public class MetaZookeeper {
         return this.brokerIdsPath + "/" + brokerId + "/master_config_checksum";
     }
 
-
     /**
      * topic 在zk上注册的path
      * 
      * @param topic
      * @param brokerId
-     * @param slaveId
-     *            slave编号, 小于0表示master
+     * @param slaveId slave编号, 小于0表示master
      * */
     @Deprecated
     public String brokerTopicsPathOf(final String topic, final int brokerId, final int slaveId) {
         return this.brokerTopicsPath + "/" + topic + "/" + brokerId + (slaveId >= 0 ? "-s" + slaveId : "-m");
     }
-
 
     /**
      * 
@@ -487,13 +450,42 @@ public class MetaZookeeper {
      * 
      * @since 1.4.3
      * @param topic
+     * @param publish
      * @param brokerId
-     * @param slaveId
-     *            slave编号, 小于0表示master
+     * @param slaveId slave编号, 小于0表示master
      * */
     public String brokerTopicsPathOf(final String topic, boolean publish, final int brokerId, final int slaveId) {
         String parent = publish ? this.brokerTopicsPubPath : this.brokerTopicsSubPath;
         return parent + "/" + topic + "/" + brokerId + (slaveId >= 0 ? "-s" + slaveId : "-m");
     }
 
+    public ZkClient getZkClient() {
+        return this.zkClient;
+    }
+
+    public void setZkClient(final ZkClient zkClient) {
+        this.zkClient = zkClient;
+    }
+
+    public class ZKGroupDirs {
+        public ZKGroupDirs(final String group) {
+            this.consumerGroupDir = this.consumerDir + "/" + group;
+            this.consumerRegistryDir = this.consumerGroupDir + "/ids";
+        }
+
+        public String consumerDir = MetaZookeeper.this.consumersPath;
+        public String consumerGroupDir;
+        public String consumerRegistryDir;
+    }
+
+    public class ZKGroupTopicDirs extends ZKGroupDirs {
+        public ZKGroupTopicDirs(final String topic, final String group) {
+            super(group);
+            this.consumerOffsetDir = this.consumerGroupDir + "/offsets/" + topic;
+            this.consumerOwnerDir = this.consumerGroupDir + "/owners/" + topic;
+        }
+
+        public String consumerOffsetDir;
+        public String consumerOwnerDir;
+    }
 }

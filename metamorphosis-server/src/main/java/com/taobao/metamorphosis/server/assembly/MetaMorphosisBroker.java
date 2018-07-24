@@ -55,9 +55,6 @@ import com.taobao.metamorphosis.server.utils.MetaConfig;
 import com.taobao.metamorphosis.server.utils.MetaMBeanServer;
 import com.taobao.metamorphosis.utils.IdWorker;
 
-
-;
-
 /**
  * 组装的meta server
  * 
@@ -66,6 +63,14 @@ import com.taobao.metamorphosis.utils.IdWorker;
  * 
  */
 public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
+
+    static final Log log = LogFactory.getLog(MetaMorphosisBroker.class);
+
+    /**
+     * 当程序正常退出,系统调用 System.exit方法或虚拟机被关闭时才会执行添加的shutdownHook线程。
+     * 其中shutdownHook是一个已初始化但并没有启动的线程，当jvm关闭的时候，会执行系统中已经设置的所有通过方法addShutdownHook添加的钩子，
+     * 当系统执行完这些钩子后，jvm才会关闭。所以可通过这些钩子在jvm关闭的时候进行内存清理、资源回收等工作。
+     */
     private final class ShutdownHook extends Thread {
         @Override
         public void run() {
@@ -74,130 +79,72 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         }
     }
 
+    /** 停止服务的钩子对象 */
+    private final ShutdownHook shutdownHook;
+    /** 用于标识是否运行了停止服务的钩子方法 */
+    private volatile boolean runShutdownHook = false;
+
+    /** MQ的消息存储管理器 */
     private final MessageStoreManager storeManager;
+
     private final ExecutorsManager executorsManager;
     private final StatsManager statsManager;
     private final RemotingServer remotingServer;
+    /** MQ相关的参数配置 */
     private final MetaConfig metaConfig;
+    /** 用于创建ID的对象 */
     private final IdWorker idWorker;
     private final BrokerZooKeeper brokerZooKeeper;
     private final ConsumerFilterManager consumerFilterManager;
 
     private CommandProcessor brokerProcessor;
-    static final Log log = LogFactory.getLog(MetaMorphosisBroker.class);
     private boolean shutdown = true;
-    private volatile boolean runShutdownHook = false;
-    private final ShutdownHook shutdownHook;
+
     private boolean registerZkSuccess;
 
-
-    public CommandProcessor getBrokerProcessor() {
-        return this.brokerProcessor;
-    }
-
-
-    public MetaConfig getMetaConfig() {
-        return this.metaConfig;
-    }
-
-
-    public synchronized boolean isShutdown() {
-        return this.shutdown;
-    }
-
-
-    public MessageStoreManager getStoreManager() {
-        return this.storeManager;
-    }
-
-
-    public ExecutorsManager getExecutorsManager() {
-        return this.executorsManager;
-    }
-
-
-    public StatsManager getStatsManager() {
-        return this.statsManager;
-    }
-
-
-    public RemotingServer getRemotingServer() {
-        return this.remotingServer;
-    }
-
-
-    public ConsumerFilterManager getConsumerFilterManager() {
-        return this.consumerFilterManager;
-    }
-
-
-    public IdWorker getIdWorker() {
-        return this.idWorker;
-    }
-
-
-    public BrokerZooKeeper getBrokerZooKeeper() {
-        return this.brokerZooKeeper;
-    }
-
-
-    public void setBrokerProcessor(final CommandProcessor brokerProcessor) {
-        this.brokerProcessor = brokerProcessor;
-    }
 
 
     public MetaMorphosisBroker(final MetaConfig metaConfig) {
         super();
+        // 注册停止服务的钩子方法
         this.shutdownHook = new ShutdownHook();
         Runtime.getRuntime().addShutdownHook(this.shutdownHook);
+
         this.metaConfig = metaConfig;
+        // 创建MQ服务对象
         this.remotingServer = newRemotingServer(metaConfig);
         this.executorsManager = new ExecutorsManager(metaConfig);
         this.idWorker = new IdWorker(metaConfig.getBrokerId());
         this.storeManager = new MessageStoreManager(metaConfig, this.newDeletePolicy(metaConfig));
         this.statsManager = new StatsManager(this.metaConfig, this.storeManager, this.remotingServer);
         this.brokerZooKeeper = new BrokerZooKeeper(metaConfig);
+
+
         JournalTransactionStore transactionStore = null;
         try {
             transactionStore = new JournalTransactionStore(metaConfig.getDataLogPath(), this.storeManager, metaConfig);
-        }
-        catch (final Exception e) {
+        } catch (final Exception e) {
             throw new MetamorphosisServerStartupException("Initializing transaction store failed", e);
         }
+
+
         try {
             this.consumerFilterManager = new ConsumerFilterManager(metaConfig);
-        }
-        catch (final Exception e) {
+        } catch (final Exception e) {
             throw new MetamorphosisServerStartupException("Initializing ConsumerFilterManager failed", e);
         }
-        final BrokerCommandProcessor next =
-                new BrokerCommandProcessor(this.storeManager, this.executorsManager, this.statsManager,
-                    this.remotingServer, metaConfig, this.idWorker, this.brokerZooKeeper, this.consumerFilterManager);
-        this.brokerProcessor =
-                new TransactionalCommandProcessor(metaConfig, this.storeManager, this.idWorker, next, transactionStore,
-                    this.statsManager);
+
+
+        final BrokerCommandProcessor next = new BrokerCommandProcessor(
+                this.storeManager, this.executorsManager, this.statsManager,
+                this.remotingServer, metaConfig, this.idWorker, this.brokerZooKeeper, this.consumerFilterManager);
+        this.brokerProcessor = new TransactionalCommandProcessor(
+                metaConfig, this.storeManager, this.idWorker, next, transactionStore, this.statsManager);
+
         MetaMBeanServer.registMBean(this, null);
     }
 
-
-    private DeletePolicy newDeletePolicy(final MetaConfig metaConfig) {
-        final String deletePolicy = metaConfig.getDeletePolicy();
-        if (deletePolicy != null) {
-            return DeletePolicyFactory.getDeletePolicy(deletePolicy);
-        }
-        return null;
-    }
-
-
-    private static RemotingServer newRemotingServer(final MetaConfig metaConfig) {
-        final ServerConfig serverConfig = new ServerConfig();
-        serverConfig.setWireFormatType(new MetamorphosisWireFormatType());
-        serverConfig.setPort(metaConfig.getServerPort());
-        final RemotingServer server = RemotingFactory.newRemotingServer(serverConfig);
-        return server;
-    }
-
-
+    /** 启动MetaQ服务 */
     public synchronized void start() {
         if (!this.shutdown) {
             return;
@@ -229,52 +176,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         log.info("Start metamorphosis server successfully");
     }
 
-
-    private void registerProcessors() {
-        this.remotingServer.registerProcessor(GetCommand.class, new GetProcessor(this.brokerProcessor,
-            this.executorsManager.getGetExecutor()));
-        this.remotingServer.registerProcessor(PutCommand.class, new PutProcessor(this.brokerProcessor,
-            this.executorsManager.getUnOrderedPutExecutor()));
-        this.remotingServer.registerProcessor(OffsetCommand.class, new OffsetProcessor(this.brokerProcessor,
-            this.executorsManager.getGetExecutor()));
-        this.remotingServer
-        .registerProcessor(HeartBeatRequestCommand.class, new VersionProcessor(this.brokerProcessor));
-        this.remotingServer.registerProcessor(QuitCommand.class, new QuitProcessor(this.brokerProcessor));
-        this.remotingServer.registerProcessor(StatsCommand.class, new StatsProcessor(this.brokerProcessor));
-        this.remotingServer.registerProcessor(TransactionCommand.class, new TransactionProcessor(this.brokerProcessor,
-            this.executorsManager.getUnOrderedPutExecutor()));
-    }
-
-
-    private void addTopicsChangeListener() {
-        // 监听topics列表变化并注册到zk
-        this.metaConfig.addPropertyChangeListener("topics", new PropertyChangeListener() {
-
-            @Override
-            public void propertyChange(final PropertyChangeEvent evt) {
-                try {
-                    MetaMorphosisBroker.this.registerTopicsInZk();
-                }
-                catch (final Exception e) {
-                    log.error("Register topic in zk failed", e);
-                }
-            }
-        });
-    }
-
-
-    private void registerTopicsInZk() throws Exception {
-        // 先注册配置的topic到zookeeper
-        for (final String topic : this.metaConfig.getTopics()) {
-            this.brokerZooKeeper.registerTopicInZk(topic, true);
-        }
-        // 注册加载的topic到zookeeper
-        for (final String topic : this.storeManager.getMessageStores().keySet()) {
-            this.brokerZooKeeper.registerTopicInZk(topic, true);
-        }
-    }
-
-
+    /** 停止MetaQ服务 */
     @Override
     public synchronized void stop() {
         if (this.shutdown) {
@@ -315,6 +217,108 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
 
         log.info("Stop metamorphosis server successfully");
 
+    }
+
+    private DeletePolicy newDeletePolicy(final MetaConfig metaConfig) {
+        final String deletePolicy = metaConfig.getDeletePolicy();
+        if (deletePolicy != null) {
+            return DeletePolicyFactory.getDeletePolicy(deletePolicy);
+        }
+        return null;
+    }
+
+    /**
+     * 根据配置信息创建一个服务对象
+     * @param metaConfig MQ配置对象
+     * @return
+     */
+    private static RemotingServer newRemotingServer(final MetaConfig metaConfig) {
+        final ServerConfig serverConfig = new ServerConfig();
+        serverConfig.setWireFormatType(new MetamorphosisWireFormatType());
+        serverConfig.setPort(metaConfig.getServerPort());
+        final RemotingServer server = RemotingFactory.newRemotingServer(serverConfig);
+        return server;
+    }
+
+    private void registerProcessors() {
+        this.remotingServer.registerProcessor(GetCommand.class, new GetProcessor(this.brokerProcessor,
+            this.executorsManager.getGetExecutor()));
+        this.remotingServer.registerProcessor(PutCommand.class, new PutProcessor(this.brokerProcessor,
+            this.executorsManager.getUnOrderedPutExecutor()));
+        this.remotingServer.registerProcessor(OffsetCommand.class, new OffsetProcessor(this.brokerProcessor,
+            this.executorsManager.getGetExecutor()));
+        this.remotingServer
+        .registerProcessor(HeartBeatRequestCommand.class, new VersionProcessor(this.brokerProcessor));
+        this.remotingServer.registerProcessor(QuitCommand.class, new QuitProcessor(this.brokerProcessor));
+        this.remotingServer.registerProcessor(StatsCommand.class, new StatsProcessor(this.brokerProcessor));
+        this.remotingServer.registerProcessor(TransactionCommand.class, new TransactionProcessor(this.brokerProcessor,
+            this.executorsManager.getUnOrderedPutExecutor()));
+    }
+
+    private void addTopicsChangeListener() {
+        // 监听topics列表变化并注册到zk
+        this.metaConfig.addPropertyChangeListener("topics", new PropertyChangeListener() {
+
+            @Override
+            public void propertyChange(final PropertyChangeEvent evt) {
+                try {
+                    MetaMorphosisBroker.this.registerTopicsInZk();
+                }
+                catch (final Exception e) {
+                    log.error("Register topic in zk failed", e);
+                }
+            }
+        });
+    }
+
+    private void registerTopicsInZk() throws Exception {
+        // 先注册配置的topic到zookeeper
+        for (final String topic : this.metaConfig.getTopics()) {
+            this.brokerZooKeeper.registerTopicInZk(topic, true);
+        }
+        // 注册加载的topic到zookeeper
+        for (final String topic : this.storeManager.getMessageStores().keySet()) {
+            this.brokerZooKeeper.registerTopicInZk(topic, true);
+        }
+    }
+
+    public void setBrokerProcessor(final CommandProcessor brokerProcessor) {
+        this.brokerProcessor = brokerProcessor;
+    }
+
+    // ----------
+    // getter ...
+    // ----------
+
+    public CommandProcessor getBrokerProcessor() {
+        return this.brokerProcessor;
+    }
+    public MetaConfig getMetaConfig() {
+        return this.metaConfig;
+    }
+    public synchronized boolean isShutdown() {
+        return this.shutdown;
+    }
+    public MessageStoreManager getStoreManager() {
+        return this.storeManager;
+    }
+    public ExecutorsManager getExecutorsManager() {
+        return this.executorsManager;
+    }
+    public StatsManager getStatsManager() {
+        return this.statsManager;
+    }
+    public RemotingServer getRemotingServer() {
+        return this.remotingServer;
+    }
+    public ConsumerFilterManager getConsumerFilterManager() {
+        return this.consumerFilterManager;
+    }
+    public IdWorker getIdWorker() {
+        return this.idWorker;
+    }
+    public BrokerZooKeeper getBrokerZooKeeper() {
+        return this.brokerZooKeeper;
     }
 
 }

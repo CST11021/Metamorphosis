@@ -24,24 +24,26 @@ import javax.management.ObjectName;
 
 
 /**
- * 注册到平台Mbean server
+ * 注册到平台Mbean server,便于在运行时修改MQ配置
  * 
  * @author boyan
  * @Date 2011-7-14
  * 
  */
 public class MetaMBeanServer {
+
     public static void registMBean(Object o, String name) {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         if (null != mbs) {
             try {
                 mbs.registerMBean(o, new ObjectName(o.getClass().getPackage().getName() + ":type="
-                        + o.getClass().getSimpleName()
-                        + (null == name ? ",id=" + o.hashCode() : ",name=" + name + "-" + o.hashCode())));
+                        + o.getClass().getSimpleName() + (null == name ? ",id=" + o.hashCode() : ",name=" + name
+                        + "-" + o.hashCode())));
             }
             catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
     }
+
 }
