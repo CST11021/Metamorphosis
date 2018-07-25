@@ -98,6 +98,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
     private final ConsumerFilterManager consumerFilterManager;
 
     private CommandProcessor brokerProcessor;
+    /** 用于标识服务是否关闭 */
     private boolean shutdown = true;
 
     private boolean registerZkSuccess;
@@ -113,13 +114,18 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         this.metaConfig = metaConfig;
         // 创建MQ服务对象
         this.remotingServer = newRemotingServer(metaConfig);
+        // 线程池服务管理
         this.executorsManager = new ExecutorsManager(metaConfig);
+        // id产生方案，全局唯一，时间有序
         this.idWorker = new IdWorker(metaConfig.getBrokerId());
+        // 消息存储管理器
         this.storeManager = new MessageStoreManager(metaConfig, this.newDeletePolicy(metaConfig));
+        // 统计管理器
         this.statsManager = new StatsManager(this.metaConfig, this.storeManager, this.remotingServer);
+        // Broker与ZK交互，注册broker和topic等
         this.brokerZooKeeper = new BrokerZooKeeper(metaConfig);
 
-
+        // 初始化事务存储引擎
         JournalTransactionStore transactionStore = null;
         try {
             transactionStore = new JournalTransactionStore(metaConfig.getDataLogPath(), this.storeManager, metaConfig);
@@ -127,17 +133,19 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
             throw new MetamorphosisServerStartupException("Initializing transaction store failed", e);
         }
 
-
+        //
         try {
             this.consumerFilterManager = new ConsumerFilterManager(metaConfig);
         } catch (final Exception e) {
             throw new MetamorphosisServerStartupException("Initializing ConsumerFilterManager failed", e);
         }
 
-
+        //
         final BrokerCommandProcessor next = new BrokerCommandProcessor(
                 this.storeManager, this.executorsManager, this.statsManager,
                 this.remotingServer, metaConfig, this.idWorker, this.brokerZooKeeper, this.consumerFilterManager);
+
+        // 事务命令处理器
         this.brokerProcessor = new TransactionalCommandProcessor(
                 metaConfig, this.storeManager, this.idWorker, next, transactionStore, this.statsManager);
 
@@ -150,16 +158,23 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
             return;
         }
         this.shutdown = false;
+
+        // 初始化消息存储管理器
         this.storeManager.init();
+        //
         this.executorsManager.init();
+        // 统计管理器
         this.statsManager.init();
+        //
         this.registerProcessors();
+
         try {
             this.remotingServer.start();
         }
         catch (final NotifyRemotingException e) {
             throw new MetamorphosisServerStartupException("start remoting server failed", e);
         }
+
         try {
             this.brokerZooKeeper.registerBrokerInZk();
             this.brokerZooKeeper.registerMasterConfigFileChecksumInZk();
@@ -171,6 +186,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
             this.registerZkSuccess = false;
             throw new MetamorphosisServerStartupException("Register broker to zk failed", e);
         }
+
         log.info("Starting metamorphosis server...");
         this.brokerProcessor.init();
         log.info("Start metamorphosis server successfully");
@@ -182,6 +198,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         if (this.shutdown) {
             return;
         }
+
         log.info("Stopping metamorphosis server...");
         this.shutdown = true;
         this.brokerZooKeeper.close(this.registerZkSuccess);
@@ -216,7 +233,6 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         EmbedZookeeperServer.getInstance().stop();
 
         log.info("Stop metamorphosis server successfully");
-
     }
 
     private DeletePolicy newDeletePolicy(final MetaConfig metaConfig) {

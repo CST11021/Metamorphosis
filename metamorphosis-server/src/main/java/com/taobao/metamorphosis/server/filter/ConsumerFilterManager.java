@@ -26,17 +26,17 @@ import com.taobao.metamorphosis.utils.ThreadUtils;
  * 
  */
 public class ConsumerFilterManager implements Service {
-    private ClassLoader filterClassLoader;
-    private final ConcurrentHashMap<String/* class name */, FutureTask<ConsumerMessageFilter>> filters =
-            new ConcurrentHashMap<String, FutureTask<ConsumerMessageFilter>>();
-    private MetaConfig metaConfig;
+
     private static final Log log = LogFactory.getLog(ConsumerFilterManager.class);
+
+    private ClassLoader filterClassLoader;
+    private MetaConfig metaConfig;
+    private final ConcurrentHashMap<String/* class name */, FutureTask<ConsumerMessageFilter>> filters = new ConcurrentHashMap<String, FutureTask<ConsumerMessageFilter>>();
 
 
     public ConsumerFilterManager() {
 
     }
-
 
     public ConsumerFilterManager(MetaConfig metaConfig) throws Exception {
         this.metaConfig = metaConfig;
@@ -64,11 +64,9 @@ public class ConsumerFilterManager implements Service {
         return this.filterClassLoader;
     }
 
-
     void setFilterClassLoader(ClassLoader filterClassLoader) {
         this.filterClassLoader = filterClassLoader;
     }
-
 
     public ConsumerMessageFilter findFilter(final String topic, final String group) {
         if (this.filterClassLoader == null) {
@@ -103,7 +101,6 @@ public class ConsumerFilterManager implements Service {
         return this.getFilter0(task);
     }
 
-
     @SuppressWarnings("unchecked")
     private ConsumerMessageFilter intanceFilter(String className) throws Exception {
         Class<ConsumerMessageFilter> clazz =
@@ -115,7 +112,6 @@ public class ConsumerFilterManager implements Service {
             return null;
         }
     }
-
 
     private ConsumerMessageFilter getFilter0(FutureTask<ConsumerMessageFilter> task) {
         try {
@@ -130,12 +126,10 @@ public class ConsumerFilterManager implements Service {
         }
     }
 
-
     @Override
     public void init() {
 
     }
-
 
     @Override
     public void dispose() {
