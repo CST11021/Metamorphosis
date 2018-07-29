@@ -57,14 +57,18 @@ public class BrokerZooKeeper implements PropertyChangeListener {
     static final Log log = LogFactory.getLog(BrokerZooKeeper.class);
 
     private final MetaConfig config;
-    private ZkClient zkClient;
     private ZKConfig zkConfig;
+    private ZkClient zkClient;
+    /** 服务器集群中唯一的id，必须为整型0-1024之间。对服务器集群的定义是使用同一个zookeeper并且在zookeeper上的root path相同，具体参见zookeeper配置 */
     private String brokerIdPath;
+    /** 当前broker在zk上的 master_config_checksum 节点路径，参见{@link MetaZookeeper#masterConfigChecksum(int)}方法*/
     private final String masterConfigChecksumPath;
     private final Set<String> topics = new ConcurrentHashSet<String>();
     private final ConcurrentHashMap<String, TopicConfig> cloneTopicConfigs = new ConcurrentHashMap<String, TopicConfig>();
     // private DiamondManager diamondManager;
+    // 表示broker注册到zk上时是否失败
     private volatile boolean registerBrokerInZkFail = false;
+    /** Meta与zookeeper交互的辅助类 */
     private MetaZookeeper metaZookeeper;
 
 
@@ -181,6 +185,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         this.zkClient = new ZkClient(
                 zkConfig.zkConnect, zkConfig.zkSessionTimeoutMs, zkConfig.zkConnectionTimeoutMs, new ZkUtils.StringSerializer()
         );
+        // 订阅session监听
         this.zkClient.subscribeStateChanges(new SessionExpireListener());
         this.metaZookeeper = new MetaZookeeper(this.zkClient, zkConfig.zkRoot);
     }
@@ -201,19 +206,22 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         if (!this.zkConfig.zkEnable) {
             return;
         }
+
         try {
             log.info("Registering broker " + this.brokerIdPath);
             final Broker broker = this.getBroker();
 
+            // 创建临时节点
             ZkUtils.createEphemeralPath(this.zkClient, this.brokerIdPath, broker.getZKString());
 
             // 兼容老客户端，暂时加上
             if (!this.config.isSlave()) {
-                ZkUtils.updateEphemeralPath(this.zkClient,
-                    this.metaZookeeper.brokerIdsPath + "/" + this.config.getBrokerId(), broker.getZKString());
+                ZkUtils.updateEphemeralPath(
+                        this.zkClient,
+                        this.metaZookeeper.brokerIdsPath + "/" + this.config.getBrokerId(),
+                        broker.getZKString());
                 log.info("register for old client version " + this.metaZookeeper.brokerIdsPath + "/"
                         + this.config.getBrokerId() + "  succeeded with " + broker);
-
             }
             log.info("Registering broker " + this.brokerIdPath + " succeeded with " + broker);
             this.registerBrokerInZkFail = false;
@@ -228,19 +236,26 @@ public class BrokerZooKeeper implements PropertyChangeListener {
     // cache it.
     private Broker broker = null;
 
+    /**
+     * 根据配置创建一个{@link Broker}对象
+     * @return
+     * @throws Exception
+     */
     public Broker getBroker() throws Exception {
         if (this.broker != null) {
             return this.broker;
         }
         else {
             final String hostName = this.getBrokerHostName();
-            this.broker =
-                    new Broker(this.config.getBrokerId(), hostName, this.config.getServerPort(),
-                        this.config.getSlaveId());
+            this.broker = new Broker(this.config.getBrokerId(), hostName, this.config.getServerPort(), this.config.getSlaveId());
             return this.broker;
         }
     }
 
+    /**
+     * 返回broker描述信息
+     * @return
+     */
     public String getBrokerString() {
         if (this.broker != null) {
             return this.broker.toString();
@@ -255,20 +270,29 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
+    /**
+     * 获取MQ服务器所在的机器(IP),从 {@link MetaConfig#hostName} 获取，如果没有配置，默认为本地
+     * @return
+     * @throws Exception
+     */
     public String getBrokerHostName() throws Exception {
-        final String hostName =
-                this.config.getHostName() == null ? RemotingUtils.getLocalHost() : this.config.getHostName();
-                return hostName;
+        final String hostName =  this.config.getHostName() == null ? RemotingUtils.getLocalHost() : this.config.getHostName();
+        return hostName;
     }
 
+    /**
+     * 给当前broker创建一个 master_config_checksum 节点
+     * @throws Exception
+     */
     public void registerMasterConfigFileChecksumInZk() throws Exception {
         if (!this.zkConfig.zkEnable) {
             return;
         }
+
         try {
             if (!this.config.isSlave()) {
-                ZkUtils.createEphemeralPath(this.zkClient, this.masterConfigChecksumPath,
-                    String.valueOf(this.config.getConfigFileChecksum()));
+                ZkUtils.createEphemeralPath(
+                        this.zkClient, this.masterConfigChecksumPath, String.valueOf(this.config.getConfigFileChecksum()));
             }
         }
         catch (final Exception e) {
@@ -318,6 +342,10 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
+    /**
+     * 将topic从zk上注销
+     * @param topic
+     */
     private void unregisterTopic(final String topic) {
         try {
             int brokerId = this.config.getBrokerId();
@@ -374,6 +402,12 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
+    /**
+     * 比较两个配置是否一样
+     * @param c1
+     * @param c2
+     * @return
+     */
     private boolean compareTopicConfigs(TopicConfig c1, TopicConfig c2) {
         if (c1 == null && c2 != null) {
             return false;
@@ -457,6 +491,9 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
+    /**
+     * session过期监听器
+     */
     private class SessionExpireListener implements IZkStateListener {
 
         @Override
@@ -465,11 +502,9 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
         }
 
-
         @Override
         public void handleStateChanged(final KeeperState state) throws Exception {
             // do nothing, since zkclient will do reconnect for us.
-
         }
 
     }

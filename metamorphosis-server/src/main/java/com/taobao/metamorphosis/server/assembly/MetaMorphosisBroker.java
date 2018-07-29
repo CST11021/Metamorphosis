@@ -88,19 +88,22 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
     private final MessageStoreManager storeManager;
 
     private final ExecutorsManager executorsManager;
+    /** 统计管理器 */
     private final StatsManager statsManager;
+    /** 标签当前的MQ服务 */
     private final RemotingServer remotingServer;
     /** MQ相关的参数配置 */
     private final MetaConfig metaConfig;
     /** 用于创建ID的对象 */
     private final IdWorker idWorker;
+    /** Broker与ZK交互：用于注册broker和topic等 */
     private final BrokerZooKeeper brokerZooKeeper;
     private final ConsumerFilterManager consumerFilterManager;
-
+    /** MQ服务端命令处理器 */
     private CommandProcessor brokerProcessor;
     /** 用于标识服务是否关闭 */
     private boolean shutdown = true;
-
+    /** 表示当前broker是否成功注册到zk，当前MQ服务启动时，会将broker相关信息注册到zk */
     private boolean registerZkSuccess;
 
 
@@ -140,7 +143,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
             throw new MetamorphosisServerStartupException("Initializing ConsumerFilterManager failed", e);
         }
 
-        //
+        // meta服务端命令处理器
         final BrokerCommandProcessor next = new BrokerCommandProcessor(
                 this.storeManager, this.executorsManager, this.statsManager,
                 this.remotingServer, metaConfig, this.idWorker, this.brokerZooKeeper, this.consumerFilterManager);
@@ -165,20 +168,24 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         this.executorsManager.init();
         // 统计管理器
         this.statsManager.init();
-        //
+        // 注册命令处理器
         this.registerProcessors();
 
         try {
             this.remotingServer.start();
-        }
-        catch (final NotifyRemotingException e) {
+        } catch (final NotifyRemotingException e) {
             throw new MetamorphosisServerStartupException("start remoting server failed", e);
         }
 
+        // 将当前broker先关信息注册到zk
         try {
+            // 注册broker到zk
             this.brokerZooKeeper.registerBrokerInZk();
+            // 给当前broker创建一个 master_config_checksum 节点到zk
             this.brokerZooKeeper.registerMasterConfigFileChecksumInZk();
+            // 添加topic变更监听器
             this.addTopicsChangeListener();
+            // 注册当前broker的topic信息到zk
             this.registerTopicsInZk();
             this.registerZkSuccess = true;
         }
@@ -256,21 +263,26 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         return server;
     }
 
+    /**
+     * 注册命令处理器
+     */
     private void registerProcessors() {
-        this.remotingServer.registerProcessor(GetCommand.class, new GetProcessor(this.brokerProcessor,
-            this.executorsManager.getGetExecutor()));
-        this.remotingServer.registerProcessor(PutCommand.class, new PutProcessor(this.brokerProcessor,
-            this.executorsManager.getUnOrderedPutExecutor()));
-        this.remotingServer.registerProcessor(OffsetCommand.class, new OffsetProcessor(this.brokerProcessor,
-            this.executorsManager.getGetExecutor()));
-        this.remotingServer
-        .registerProcessor(HeartBeatRequestCommand.class, new VersionProcessor(this.brokerProcessor));
+        this.remotingServer.registerProcessor(GetCommand.class,
+                new GetProcessor(this.brokerProcessor, this.executorsManager.getGetExecutor()));
+        this.remotingServer.registerProcessor(PutCommand.class,
+                new PutProcessor(this.brokerProcessor, this.executorsManager.getUnOrderedPutExecutor()));
+        this.remotingServer.registerProcessor(OffsetCommand.class,
+                new OffsetProcessor(this.brokerProcessor, this.executorsManager.getGetExecutor()));
+        this.remotingServer.registerProcessor(HeartBeatRequestCommand.class, new VersionProcessor(this.brokerProcessor));
         this.remotingServer.registerProcessor(QuitCommand.class, new QuitProcessor(this.brokerProcessor));
         this.remotingServer.registerProcessor(StatsCommand.class, new StatsProcessor(this.brokerProcessor));
-        this.remotingServer.registerProcessor(TransactionCommand.class, new TransactionProcessor(this.brokerProcessor,
-            this.executorsManager.getUnOrderedPutExecutor()));
+        this.remotingServer.registerProcessor(TransactionCommand.class,
+                new TransactionProcessor(this.brokerProcessor, this.executorsManager.getUnOrderedPutExecutor()));
     }
 
+    /**
+     * 添加topic变更监听器，当当前的MQ服务器的topic变更时，同步到zk上
+     */
     private void addTopicsChangeListener() {
         // 监听topics列表变化并注册到zk
         this.metaConfig.addPropertyChangeListener("topics", new PropertyChangeListener() {
@@ -287,12 +299,16 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         });
     }
 
+    /**
+     * 注册当前broker的topic信息到zk
+     * @throws Exception
+     */
     private void registerTopicsInZk() throws Exception {
-        // 先注册配置的topic到zookeeper
+        // 1、先注册配置中的topic到zookeeper
         for (final String topic : this.metaConfig.getTopics()) {
             this.brokerZooKeeper.registerTopicInZk(topic, true);
         }
-        // 注册加载的topic到zookeeper
+        // 2、注册消息管理器中的topic到zookeeper
         for (final String topic : this.storeManager.getMessageStores().keySet()) {
             this.brokerZooKeeper.registerTopicInZk(topic, true);
         }

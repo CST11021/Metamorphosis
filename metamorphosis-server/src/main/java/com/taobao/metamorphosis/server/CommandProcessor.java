@@ -43,57 +43,45 @@ import com.taobao.metamorphosis.transaction.XATransactionId;
  */
 public interface CommandProcessor extends Service {
 
-    public void processPutCommand(final PutCommand request, final SessionContext sessionContext, final PutCallback cb)
-            throws Exception;
+    // ---------------
+    // 命令相关的处理方法
+    // ---------------
 
+    public void processPutCommand(final PutCommand request, final SessionContext sessionContext, final PutCallback cb) throws Exception;
 
     public ResponseCommand processGetCommand(GetCommand request, final SessionContext ctx);
 
-
-    /**
-     * Under conditions that cannot use notify-remoting directly.
-     */
+    /** Under conditions that cannot use notify-remoting directly. */
     public ResponseCommand processGetCommand(GetCommand request, final SessionContext ctx, final boolean zeroCopy);
-
 
     public ResponseCommand processOffsetCommand(OffsetCommand request, final SessionContext ctx);
 
-
     public void processQuitCommand(QuitCommand request, final SessionContext ctx);
 
-
     public ResponseCommand processVesionCommand(VersionCommand request, final SessionContext ctx);
-
 
     public ResponseCommand processStatCommand(StatsCommand request, final SessionContext ctx);
 
 
+    // -----------
+    // 事务相关
+    // -----------
+
     public void removeTransaction(final XATransactionId xid);
 
-
-    public Transaction getTransaction(final SessionContext context, final TransactionId xid)
-            throws MetamorphosisException, XAException;
-
+    public Transaction getTransaction(final SessionContext context, final TransactionId xid) throws MetamorphosisException, XAException;
 
     public void forgetTransaction(final SessionContext context, final TransactionId xid) throws Exception;
 
-
     public void rollbackTransaction(final SessionContext context, final TransactionId xid) throws Exception;
 
-
-    public void commitTransaction(final SessionContext context, final TransactionId xid, final boolean onePhase)
-            throws Exception;
-
+    public void commitTransaction(final SessionContext context, final TransactionId xid, final boolean onePhase) throws Exception;
 
     public int prepareTransaction(final SessionContext context, final TransactionId xid) throws Exception;
 
+    public void beginTransaction(final SessionContext context, final TransactionId xid, final int seconds) throws Exception;
 
-    public void beginTransaction(final SessionContext context, final TransactionId xid, final int seconds)
-            throws Exception;
-
-
-    public TransactionId[] getPreparedTransactions(final SessionContext context, String uniqueQualifier)
-            throws Exception;
+    public TransactionId[] getPreparedTransactions(final SessionContext context, String uniqueQualifier) throws Exception;
 
     // public void setTransactionTimeout(final SessionContext ctx, final
     // TransactionId xid, int seconds) throws Exception;

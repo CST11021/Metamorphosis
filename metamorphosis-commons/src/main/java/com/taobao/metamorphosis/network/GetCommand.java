@@ -35,42 +35,18 @@ public class GetCommand extends AbstractRequestCommand {
     static final long serialVersionUID = -1L;
 
 
-    public GetCommand(final String topic, final String group, final int partition, final long offset,
-            final int maxSize, final Integer opaque) {
+    public GetCommand(final String topic,
+                      final String group,
+                      final int partition,
+                      final long offset,
+                      final int maxSize,
+                      final Integer opaque) {
         super(topic, opaque);
         this.group = group;
         this.partition = partition;
         this.offset = offset;
         this.maxSize = maxSize;
     }
-
-
-    public String getGroup() {
-        return this.group;
-    }
-
-
-    public long getOffset() {
-        return this.offset;
-    }
-
-
-    public int getMaxSize() {
-        return this.maxSize;
-    }
-
-
-    public int getPartition() {
-        return this.partition;
-    }
-
-
-    @Override
-    public String toString() {
-        return MetaEncodeCommand.GET_CMD + " " + this.getTopic() + " " + this.getGroup() + " " + this.partition + " "
-                + this.offset + " " + this.getMaxSize() + " " + this.getOpaque() + "\r\n";
-    }
-
 
     @Override
     public IoBuffer encode() {
@@ -79,12 +55,28 @@ public class GetCommand extends AbstractRequestCommand {
                         + ByteUtils.stringSize(this.getOpaque()) + this.getTopic().length()
                         + ByteUtils.stringSize(this.offset) + ByteUtils.stringSize(this.maxSize));
         ByteUtils.setArguments(buffer, MetaEncodeCommand.GET_CMD, this.getTopic(), this.getGroup(), this.partition,
-            this.offset, this.maxSize, this.getOpaque());
+                this.offset, this.maxSize, this.getOpaque());
         buffer.flip();
         return buffer;
     }
 
-
+    public String getGroup() {
+        return this.group;
+    }
+    public long getOffset() {
+        return this.offset;
+    }
+    public int getMaxSize() {
+        return this.maxSize;
+    }
+    public int getPartition() {
+        return this.partition;
+    }
+    @Override
+    public String toString() {
+        return MetaEncodeCommand.GET_CMD + " " + this.getTopic() + " " + this.getGroup() + " " + this.partition + " "
+                + this.offset + " " + this.getMaxSize() + " " + this.getOpaque() + "\r\n";
+    }
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -95,8 +87,6 @@ public class GetCommand extends AbstractRequestCommand {
         result = prime * result + this.partition;
         return result;
     }
-
-
     @Override
     public boolean equals(final Object obj) {
         if (this == obj) {

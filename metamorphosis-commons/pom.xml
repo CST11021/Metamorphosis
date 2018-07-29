@@ -8,6 +8,7 @@
 	<artifactId>metamorphosis-commons</artifactId>
 	<name>metamorphosis-commons v${project.version}</name>
 	<packaging>jar</packaging>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -28,17 +29,9 @@
 			</plugin>
 		</plugins>
 	</build>
+
 	<dependencies>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.easymock</groupId>
-			<artifactId>easymockclassextension</artifactId>
-			<scope>test</scope>
-		</dependency>
+
 		<dependency>
 			<groupId>com.taobao.gecko</groupId>
 			<artifactId>gecko</artifactId>
@@ -75,5 +68,20 @@
 			<groupId>com.caucho</groupId>
 			<artifactId>hessian</artifactId>
 		</dependency>
+
+		<!-- 测试相关 -->
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.easymock</groupId>
+			<artifactId>easymockclassextension</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
+
 </project>

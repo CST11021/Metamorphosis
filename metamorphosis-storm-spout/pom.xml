@@ -31,16 +31,21 @@
 			</plugin>
 		</plugins>
 	</build>
+
 	<dependencies>
+
+		<dependency>
+			<groupId>com.taobao.metamorphosis</groupId>
+			<artifactId>metamorphosis-client</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>storm</groupId>
 			<artifactId>storm</artifactId>
 			<version>0.8.2</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>com.taobao.metamorphosis</groupId>
-			<artifactId>metamorphosis-client</artifactId>
-		</dependency>
+
 	</dependencies>
+
 </project>

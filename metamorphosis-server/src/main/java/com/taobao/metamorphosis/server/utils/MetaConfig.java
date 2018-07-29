@@ -58,6 +58,7 @@ public class MetaConfig extends Config implements Serializable, MetaConfigMBean 
     private int serverPort = 8123;
     /** 控制板端口 */
     private int dashboardHttpPort = 8120;
+    /** 表示MQ服务器所在的机器 */
     private String hostName;
     /** topic分区数，默认为1 */
     private int numPartitions = 1;

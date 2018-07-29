@@ -52,12 +52,10 @@ public class GetProcessor implements RequestProcessor<GetCommand> {
         this.executor = executor;
     }
 
-
     @Override
     public ThreadPoolExecutor getExecutor() {
         return this.executor;
     }
-
 
     @Override
     public void handleRequest(final GetCommand request, final Connection conn) {

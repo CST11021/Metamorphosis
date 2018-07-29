@@ -33,30 +33,22 @@ public class OffsetCommand extends AbstractRequestCommand {
     private final String group;
     private final long offset;
 
-
-    public int getPartition() {
-        return this.partition;
-    }
-
-
-    public String getGroup() {
-        return this.group;
-    }
-
-
-    public long getOffset() {
-        return this.offset;
-    }
-
-
-    public OffsetCommand(final String topic, final String group, final int partition, final long offset,
-            final Integer opaque) {
+    public OffsetCommand(final String topic, final String group, final int partition, final long offset, final Integer opaque) {
         super(topic, opaque);
         this.group = group;
         this.partition = partition;
         this.offset = offset;
     }
 
+    public int getPartition() {
+        return this.partition;
+    }
+    public String getGroup() {
+        return this.group;
+    }
+    public long getOffset() {
+        return this.offset;
+    }
 
     @Override
     public int hashCode() {
@@ -67,7 +59,6 @@ public class OffsetCommand extends AbstractRequestCommand {
         result = prime * result + this.partition;
         return result;
     }
-
 
     @Override
     public boolean equals(final Object obj) {
@@ -97,7 +88,6 @@ public class OffsetCommand extends AbstractRequestCommand {
         }
         return true;
     }
-
 
     @Override
     public IoBuffer encode() {

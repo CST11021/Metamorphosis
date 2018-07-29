@@ -42,7 +42,6 @@ public class ZkUtils {
 
     private static Log logger = LogFactory.getLog(ZkUtils.class);
 
-
     /**
      * make sure a persiste.nt path exists in ZK. Create the path if not exist.
      */
@@ -60,7 +59,6 @@ public class ZkUtils {
         }
     }
 
-
     /**
      * create the parent path
      */
@@ -71,13 +69,14 @@ public class ZkUtils {
         }
     }
 
-
     /**
-     * Create an ephemeral node with the given path and data. Create parents if
-     * necessary.
+     * 使用给定的路径和数据创建临时节点。在必要时创建的父节点。
+     * @param client    zk客户端
+     * @param path      节点路径
+     * @param data      节点数据
+     * @throws Exception
      */
-    public static void createEphemeralPath(final ZkClient client, final String path, final String data)
-            throws Exception {
+    public static void createEphemeralPath(final ZkClient client, final String path, final String data) throws Exception {
         try {
             client.createEphemeral(path, data);
         }
@@ -87,13 +86,11 @@ public class ZkUtils {
         }
     }
 
-
     /**
      * Create an ephemeral node with the given path and data. Throw
      * NodeExistException if node already exists.
      */
-    public static void createEphemeralPathExpectConflict(final ZkClient client, final String path, final String data)
-            throws Exception {
+    public static void createEphemeralPathExpectConflict(final ZkClient client, final String path, final String data) throws Exception {
         try {
             createEphemeralPath(client, path, data);
         }
@@ -127,13 +124,11 @@ public class ZkUtils {
 
     }
 
-
     /**
      * Update the value of a persistent node with the given path and data.
      * create parrent directory if necessary. Never throw NodeExistException.
      */
-    public static void updatePersistentPath(final ZkClient client, final String path, final String data)
-            throws Exception {
+    public static void updatePersistentPath(final ZkClient client, final String path, final String data) throws Exception {
         try {
             client.writeData(path, data);
         }
@@ -146,23 +141,19 @@ public class ZkUtils {
         }
     }
 
-
     public static String readData(final ZkClient client, final String path) {
         return client.readData(path);
     }
-
 
     public static String readDataMaybeNull(final ZkClient client, final String path) {
         return client.readData(path, true);
     }
 
-
     /**
      * Update the value of a persistent node with the given path and data.
      * create parrent directory if necessary. Never throw NodeExistException.
      */
-    public static void updateEphemeralPath(final ZkClient client, final String path, final String data)
-            throws Exception {
+    public static void updateEphemeralPath(final ZkClient client, final String path, final String data) throws Exception {
         try {
             client.writeData(path, data);
         }
@@ -177,7 +168,6 @@ public class ZkUtils {
         }
     }
 
-
     public static void deletePath(final ZkClient client, final String path) throws Exception {
         try {
             client.delete(path);
@@ -189,7 +179,6 @@ public class ZkUtils {
             throw e;
         }
     }
-
 
     public static void deletePathRecursive(final ZkClient client, final String path) throws Exception {
         try {
@@ -204,11 +193,9 @@ public class ZkUtils {
         }
     }
 
-
     public static List<String> getChildren(final ZkClient client, final String path) {
         return client.getChildren(path);
     }
-
 
     public static List<String> getChildrenMaybeNull(final ZkClient client, final String path) {
         try {
@@ -219,14 +206,12 @@ public class ZkUtils {
         }
     }
 
-
     /**
      * Check if the given path exists
      */
     public static boolean pathExists(final ZkClient client, final String path) {
         return client.exists(path);
     }
-
 
     public static String getLastPart(final String path) {
         if (path == null) {
@@ -271,107 +256,79 @@ public class ZkUtils {
 
         @Key(name = "zk.zkRoot")
         public String zkRoot = "/meta";
-        /**
-         * If enable zookeeper
-         */
+        /** 是否启用zookeeper（是否将broker相关配置注册到zk） */
         @Key(name = "zk.zkEnable")
         public boolean zkEnable = true;
-
         /** ZK host string */
         @Key(name = "zk.zkConnect")
         public String zkConnect;
-
         /** zookeeper session timeout */
         @Key(name = "zk.zkSessionTimeoutMs")
         public int zkSessionTimeoutMs = 30000;
-
-        /**
-         * the max time that the client waits to establish a connection to
-         * zookeeper
-         */
+        /** the max time that the client waits to establish a connection to zookeeper */
         @Key(name = "zk.zkConnectionTimeoutMs")
         public int zkConnectionTimeoutMs = 30000;
-
         /** how far a ZK follower can be behind a ZK leader */
         @Key(name = "zk.zkSyncTimeMs")
         public int zkSyncTimeMs = 5000;
-
-
-        public ZKConfig(final String zkConnect, final int zkSessionTimeoutMs, final int zkConnectionTimeoutMs,
-                final int zkSyncTimeMs) {
-            super();
-            this.zkConnect = zkConnect;
-            this.zkSessionTimeoutMs = zkSessionTimeoutMs;
-            this.zkConnectionTimeoutMs = zkConnectionTimeoutMs;
-            this.zkSyncTimeMs = zkSyncTimeMs;
-        }
-
-
-        public String getZkRoot() {
-            return this.zkRoot;
-        }
-
-
-        public void setZkRoot(String zkRoot) {
-            this.zkRoot = zkRoot;
-        }
-
-
-        public boolean isZkEnable() {
-            return this.zkEnable;
-        }
-
-
-        public void setZkEnable(boolean zkEnable) {
-            this.zkEnable = zkEnable;
-        }
-
-
-        public String getZkConnect() {
-            return this.zkConnect;
-        }
-
-
-        public void setZkConnect(String zkConnect) {
-            this.zkConnect = zkConnect;
-        }
-
-
-        public int getZkSessionTimeoutMs() {
-            return this.zkSessionTimeoutMs;
-        }
-
-
-        public void setZkSessionTimeoutMs(int zkSessionTimeoutMs) {
-            this.zkSessionTimeoutMs = zkSessionTimeoutMs;
-        }
-
-
-        public int getZkConnectionTimeoutMs() {
-            return this.zkConnectionTimeoutMs;
-        }
-
-
-        public void setZkConnectionTimeoutMs(int zkConnectionTimeoutMs) {
-            this.zkConnectionTimeoutMs = zkConnectionTimeoutMs;
-        }
-
-
-        public int getZkSyncTimeMs() {
-            return this.zkSyncTimeMs;
-        }
-
-
-        public void setZkSyncTimeMs(int zkSyncTimeMs) {
-            this.zkSyncTimeMs = zkSyncTimeMs;
-        }
-
 
         public ZKConfig() {
             super();
             this.zkConnect = "localhost:2181";
         }
+        public ZKConfig(final String zkConnect, final int zkSessionTimeoutMs, final int zkConnectionTimeoutMs, final int zkSyncTimeMs) {
+            super();
+            this.zkConnect = zkConnect;
+            this.zkSessionTimeoutMs = zkSessionTimeoutMs;
+            this.zkConnectionTimeoutMs = zkConnectionTimeoutMs;
+            this.zkSyncTimeMs = zkSyncTimeMs;
+        }
+        public ZKConfig(final String zkRoot, final String zkConnect, final int zkSessionTimeoutMs, final int zkConnectionTimeoutMs, final int zkSyncTimeMs, final boolean zkEnable) {
+            super();
+            this.zkRoot = zkRoot;
+            this.zkConnect = zkConnect;
+            this.zkSessionTimeoutMs = zkSessionTimeoutMs;
+            this.zkConnectionTimeoutMs = zkConnectionTimeoutMs;
+            this.zkSyncTimeMs = zkSyncTimeMs;
+            this.zkEnable = zkEnable;
+        }
 
+        public String getZkRoot() {
+            return this.zkRoot;
+        }
+        public void setZkRoot(String zkRoot) {
+            this.zkRoot = zkRoot;
+        }
+        public boolean isZkEnable() {
+            return this.zkEnable;
+        }
+        public void setZkEnable(boolean zkEnable) {
+            this.zkEnable = zkEnable;
+        }
+        public String getZkConnect() {
+            return this.zkConnect;
+        }
+        public void setZkConnect(String zkConnect) {
+            this.zkConnect = zkConnect;
+        }
+        public int getZkSessionTimeoutMs() {
+            return this.zkSessionTimeoutMs;
+        }
+        public void setZkSessionTimeoutMs(int zkSessionTimeoutMs) {
+            this.zkSessionTimeoutMs = zkSessionTimeoutMs;
+        }
+        public int getZkConnectionTimeoutMs() {
+            return this.zkConnectionTimeoutMs;
+        }
+        public void setZkConnectionTimeoutMs(int zkConnectionTimeoutMs) {
+            this.zkConnectionTimeoutMs = zkConnectionTimeoutMs;
+        }
+        public int getZkSyncTimeMs() {
+            return this.zkSyncTimeMs;
+        }
+        public void setZkSyncTimeMs(int zkSyncTimeMs) {
+            this.zkSyncTimeMs = zkSyncTimeMs;
+        }
 
         @Override
         public int hashCode() {
@@ -385,8 +342,6 @@ public class ZkUtils {
             result = prime * result + this.zkSyncTimeMs;
             return result;
         }
-
-
         @Override
         public boolean equals(Object obj) {
             if (this == obj) {
@@ -431,16 +386,6 @@ public class ZkUtils {
         }
 
 
-        public ZKConfig(final String zkRoot, final String zkConnect, final int zkSessionTimeoutMs,
-                final int zkConnectionTimeoutMs, final int zkSyncTimeMs, final boolean zkEnable) {
-            super();
-            this.zkRoot = zkRoot;
-            this.zkConnect = zkConnect;
-            this.zkSessionTimeoutMs = zkSessionTimeoutMs;
-            this.zkConnectionTimeoutMs = zkConnectionTimeoutMs;
-            this.zkSyncTimeMs = zkSyncTimeMs;
-            this.zkEnable = zkEnable;
-        }
     }
 
 }

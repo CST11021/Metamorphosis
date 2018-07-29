@@ -42,6 +42,7 @@ import com.taobao.metamorphosis.transaction.TransactionInfo.TransactionType;
 
 /**
  * Metamorphosis wire format type
+ * MetamorphosisWireFormatType 负责Command的编码解码工作，MetamorphosisWireFormatType实现接口WireFormatType
  * 
  * @author boyan
  * @Date 2011-4-19
@@ -52,6 +53,8 @@ public class MetamorphosisWireFormatType extends WireFormatType {
     static final Log log = LogFactory.getLog(MetaCodecFactory.class);
 
     public static final String SCHEME = "meta";
+    static final Pattern SPLITER = Pattern.compile(" ");
+    static final ByteBufferMatcher LINE_MATCHER = new ShiftAndByteBufferMatcher(IoBuffer.wrap(MetaEncodeCommand.CRLF));
 
     @Override
     public String getScheme() {
@@ -73,12 +76,10 @@ public class MetamorphosisWireFormatType extends WireFormatType {
         return new MetaCommandFactory();
     }
 
-
-    static final ByteBufferMatcher LINE_MATCHER = new ShiftAndByteBufferMatcher(IoBuffer.wrap(MetaEncodeCommand.CRLF));
-    static final Pattern SPLITER = Pattern.compile(" ");
-
     /**
-     * 命令工厂
+     * 命令工厂，用于心跳检测的类MetaCommandFactory，该类主要有两个方法：
+     * 1、创建心跳请求的createHeartBeatCommand()方法
+     * 2、响应心跳请求的createBooleanAckCommand()方法
      */
     static class MetaCommandFactory implements CommandFactory {
 

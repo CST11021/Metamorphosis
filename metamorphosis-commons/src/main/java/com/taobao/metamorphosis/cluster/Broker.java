@@ -36,7 +36,7 @@ import com.taobao.metamorphosis.utils.URIUtils;
 public class Broker {
 
     private int id;             // 集群机器id
-    private String host;        // host
+    private String host;        // MQ所在的机器（IP）
     private int port;           // 端口
     private int slaveId = -1;   // 标识是否为slave服务器，-1表示master服务器
 

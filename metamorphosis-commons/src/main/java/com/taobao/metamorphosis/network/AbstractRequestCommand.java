@@ -28,10 +28,11 @@ import com.taobao.gecko.core.command.RequestCommand;
  * 
  */
 public abstract class AbstractRequestCommand implements RequestCommand, MetaEncodeCommand {
-    private Integer opaque;
-    private String topic;
+
     static final long serialVersionUID = -1L;
 
+    private Integer opaque;
+    private String topic;
 
     public AbstractRequestCommand(final String topic, final Integer opaque) {
         super();
@@ -39,33 +40,27 @@ public abstract class AbstractRequestCommand implements RequestCommand, MetaEnco
         this.opaque = opaque;
     }
 
-
     @Override
     public CommandHeader getRequestHeader() {
         return this;
     }
-
 
     @Override
     public Integer getOpaque() {
         return this.opaque;
     }
 
-
     public void setOpaque(final Integer opaque) {
         this.opaque = opaque;
     }
-
 
     public String getTopic() {
         return this.topic;
     }
 
-
     public void setTopic(final String topic) {
         this.topic = topic;
     }
-
 
     @Override
     public int hashCode() {
@@ -75,7 +70,6 @@ public abstract class AbstractRequestCommand implements RequestCommand, MetaEnco
         result = prime * result + (this.topic == null ? 0 : this.topic.hashCode());
         return result;
     }
-
 
     @Override
     public boolean equals(final Object obj) {

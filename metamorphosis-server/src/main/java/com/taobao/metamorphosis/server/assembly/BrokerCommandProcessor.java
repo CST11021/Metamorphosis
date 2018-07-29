@@ -78,6 +78,9 @@ import com.taobao.metamorphosis.utils.IdWorker;
  * 
  */
 public class BrokerCommandProcessor implements CommandProcessor {
+
+    static final Log log = LogFactory.getLog(BrokerCommandProcessor.class);
+
     /**
      * append到message store的callback
      * 
@@ -92,6 +95,39 @@ public class BrokerCommandProcessor implements CommandProcessor {
         private final long messageId;
         private final PutCallback cb;
 
+        public StoreAppendCallback(final int partition, final String partitionString, final PutCommand request, final long messageId, final PutCallback cb) {
+            this.partition = partition;
+            this.partitionString = partitionString;
+            this.request = request;
+            this.messageId = messageId;
+            this.cb = cb;
+        }
+
+        @Override
+        public void appendComplete(final Location location) {
+            if (location.isValid()) {
+                final String resultStr =
+                        BrokerCommandProcessor.this.genPutResultString(this.partition, this.messageId,
+                                location.getOffset());
+                if (this.cb != null) {
+                    this.cb.putComplete(new BooleanCommand(HttpStatus.Success, resultStr, this.request.getOpaque()));
+                }
+            }
+            else {
+                BrokerCommandProcessor.this.statsManager.statsPutFailed(this.request.getTopic(), this.partitionString,
+                        1);
+                if (this.cb != null) {
+                    String error = BrokerCommandProcessor.this.genErrorMessage(this.request.getTopic(), this.partition);
+                    this.cb.putComplete(new BooleanCommand(HttpStatus.InternalServerError, error, this.request
+                            .getOpaque()));
+                }
+            }
+
+        }
+
+        private BrokerCommandProcessor getOuterType() {
+            return BrokerCommandProcessor.this;
+        }
 
         @Override
         public int hashCode() {
@@ -105,8 +141,6 @@ public class BrokerCommandProcessor implements CommandProcessor {
             result = prime * result + (this.request == null ? 0 : this.request.hashCode());
             return result;
         }
-
-
         @Override
         public boolean equals(final Object obj) {
             if (this == obj) {
@@ -154,47 +188,7 @@ public class BrokerCommandProcessor implements CommandProcessor {
             }
             return true;
         }
-
-
-        public StoreAppendCallback(final int partition, final String partitionString, final PutCommand request,
-                final long messageId, final PutCallback cb) {
-            this.partition = partition;
-            this.partitionString = partitionString;
-            this.request = request;
-            this.messageId = messageId;
-            this.cb = cb;
-        }
-
-
-        @Override
-        public void appendComplete(final Location location) {
-            if (location.isValid()) {
-                final String resultStr =
-                        BrokerCommandProcessor.this.genPutResultString(this.partition, this.messageId,
-                            location.getOffset());
-                if (this.cb != null) {
-                    this.cb.putComplete(new BooleanCommand(HttpStatus.Success, resultStr, this.request.getOpaque()));
-                }
-            }
-            else {
-                BrokerCommandProcessor.this.statsManager.statsPutFailed(this.request.getTopic(), this.partitionString,
-                    1);
-                if (this.cb != null) {
-                    String error = BrokerCommandProcessor.this.genErrorMessage(this.request.getTopic(), this.partition);
-                    this.cb.putComplete(new BooleanCommand(HttpStatus.InternalServerError, error, this.request
-                        .getOpaque()));
-                }
-            }
-
-        }
-
-
-        private BrokerCommandProcessor getOuterType() {
-            return BrokerCommandProcessor.this;
-        }
     }
-
-    static final Log log = LogFactory.getLog(BrokerCommandProcessor.class);
 
     protected MessageStoreManager storeManager;
     protected ExecutorsManager executorsManager;
@@ -205,23 +199,12 @@ public class BrokerCommandProcessor implements CommandProcessor {
     protected BrokerZooKeeper brokerZooKeeper;
     protected ConsumerFilterManager consumerFilterManager;
 
-
-    protected String genErrorMessage(String topic, int partition) {
-        String error =
-                String.format("Put message to [broker '%s'] [partition '%s'] failed.",
-                    this.brokerZooKeeper.getBrokerString(), topic + "-" + partition);
-        return error;
-    }
-
-
     /**
      * 仅用于测试
      */
     public BrokerCommandProcessor() {
         super();
     }
-
-
     public BrokerCommandProcessor(final MessageStoreManager storeManager, final ExecutorsManager executorsManager,
             final StatsManager statsManager, final RemotingServer remotingServer, final MetaConfig metaConfig,
             final IdWorker idWorker, final BrokerZooKeeper brokerZooKeeper,
@@ -237,84 +220,11 @@ public class BrokerCommandProcessor implements CommandProcessor {
         this.consumerFilterManager = consumerFilterManager;
     }
 
-
-    public ConsumerFilterManager getConsumerFilterManager() {
-        return this.consumerFilterManager;
-    }
-
-
-    public void setConsumerFilterManager(ConsumerFilterManager consumerFilterManager) {
-        this.consumerFilterManager = consumerFilterManager;
-    }
-
-
-    public MessageStoreManager getStoreManager() {
-        return this.storeManager;
-    }
-
-
-    public void setStoreManager(final MessageStoreManager storeManager) {
-        this.storeManager = storeManager;
-    }
-
-
-    public ExecutorsManager getExecutorsManager() {
-        return this.executorsManager;
-    }
-
-
-    public void setExecutorsManager(final ExecutorsManager executorsManager) {
-        this.executorsManager = executorsManager;
-    }
-
-
-    public StatsManager getStatsManager() {
-        return this.statsManager;
-    }
-
-
-    public void setStatsManager(final StatsManager statsManager) {
-        this.statsManager = statsManager;
-    }
-
-
-    public RemotingServer getRemotingServer() {
-        return this.remotingServer;
-    }
-
-
-    public void setRemotingServer(final RemotingServer remotingServer) {
-        this.remotingServer = remotingServer;
-    }
-
-
-    public MetaConfig getMetaConfig() {
-        return this.metaConfig;
-    }
-
-
-    public void setMetaConfig(final MetaConfig metaConfig) {
-        this.metaConfig = metaConfig;
-    }
-
-
-    public IdWorker getIdWorker() {
-        return this.idWorker;
-    }
-
-
-    public void setIdWorker(final IdWorker idWorker) {
-        this.idWorker = idWorker;
-    }
-
-
-    public BrokerZooKeeper getBrokerZooKeeper() {
-        return this.brokerZooKeeper;
-    }
-
-
-    public void setBrokerZooKeeper(final BrokerZooKeeper brokerZooKeeper) {
-        this.brokerZooKeeper = brokerZooKeeper;
+    protected String genErrorMessage(String topic, int partition) {
+        String error =
+                String.format("Put message to [broker '%s'] [partition '%s'] failed.",
+                        this.brokerZooKeeper.getBrokerString(), topic + "-" + partition);
+        return error;
     }
 
 
@@ -322,7 +232,6 @@ public class BrokerCommandProcessor implements CommandProcessor {
     public void init() {
 
     }
-
 
     @Override
     public void dispose() {
@@ -368,7 +277,6 @@ public class BrokerCommandProcessor implements CommandProcessor {
         }
     }
 
-
     protected int getPartition(final PutCommand request) {
         int partition = request.getPartition();
         if (partition == Partition.RandomPartiton.getPartition()) {
@@ -376,7 +284,6 @@ public class BrokerCommandProcessor implements CommandProcessor {
         }
         return partition;
     }
-
 
     /**
      * 返回形如"messageId partition offset"的字符号，返回给客户端
@@ -394,12 +301,10 @@ public class BrokerCommandProcessor implements CommandProcessor {
         return sb.toString();
     }
 
-
     @Override
     public ResponseCommand processGetCommand(final GetCommand request, final SessionContext ctx) {
         return this.processGetCommand(request, ctx, true);
     }
-
 
     @Override
     public ResponseCommand processGetCommand(final GetCommand request, final SessionContext ctx, final boolean zeroCopy) {
@@ -517,14 +422,12 @@ public class BrokerCommandProcessor implements CommandProcessor {
 
     }
 
-
     private byte[] getBytesFromBuffer(final ByteBuffer byteBuffer) {
         byteBuffer.flip();
         byte[] bytes = new byte[byteBuffer.remaining()];
         byteBuffer.get(bytes);
         return bytes;
     }
-
 
     @Override
     public ResponseCommand processOffsetCommand(final OffsetCommand request, final SessionContext ctx) {
@@ -539,7 +442,6 @@ public class BrokerCommandProcessor implements CommandProcessor {
 
     }
 
-
     @Override
     public void processQuitCommand(final QuitCommand request, final SessionContext ctx) {
         try {
@@ -553,13 +455,11 @@ public class BrokerCommandProcessor implements CommandProcessor {
 
     }
 
-
     @Override
     public ResponseCommand processVesionCommand(final VersionCommand request, final SessionContext ctx) {
         return new BooleanCommand(HttpStatus.Success, BuildProperties.VERSION, request.getOpaque());
 
     }
-
 
     @Override
     public ResponseCommand processStatCommand(final StatsCommand request, final SessionContext ctx) {
@@ -572,7 +472,6 @@ public class BrokerCommandProcessor implements CommandProcessor {
             return new BooleanCommand(HttpStatus.Success, statsInfo, request.getOpaque());
         }
     }
-
 
     private ResponseCommand processStatsConfig(final StatsCommand request, final SessionContext ctx) {
         try {
@@ -637,50 +536,94 @@ public class BrokerCommandProcessor implements CommandProcessor {
         throw new UnsupportedOperationException("Unsupported removeTransaction");
     }
 
-
     @Override
-    public Transaction getTransaction(final SessionContext context, final TransactionId xid)
-            throws MetamorphosisException, XAException {
+    public Transaction getTransaction(final SessionContext context, final TransactionId xid) throws MetamorphosisException, XAException {
         throw new UnsupportedOperationException("Unsupported getTransaction");
     }
-
 
     @Override
     public void forgetTransaction(final SessionContext context, final TransactionId xid) throws Exception {
         throw new UnsupportedOperationException("Unsupported forgetTransaction");
     }
 
-
     @Override
     public void rollbackTransaction(final SessionContext context, final TransactionId xid) throws Exception {
         throw new UnsupportedOperationException("Unsupported rollbackTransaction");
     }
 
-
     @Override
-    public void commitTransaction(final SessionContext context, final TransactionId xid, final boolean onePhase)
-            throws Exception {
+    public void commitTransaction(final SessionContext context, final TransactionId xid, final boolean onePhase) throws Exception {
         throw new UnsupportedOperationException("Unsupported commitTransaction");
     }
-
 
     @Override
     public int prepareTransaction(final SessionContext context, final TransactionId xid) throws Exception {
         throw new UnsupportedOperationException("Unsupported prepareTransaction");
     }
 
-
     @Override
-    public void beginTransaction(final SessionContext context, final TransactionId xid, final int seconds)
-            throws Exception {
+    public void beginTransaction(final SessionContext context, final TransactionId xid, final int seconds) throws Exception {
         throw new UnsupportedOperationException("Unsupported beginTransaction");
     }
 
-
     @Override
-    public TransactionId[] getPreparedTransactions(final SessionContext context, String uniqueQualifier)
-            throws Exception {
+    public TransactionId[] getPreparedTransactions(final SessionContext context, String uniqueQualifier) throws Exception {
         throw new UnsupportedOperationException("Unsupported getPreparedTransactions");
     }
+
+
+    // ------------------------
+    // getter and setter...
+    // ------------------------
+
+    public ConsumerFilterManager getConsumerFilterManager() {
+        return this.consumerFilterManager;
+    }
+    public void setConsumerFilterManager(ConsumerFilterManager consumerFilterManager) {
+        this.consumerFilterManager = consumerFilterManager;
+    }
+    public MessageStoreManager getStoreManager() {
+        return this.storeManager;
+    }
+    public void setStoreManager(final MessageStoreManager storeManager) {
+        this.storeManager = storeManager;
+    }
+    public ExecutorsManager getExecutorsManager() {
+        return this.executorsManager;
+    }
+    public void setExecutorsManager(final ExecutorsManager executorsManager) {
+        this.executorsManager = executorsManager;
+    }
+    public StatsManager getStatsManager() {
+        return this.statsManager;
+    }
+    public void setStatsManager(final StatsManager statsManager) {
+        this.statsManager = statsManager;
+    }
+    public RemotingServer getRemotingServer() {
+        return this.remotingServer;
+    }
+    public void setRemotingServer(final RemotingServer remotingServer) {
+        this.remotingServer = remotingServer;
+    }
+    public MetaConfig getMetaConfig() {
+        return this.metaConfig;
+    }
+    public void setMetaConfig(final MetaConfig metaConfig) {
+        this.metaConfig = metaConfig;
+    }
+    public IdWorker getIdWorker() {
+        return this.idWorker;
+    }
+    public void setIdWorker(final IdWorker idWorker) {
+        this.idWorker = idWorker;
+    }
+    public BrokerZooKeeper getBrokerZooKeeper() {
+        return this.brokerZooKeeper;
+    }
+    public void setBrokerZooKeeper(final BrokerZooKeeper brokerZooKeeper) {
+        this.brokerZooKeeper = brokerZooKeeper;
+    }
+
 
 }

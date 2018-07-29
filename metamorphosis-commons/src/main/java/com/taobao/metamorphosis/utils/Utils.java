@@ -35,6 +35,13 @@ import java.util.Properties;
 
 public class Utils {
 
+    /**
+     * 读取配置文件，返回一个 Properties 对象
+     * @param resource 配置文件相对路径
+     * @param encoding 文件编码格式
+     * @return
+     * @throws IOException
+     */
     public static Properties getResourceAsProperties(String resource, String encoding) throws IOException {
         InputStream in = null;
         try {
@@ -55,7 +62,6 @@ public class Utils {
         reader.close();
 
         return props;
-
     }
 
 
