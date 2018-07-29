@@ -301,7 +301,7 @@ public class MessageStoreManager implements Service {
     }
 
     /**
-     * 将磁盘中的消息加载到内存
+     * 将消息管理器中的消息保存到本地磁盘
      * @param metaConfig
      * @throws IOException
      * @throws InterruptedException
@@ -313,7 +313,8 @@ public class MessageStoreManager implements Service {
     }
 
     /**
-     * 将指定目录的topic消息保存到内存
+     * 将MQ内存中的消息保存到本地磁盘的指定目录，每个topic对应的分区都有相应的目录，可配置
+     *
      * @param metaConfig    配置信息，获取消息保存时行为参数
      * @param dir           topic对应消息的所在目录
      * @throws IOException
@@ -355,9 +356,12 @@ public class MessageStoreManager implements Service {
                         final String topic = name.substring(0, index);
                         // 获取topic下的分区
                         final int partition = Integer.parseInt(name.substring(index + 1));
-                        // 表示一个消息
-                        final MessageStore messageStore = new MessageStore(topic, partition, metaConfig,
-                                    MessageStoreManager.this.deletePolicySelector.select(topic, MessageStoreManager.this.deletePolicy));
+                        // 表示一个分区的消息
+                        final MessageStore messageStore = new MessageStore(
+                                topic,
+                                partition,
+                                metaConfig,
+                                MessageStoreManager.this.deletePolicySelector.select(topic, MessageStoreManager.this.deletePolicy));
                         return messageStore;
                     }
                 });
@@ -519,6 +523,7 @@ public class MessageStoreManager implements Service {
             Thread.currentThread().interrupt();
         }
 
+        // 启动定时删除消息的任务执行器
         this.startScheduleDeleteJobs();
     }
 
@@ -537,26 +542,34 @@ public class MessageStoreManager implements Service {
         }
     }
 
+    /**
+     * 启动定时删除消息的任务执行器
+     */
     private void startScheduleDeleteJobs() {
+        // 表示：什么时间执行什么任务
         final Map<String/* deleteWhen */, JobInfo> jobs = new HashMap<String, MessageStoreManager.JobInfo>();
-        // 启动quartz job
+
+        // 1、构建执行任务
         for (final String topic : this.getAllTopics()) {
             final TopicConfig topicConfig = this.metaConfig.getTopicConfig(topic);
             final String deleteWhen =
                     topicConfig != null ? topicConfig.getDeleteWhen() : this.metaConfig.getDeleteWhen();
                     JobInfo jobInfo = jobs.get(deleteWhen);
                     if (jobInfo == null) {
+
                         final JobDetail job = newJob(DeleteJob.class).build();
                         job.getJobDataMap().put(DeleteJob.TOPICS, new HashSet<String>());
                         job.getJobDataMap().put(DeleteJob.STORE_MGR, this);
                         final Trigger trigger = newTrigger().withSchedule(cronSchedule(deleteWhen)).forJob(job).build();
                         jobInfo = new JobInfo(job, trigger);
                         jobs.put(deleteWhen, jobInfo);
+
                     }
                     // 添加本topic
                     ((Set<String>) jobInfo.job.getJobDataMap().get(DeleteJob.TOPICS)).add(topic);
         }
 
+        // 2、遍历任务列表，启动定时任务（启动quartz job）
         for (final JobInfo jobInfo : jobs.values()) {
             try {
                 this.scheduler.scheduleJob(jobInfo.job, jobInfo.trigger);
@@ -586,6 +599,12 @@ public class MessageStoreManager implements Service {
 
     }
 
+    /**
+     * 获取所有的topic:
+     * 1、配置文件中的配置topic
+     * 2、消息关系中的topic
+     * @return
+     */
     public Set<String> getAllTopics() {
         final Set<String> rt = new TreeSet<String>();
         rt.addAll(this.metaConfig.getTopics());

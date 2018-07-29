@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,16 +17,6 @@
  */
 package com.taobao.metamorphosis.server.store;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.channels.WritableByteChannel;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.taobao.gecko.core.buffer.IoBuffer;
 import com.taobao.gecko.core.util.RemotingUtils;
 import com.taobao.gecko.service.Connection;
@@ -35,29 +25,48 @@ import com.taobao.metamorphosis.network.GetCommand;
 import com.taobao.metamorphosis.server.network.SessionContext;
 import com.taobao.metamorphosis.utils.CheckSum;
 import com.taobao.metamorphosis.utils.MessageUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.WritableByteChannel;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
  * 基于文件的消息集合
- * 
+ *
+ *      * MessageStore采用Segment方式组织存储，Segment包装了FileMessageSet，由FileMessageSet进行读写，MessageStore并将多个Segment
+ *      * 进行前后衔接，衔接方式为：
+ *      * 第一个Segment对应的消息文件命名为0.meta;
+ *      * 第二个则命名为第一个文件的开始位置+第一个Segment的大小;
+ *      * 图示如下(假设现在每个文件大小都为1024byte)：
+ *      * 0.meta -> 1024.meta -> 2048.meta -> ...
+ *      *
+ *      * 为什么要这样进行设计呢，主要是为了提高查询效率。MessageStore将最后一个Segment变为可变Segment，因为最后一个Segment相当于文件尾，
+ *      * 消息是有先后顺序的，必须将消息添加到最后一个Segment上。
+ *
  * @author boyan
  * @Date 2011-4-21
- * 
  */
 public class FileMessageSet implements MessageSet, Closeable {
+
+    static final Log log = LogFactory.getLog(FileMessageSet.class);
 
     private final FileChannel channel;
     private final AtomicLong messageCount;
     private final AtomicLong sizeInBytes;
     private final AtomicLong highWaterMark; // 已经确保写入磁盘的水位
-    private final long offset; // 镜像offset
-    private boolean mutable; // 是否可变
+    private final long offset;              // 镜像offset
+    private boolean mutable;                // 表示当前消息文件是否可变
 
-    static final Log log = LogFactory.getLog(FileMessageSet.class);
-
-
-    public FileMessageSet(final FileChannel channel, final long offset, final long limit, final boolean mutable)
-            throws IOException {
+    public FileMessageSet(final FileChannel channel) throws IOException {
+        this(channel, 0, 0, true);
+    }
+    public FileMessageSet(final FileChannel channel, final long offset, final long limit, final boolean mutable) throws IOException {
         super();
         this.channel = channel;
         this.offset = offset;
@@ -65,6 +74,7 @@ public class FileMessageSet implements MessageSet, Closeable {
         this.sizeInBytes = new AtomicLong(0);
         this.highWaterMark = new AtomicLong(0);
         this.mutable = mutable;
+
         if (mutable) {
             final long startMs = System.currentTimeMillis();
             final long truncated = this.recover();
@@ -72,13 +82,11 @@ public class FileMessageSet implements MessageSet, Closeable {
                 log.info("Recovery succeeded in " + (System.currentTimeMillis() - startMs) / 1000 + " seconds. "
                         + truncated + " bytes truncated.");
             }
-        }
-        else {
+        } else {
             try {
                 this.sizeInBytes.set(Math.min(channel.size(), limit) - offset);
                 this.highWaterMark.set(this.sizeInBytes.get());
-            }
-            catch (final Exception e) {
+            } catch (final Exception e) {
                 log.error("Set sizeInBytes error", e);
             }
         }
@@ -88,28 +96,18 @@ public class FileMessageSet implements MessageSet, Closeable {
     public boolean isMutable() {
         return this.mutable;
     }
-
-
     public void setMutable(final boolean mutable) {
         this.mutable = mutable;
     }
-
-
-    public FileMessageSet(final FileChannel channel) throws IOException {
-        this(channel, 0, 0, true);
-    }
-
 
     @Override
     public long getMessageCount() {
         return this.messageCount.get();
     }
 
-
     public long highWaterMark() {
         return this.highWaterMark.get();
     }
-
 
     @Override
     public long append(final ByteBuffer buf) throws IOException {
@@ -126,58 +124,51 @@ public class FileMessageSet implements MessageSet, Closeable {
         return offset;
     }
 
-
     @Override
     public void flush() throws IOException {
         this.channel.force(true);
         this.highWaterMark.set(this.sizeInBytes.get());
     }
 
-
     /**
      * just for test
-     * 
+     *
      * @param newValue
      */
     void setSizeInBytes(final long newValue) {
         this.sizeInBytes.set(newValue);
     }
 
-
     /**
      * just for test
-     * 
+     *
      * @param waterMark
      */
     void setHighWaterMarker(final long waterMark) {
         this.highWaterMark.set(waterMark);
     }
 
-
     /**
      * Just for test
-     * 
+     *
      * @return
      */
     long getOffset() {
         return this.offset;
     }
 
-
     /**
      * Just for test
-     * 
+     *
      * @return
      */
     public long getSizeInBytes() {
         return this.sizeInBytes.get();
     }
 
-
     FileChannel getFileChannel() {
         return this.channel;
     }
-
 
     /**
      * 返回一个MessageSet镜像，指定offset和长度
@@ -188,7 +179,6 @@ public class FileMessageSet implements MessageSet, Closeable {
     }
 
     static final Log transferLog = LogFactory.getLog("TransferLog");
-
 
     @Override
     public void read(final ByteBuffer bf, final long offset) throws IOException {
@@ -202,12 +192,10 @@ public class FileMessageSet implements MessageSet, Closeable {
         }
     }
 
-
     @Override
     public void read(final ByteBuffer bf) throws IOException {
         this.read(bf, this.offset);
     }
-
 
     @Override
     public void write(final GetCommand getCommand, final SessionContext ctx) {
@@ -217,12 +205,10 @@ public class FileMessageSet implements MessageSet, Closeable {
         ctx.getConnection().transferFrom(buf, null, this.channel, this.offset, this.sizeInBytes.get());
     }
 
-
     public long write(final WritableByteChannel socketChanel) throws IOException {
         try {
             return this.getFileChannel().transferTo(this.offset, this.getSizeInBytes(), socketChanel);
-        }
-        catch (final IOException e) {
+        } catch (final IOException e) {
             // Check to see if the IOException is being thrown due to
             // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=5103988
             final String message = e.getMessage();
@@ -232,7 +218,6 @@ public class FileMessageSet implements MessageSet, Closeable {
             throw e;
         }
     }
-
 
     private void tryToLogTransferInfo(final GetCommand getCommand, final Connection conn) {
         if (transferLog.isDebugEnabled()) {
@@ -244,12 +229,11 @@ public class FileMessageSet implements MessageSet, Closeable {
             sb.append("sizeInBytes:").append(this.sizeInBytes.get()).append("\r\n");
             final String addrString =
                     conn != null ? RemotingUtils.getAddrString(conn.getRemoteSocketAddress()) : "unknown";
-                    sb.append("client:").append(addrString).append("\r\n");
-                    sb.append("]\r\n");
-                    transferLog.debug(sb.toString());
+            sb.append("client:").append(addrString).append("\r\n");
+            sb.append("]\r\n");
+            transferLog.debug(sb.toString());
         }
     }
-
 
     // value totalLen opaque\r\n
     IoBuffer makeHead(final int opaque, final long size) {
@@ -258,7 +242,6 @@ public class FileMessageSet implements MessageSet, Closeable {
         buf.flip();
         return buf;
     }
-
 
     @Override
     public void close() throws IOException {
@@ -271,13 +254,11 @@ public class FileMessageSet implements MessageSet, Closeable {
         this.channel.close();
     }
 
-
     FileChannel channel() {
         return this.channel;
     }
 
     private static boolean fastBoot = Boolean.valueOf(System.getProperty("meta.fast_boot", "false"));
-
 
     private long recover() throws IOException {
         if (fastBoot) {
@@ -311,10 +292,9 @@ public class FileMessageSet implements MessageSet, Closeable {
         return len - validUpTo;
     }
 
-
     /**
      * 校验消息md5是否正确
-     * 
+     *
      * @param buf
      * @param start
      * @param len
@@ -350,8 +330,7 @@ public class FileMessageSet implements MessageSet, Closeable {
         }
         if (CheckSum.crc32(messageBuffer.array()) != checksum) {
             return -1;
-        }
-        else {
+        } else {
             return next;
         }
     }
