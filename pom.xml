@@ -27,6 +27,7 @@
             <url>http://clojars.org/repo</url>
         </repository>
     </repositories>
+
     <modules>
         <module>metamorphosis-client</module>
         <module>metamorphosis-tools</module>
@@ -38,6 +39,7 @@
         <module>metamorphosis-server-wrapper</module>
         <module>metamorphosis-example</module>
     </modules>
+
     <properties>
         <project.build.sourceEncoding>GBK</project.build.sourceEncoding>
     </properties>
@@ -89,7 +91,6 @@
                     </descriptors>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -102,7 +103,6 @@
                     </includes>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
@@ -112,7 +112,6 @@
                     <inputEncoding>GBK</inputEncoding>
                 </configuration>
             </plugin>
-
         </plugins>
 
         <resources>
@@ -125,6 +124,8 @@
 
     <dependencyManagement>
         <dependencies>
+
+            <!--metaq内部依赖-->
             <dependency>
                 <groupId>${pom.groupId}</groupId>
                 <artifactId>metamorphosis-client</artifactId>
@@ -160,6 +161,8 @@
                 <artifactId>metamorphosis-commons</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
+            <!--第三方依赖-->
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>

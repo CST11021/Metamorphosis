@@ -39,7 +39,6 @@ import com.taobao.common.store.util.BytesKey;
  * 
  * @since 1.0, 2009-10-20 上午11:27:07
  */
-
 public class OpItemHashMap {
     private final OpItemEntry[] table;
 
@@ -67,22 +66,18 @@ public class OpItemHashMap {
         this.table = new OpItemEntry[capacity];
     }
 
-
     private int hash(final int keyHash, final int i) {
         return this.abs(this.hash1(keyHash) + i * this.hash2(keyHash)) % table.length; // 双重散列
     }
-
 
     private int hash1(final int keyHash) {
         return keyHash % table.length;
     }
 
-
     private int hashForKey(final BytesKey k) {
         final int hash = k.hashCode();
         return this.abs(hash);
     }
-
 
     private int abs(int hash) {
         if (hash == Integer.MIN_VALUE) {
@@ -91,11 +86,9 @@ public class OpItemHashMap {
         return Math.abs(hash);
     }
 
-
     private int hash2(final int keyHash) {
         return keyHash % (table.length - 2);
     }
-
 
     public boolean put(final BytesKey key, final OpItem value) throws IOException {
         if (this.loadFactor() > 0.75f) {
@@ -129,11 +122,9 @@ public class OpItemHashMap {
 
     }
 
-
     private int calcOffset(final int j) {
         return j * OpItemEntry.SIZE;
     }
-
 
     private boolean isEntryDeleted(final int j) throws IOException {
         if (!this.table[j].isLoaded()) {
@@ -142,7 +133,6 @@ public class OpItemHashMap {
         this.table[j].unload(); // 记得释放
         return this.table[j].isDeleted();
     }
-
 
     public OpItem get(final BytesKey key) throws IOException {
         final int keyHash = this.hashForKey(key);
@@ -168,7 +158,6 @@ public class OpItemHashMap {
         }
         return null;
     }
-
 
     public OpItem remove(final BytesKey key) throws IOException {
 
@@ -201,7 +190,6 @@ public class OpItemHashMap {
         return null;
 
     }
-
 
     public void close() throws IOException {
         if (this.channel != null) {
@@ -279,18 +267,15 @@ public class OpItemHashMap {
 
     }
 
-
     public Iterator<BytesKey> iterator() {
         return new DiskIterator();
     }
 
     static final byte DELETED = (byte) 1;
 
-
     public int size() {
         return this.bitSet.cardinality();
     }
-
 
     private float loadFactor() {
         return (float) this.bitSet.cardinality() / this.table.length;

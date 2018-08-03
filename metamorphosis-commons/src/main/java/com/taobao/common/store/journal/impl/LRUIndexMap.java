@@ -38,8 +38,8 @@ import com.taobao.common.store.util.LRUHashMap;
  * 
  * @since 1.0, 2009-10-20 …œŒÁ11:04:37
  */
-
 public class LRUIndexMap implements IndexMap {
+
     private final Lock lock = new ReentrantLock();
     private final LRUHashMap<BytesKey, OpItem> map;
     private final NotifyEldestEntryHandler handler;
@@ -53,7 +53,6 @@ public class LRUIndexMap implements IndexMap {
         map.setHandler(handler);
     }
 
-
     @Override
     public void close() throws IOException {
         this.lock.lock();
@@ -64,17 +63,6 @@ public class LRUIndexMap implements IndexMap {
             this.lock.unlock();
         }
     }
-
-
-    public LRUHashMap<BytesKey, OpItem> getMap() {
-        return map;
-    }
-
-
-    public NotifyEldestEntryHandler getHandler() {
-        return handler;
-    }
-
 
     @Override
     public boolean containsKey(final BytesKey key) {
@@ -90,7 +78,6 @@ public class LRUIndexMap implements IndexMap {
             this.lock.unlock();
         }
     }
-
 
     @Override
     public OpItem get(final BytesKey key) {
@@ -109,6 +96,78 @@ public class LRUIndexMap implements IndexMap {
             this.lock.unlock();
         }
 
+    }
+
+    @Override
+    public Iterator<BytesKey> keyIterator() {
+        lock.lock();
+        try {
+            return new LRUIndexMapItreator(new HashSet<BytesKey>(map.keySet()).iterator(), handler.getDiskMap()
+                .iterator());
+        }
+        finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public void put(final BytesKey key, final OpItem opItem) {
+        lock.lock();
+        try {
+            this.map.put(key, opItem);
+        }
+        finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public void putAll(final Map<BytesKey, OpItem> map) {
+        lock.lock();
+        try {
+            this.map.putAll(map);
+        }
+        finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public void remove(final BytesKey key) {
+        lock.lock();
+        try {
+            final OpItem result = map.remove(key);
+            if (result == null && enableLRU) {
+                try {
+                    handler.getDiskMap().remove(key);
+                }
+                catch (final IOException e) {
+                    throw new IllegalStateException("∑√Œ ¥≈≈Ãª∫¥Ê ß∞‹", e);
+                }
+            }
+        }
+        finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public int size() {
+        lock.lock();
+        try {
+            return map.size() + handler.getDiskMap().size();
+        }
+        finally {
+            lock.unlock();
+        }
+    }
+
+    public LRUHashMap<BytesKey, OpItem> getMap() {
+        return map;
+    }
+
+    public NotifyEldestEntryHandler getHandler() {
+        return handler;
     }
 
     class LRUIndexMapItreator implements Iterator<BytesKey> {
@@ -181,75 +240,6 @@ public class LRUIndexMap implements IndexMap {
             }
         }
 
-    }
-
-
-    @Override
-    public Iterator<BytesKey> keyIterator() {
-        lock.lock();
-        try {
-            return new LRUIndexMapItreator(new HashSet<BytesKey>(map.keySet()).iterator(), handler.getDiskMap()
-                .iterator());
-        }
-        finally {
-            lock.unlock();
-        }
-    }
-
-
-    @Override
-    public void put(final BytesKey key, final OpItem opItem) {
-        lock.lock();
-        try {
-            this.map.put(key, opItem);
-        }
-        finally {
-            lock.unlock();
-        }
-    }
-
-
-    @Override
-    public void putAll(final Map<BytesKey, OpItem> map) {
-        lock.lock();
-        try {
-            this.map.putAll(map);
-        }
-        finally {
-            lock.unlock();
-        }
-    }
-
-
-    @Override
-    public void remove(final BytesKey key) {
-        lock.lock();
-        try {
-            final OpItem result = map.remove(key);
-            if (result == null && enableLRU) {
-                try {
-                    handler.getDiskMap().remove(key);
-                }
-                catch (final IOException e) {
-                    throw new IllegalStateException("∑√Œ ¥≈≈Ãª∫¥Ê ß∞‹", e);
-                }
-            }
-        }
-        finally {
-            lock.unlock();
-        }
-    }
-
-
-    @Override
-    public int size() {
-        lock.lock();
-        try {
-            return map.size() + handler.getDiskMap().size();
-        }
-        finally {
-            lock.unlock();
-        }
     }
 
 }

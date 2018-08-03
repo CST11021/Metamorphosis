@@ -27,6 +27,7 @@ import java.io.Serializable;
  * @author dogun (yuexuqiang at gmail.com)
  */
 public class BytesKey implements Serializable {
+
     /**
      * serialVersionUID
      */
@@ -34,11 +35,9 @@ public class BytesKey implements Serializable {
 
     private byte[] data;
 
-
     public BytesKey(final byte[] data) {
         this.data = data;
     }
-
 
     /**
      * @return the data
@@ -47,7 +46,6 @@ public class BytesKey implements Serializable {
         return data;
     }
 
-
     /**
      * @param data
      *            the data to set
@@ -55,7 +53,6 @@ public class BytesKey implements Serializable {
     public void setData(final byte[] data) {
         this.data = data;
     }
-
 
     @Override
     public int hashCode() {
@@ -67,7 +64,6 @@ public class BytesKey implements Serializable {
         }
         return h;
     }
-
 
     @Override
     public boolean equals(final Object o) {

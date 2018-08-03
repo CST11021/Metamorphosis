@@ -36,11 +36,12 @@ import org.apache.log4j.Logger;
  * 
  */
 public final class MyMBeanServer {
+
     private final Log log = LogFactory.getLog(MyMBeanServer.class);
+
     private MBeanServer mbs = null;
 
     private static MyMBeanServer me = new MyMBeanServer();
-
 
     private MyMBeanServer() {
         try {
@@ -48,12 +49,10 @@ public final class MyMBeanServer {
             if (useJmx) {
                 mbs = ManagementFactory.getPlatformMBeanServer();
             }
-        }
-        catch (final Exception e) {
+        } catch (final Exception e) {
             log.error("create MBServer error", e);
         }
     }
-
 
     /**
      * 获得MBeanServer
@@ -63,7 +62,6 @@ public final class MyMBeanServer {
     public static MyMBeanServer getInstance() {
         return me;
     }
-
 
     /**
      * 注册一个MBean

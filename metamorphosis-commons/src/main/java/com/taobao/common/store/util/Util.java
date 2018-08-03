@@ -24,6 +24,7 @@ package com.taobao.common.store.util;
  * 
  */
 public class Util {
+
     /**
      * 将一个对象注册给MBeanServer
      * 

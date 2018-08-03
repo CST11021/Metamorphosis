@@ -27,6 +27,7 @@ import java.io.IOException;
  * @author dogun (yuexuqiang at gmail.com)
  */
 class LogFile extends DataFile {
+
     /**
      * 默认构造函数
      * 
@@ -36,7 +37,6 @@ class LogFile extends DataFile {
     LogFile(final File file, final int n) throws IOException {
         this(file, n, false);
     }
-
 
     /**
      * 构造函数

@@ -31,57 +31,48 @@ import com.taobao.common.store.util.BytesKey;
  * 
  * @author boyan *
  */
-
 public class ConcurrentIndexMap implements IndexMap {
-    private final ConcurrentHashMap<BytesKey, OpItem> map;
 
+    private final ConcurrentHashMap<BytesKey, OpItem> map;
 
     public ConcurrentIndexMap() {
         this.map = new ConcurrentHashMap<BytesKey, OpItem>();
     }
-
 
     @Override
     public boolean containsKey(final BytesKey key) {
         return this.map.containsKey(key);
     }
 
-
     @Override
     public OpItem get(final BytesKey key) {
         return this.map.get(key);
     }
-
 
     @Override
     public Iterator<BytesKey> keyIterator() {
         return this.map.keySet().iterator();
     }
 
-
     @Override
     public void put(final BytesKey key, final OpItem opItem) {
         this.map.put(key, opItem);
     }
-
 
     @Override
     public void putAll(final Map<BytesKey, OpItem> map) {
         this.map.putAll(map);
     }
 
-
     @Override
     public void remove(final BytesKey key) {
         this.map.remove(key);
     }
 
-
     @Override
     public int size() {
         return this.map.size();
     }
-
 
     @Override
     public void close() throws IOException {

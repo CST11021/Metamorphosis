@@ -31,38 +31,23 @@ import com.taobao.common.store.util.LRUHashMap.EldestEntryHandler;
 
 /**
  * 
- * 
- * 
  * @author boyan
  * 
  * @since 1.0, 2009-10-20 ÉÏÎç11:17:23
  */
-
 public class NotifyEldestEntryHandler implements EldestEntryHandler<BytesKey, OpItem> {
 
-    private OpItemHashMap diskMap;
     private final Log log = LogFactory.getLog(NotifyEldestEntryHandler.class);
 
+    private OpItemHashMap diskMap;
 
     public NotifyEldestEntryHandler(final int capacity, final String cacheFilePath) throws IOException {
         this.diskMap = new OpItemHashMap(2 * capacity, cacheFilePath, false);
     }
 
-
-    public OpItemHashMap getDiskMap() {
-        return diskMap;
-    }
-
-
-    public void setDiskMap(final OpItemHashMap diskMap) {
-        this.diskMap = diskMap;
-    }
-
-
     public void close() throws IOException {
         this.diskMap.close();
     }
-
 
     @Override
     public boolean process(final Entry<BytesKey, OpItem> eldest) {
@@ -75,6 +60,13 @@ public class NotifyEldestEntryHandler implements EldestEntryHandler<BytesKey, Op
             log.error("Ð´Èë´ÅÅÌ»º´æÊ§°Ü", e);
         }
         return false;
+    }
+
+    public OpItemHashMap getDiskMap() {
+        return diskMap;
+    }
+    public void setDiskMap(final OpItemHashMap diskMap) {
+        this.diskMap = diskMap;
     }
 
 }

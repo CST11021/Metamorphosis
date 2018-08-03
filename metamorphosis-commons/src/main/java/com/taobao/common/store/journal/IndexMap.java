@@ -33,28 +33,21 @@ import com.taobao.common.store.util.BytesKey;
  * 
  * @since 1.0, 2009-10-20 ионГ10:49:42
  */
-
 public interface IndexMap {
-    public void put(BytesKey key, OpItem opItem);
 
+    public void put(BytesKey key, OpItem opItem);
 
     public void remove(BytesKey key);
 
-
     public OpItem get(BytesKey key);
-
 
     public int size();
 
-
     public boolean containsKey(BytesKey key);
-
 
     public Iterator<BytesKey> keyIterator();
 
-
     public void putAll(Map<BytesKey, OpItem> map);
-
 
     public void close() throws IOException;
 }

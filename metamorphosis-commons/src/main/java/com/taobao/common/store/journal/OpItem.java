@@ -20,7 +20,6 @@ package com.taobao.common.store.journal;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-
 /**
  * 一个日志记录 操作+数据key+数据文件编号+偏移量+长度
  * 
@@ -28,6 +27,7 @@ import java.util.Arrays;
  * 
  */
 public class OpItem {
+
     public static final byte OP_ADD = 1;
     public static final byte OP_DEL = 2;
 
@@ -40,6 +40,88 @@ public class OpItem {
     volatile long offset;
     int length;
 
+    /**
+     * 将一个操作转换成字节数组
+     * 
+     * @return 字节数组
+     */
+    public byte[] toByte() {
+        final byte[] data = new byte[LENGTH];
+        final ByteBuffer bf = ByteBuffer.wrap(data);
+        bf.put(this.key);
+        bf.put(this.op);
+        bf.putInt(this.number);
+        bf.putLong(this.offset);
+        bf.putInt(this.length);
+        bf.flip();
+        return bf.array();
+    }
+
+    /**
+     * 通过字节数组构造成一个操作日志
+     * 
+     * @param data
+     */
+    public void parse(final byte[] data) {
+        this.parse(data, 0, data.length);
+    }
+
+    public void parse(final byte[] data, final int offset, final int length) {
+        final ByteBuffer bf = ByteBuffer.wrap(data, offset, length);
+        this.key = new byte[16];
+        bf.get(this.key);
+        this.op = bf.get();
+        this.number = bf.getInt();
+        this.offset = bf.getLong();
+        this.length = bf.getInt();
+    }
+
+    public void parse(final ByteBuffer bf) {
+        this.key = new byte[16];
+        bf.get(this.key);
+        this.op = bf.get();
+        this.number = bf.getInt();
+        this.offset = bf.getLong();
+        this.length = bf.getInt();
+    }
+
+
+
+
+    // ------------------------
+    // getter and setter...
+    // ------------------------
+
+    public byte getOp() {
+        return this.op;
+    }
+    public void setOp(final byte op) {
+        this.op = op;
+    }
+    public byte[] getKey() {
+        return this.key;
+    }
+    public void setKey(final byte[] key) {
+        this.key = key;
+    }
+    public int getNumber() {
+        return this.number;
+    }
+    public void setNumber(final int number) {
+        this.number = number;
+    }
+    public long getOffset() {
+        return this.offset;
+    }
+    public void setOffset(final long offset) {
+        this.offset = offset;
+    }
+    public int getLength() {
+        return this.length;
+    }
+    public void setLength(final int length) {
+        this.length = length;
+    }
 
     @Override
     public int hashCode() {
@@ -52,7 +134,6 @@ public class OpItem {
         result = prime * result + this.op;
         return result;
     }
-
 
     @Override
     public boolean equals(final Object obj) {
@@ -83,106 +164,6 @@ public class OpItem {
         }
         return true;
     }
-
-
-    /**
-     * 将一个操作转换成字节数组
-     * 
-     * @return 字节数组
-     */
-    public byte[] toByte() {
-        final byte[] data = new byte[LENGTH];
-        final ByteBuffer bf = ByteBuffer.wrap(data);
-        bf.put(this.key);
-        bf.put(this.op);
-        bf.putInt(this.number);
-        bf.putLong(this.offset);
-        bf.putInt(this.length);
-        bf.flip();
-        return bf.array();
-    }
-
-
-    public byte getOp() {
-        return this.op;
-    }
-
-
-    public void setOp(final byte op) {
-        this.op = op;
-    }
-
-
-    public byte[] getKey() {
-        return this.key;
-    }
-
-
-    public void setKey(final byte[] key) {
-        this.key = key;
-    }
-
-
-    public int getNumber() {
-        return this.number;
-    }
-
-
-    public void setNumber(final int number) {
-        this.number = number;
-    }
-
-
-    public long getOffset() {
-        return this.offset;
-    }
-
-
-    public void setOffset(final long offset) {
-        this.offset = offset;
-    }
-
-
-    public int getLength() {
-        return this.length;
-    }
-
-
-    public void setLength(final int length) {
-        this.length = length;
-    }
-
-
-    /**
-     * 通过字节数组构造成一个操作日志
-     * 
-     * @param data
-     */
-    public void parse(final byte[] data) {
-        this.parse(data, 0, data.length);
-    }
-
-
-    public void parse(final byte[] data, final int offset, final int length) {
-        final ByteBuffer bf = ByteBuffer.wrap(data, offset, length);
-        this.key = new byte[16];
-        bf.get(this.key);
-        this.op = bf.get();
-        this.number = bf.getInt();
-        this.offset = bf.getLong();
-        this.length = bf.getInt();
-    }
-
-
-    public void parse(final ByteBuffer bf) {
-        this.key = new byte[16];
-        bf.get(this.key);
-        this.op = bf.get();
-        this.number = bf.getInt();
-        this.offset = bf.getLong();
-        this.length = bf.getInt();
-    }
-
 
     @Override
     public String toString() {

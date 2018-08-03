@@ -38,12 +38,13 @@
 	</build>
 
 	<dependencies>
-
+		<!--meteq内部依赖-->
 		<dependency>
 			<groupId>com.taobao.metamorphosis</groupId>
 			<artifactId>metamorphosis-commons</artifactId>
 		</dependency>
 
+		<!--spring-->
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-beans</artifactId>
@@ -51,6 +52,7 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!--第三方-->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>

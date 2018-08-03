@@ -38,6 +38,7 @@ import org.apache.log4j.Logger;
  * 
  */
 public class UniqId {
+
     private final Log log = LogFactory.getLog(UniqId.class);
     private static char[] digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
     private static UniqId me = new UniqId();
@@ -77,7 +78,6 @@ public class UniqId {
         }
     }
 
-
     /**
      * 获取UniqID实例
      * 
@@ -87,7 +87,6 @@ public class UniqId {
         return me;
     }
 
-
     /**
      * 获得不会重复的毫秒数
      * 
@@ -96,7 +95,6 @@ public class UniqId {
     public long getUniqTime() {
         return timer.getCurrentTime();
     }
-
 
     /**
      * 获得UniqId
@@ -108,14 +106,10 @@ public class UniqId {
         final long t = timer.getCurrentTime();
 
         sb.append(t);
-
         sb.append("-");
-
         sb.append(random.nextInt(8999) + 1000);
-
         sb.append("-");
         sb.append(hostAddr);
-
         sb.append("-");
         sb.append(Thread.currentThread().hashCode());
 
@@ -126,7 +120,6 @@ public class UniqId {
         return sb.toString();
     }
 
-
     /**
      * 获取MD5之后的uniqId string
      * 
@@ -136,7 +129,6 @@ public class UniqId {
         return this.hashString(this.getUniqID());
     }
 
-
     /**
      * 获取MD5之后的uniqId
      * 
@@ -145,7 +137,6 @@ public class UniqId {
     public byte[] getUniqIDHash() {
         return this.hash(this.getUniqID());
     }
-
 
     /**
      * 对字符串进行md5
@@ -167,7 +158,6 @@ public class UniqId {
         }
     }
 
-
     /**
      * 对字符串进行md5 string
      * 
@@ -178,7 +168,6 @@ public class UniqId {
         final byte[] bt = this.hash(str);
         return this.bytes2string(bt);
     }
-
 
     /**
      * 将一个字节数组转化为可见的字符串
@@ -209,8 +198,8 @@ public class UniqId {
      * @author dogun
      */
     private class UniqTimer {
-        private final AtomicLong lastTime = new AtomicLong(System.currentTimeMillis());
 
+        private final AtomicLong lastTime = new AtomicLong(System.currentTimeMillis());
 
         public long getCurrentTime() {
             return this.lastTime.incrementAndGet();

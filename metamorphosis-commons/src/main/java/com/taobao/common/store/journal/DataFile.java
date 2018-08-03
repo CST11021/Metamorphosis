@@ -50,7 +50,6 @@ class DataFile {
         this(file, number, false);
     }
 
-
     /**
      * 构造函数，会打开指定的文件，并且将指针指向文件结尾
      * 
@@ -71,7 +70,6 @@ class DataFile {
         return this.number;
     }
 
-
     /**
      * 获得文件的大小
      * 
@@ -82,16 +80,13 @@ class DataFile {
         return this.currentPos;
     }
 
-
     long position() throws IOException {
         return this.currentPos;
     }
 
-
     void forward(final long offset) {
         this.currentPos += offset;
     }
-
 
     void sync(final Condition condition) throws Exception {
         while (this.fc.position() < this.currentPos) {
@@ -99,7 +94,6 @@ class DataFile {
         }
         this.fc.force(true);
     }
-
 
     /**
      * 获取文件最后修改时间
@@ -110,7 +104,6 @@ class DataFile {
     long lastModified() throws IOException {
         return this.file.lastModified();
     }
-
 
     /**
      * 删除文件
@@ -123,7 +116,6 @@ class DataFile {
         return this.file.delete();
     }
 
-
     /**
      * 强制将数据写回硬盘
      * 
@@ -133,7 +125,6 @@ class DataFile {
         this.fc.force(true);
     }
 
-
     /**
      * 关闭文件
      * 
@@ -142,7 +133,6 @@ class DataFile {
     void close() throws IOException {
         this.fc.close();
     }
-
 
     /**
      * 从文件读取数据到bf，直到读满或者读到文件结尾。 <br />
@@ -159,7 +149,6 @@ class DataFile {
             }
         }
     }
-
 
     /**
      * 从文件的制定位置读取数据到bf，直到读满或者读到文件结尾。 <br />
@@ -187,7 +176,6 @@ class DataFile {
         }
     }
 
-
     /**
      * 写入bf长度的数据到文件，文件指针会向后移动
      * 
@@ -204,7 +192,6 @@ class DataFile {
         }
         return this.fc.position();
     }
-
 
     /**
      * 从指定位置写入bf长度的数据到文件，文件指针<b>不会</b>向后移动
@@ -224,7 +211,6 @@ class DataFile {
         }
     }
 
-
     /**
      * 对文件增加一个引用计数
      * 
@@ -234,11 +220,9 @@ class DataFile {
         return this.referenceCount.incrementAndGet();
     }
 
-
     int increment(final int n) {
         return this.referenceCount.addAndGet(n);
     }
-
 
     /**
      * 对文件减少一个引用计数
@@ -249,11 +233,9 @@ class DataFile {
         return this.referenceCount.decrementAndGet();
     }
 
-
     int decrement(final int n) {
         return this.referenceCount.addAndGet(-n);
     }
-
 
     /**
      * 文件是否还在使用（引用计数是否是0了）
@@ -264,7 +246,6 @@ class DataFile {
         return this.getReferenceCount() <= 0;
     }
 
-
     /**
      * 获得引用计数的值
      * 
@@ -273,7 +254,6 @@ class DataFile {
     int getReferenceCount() {
         return this.referenceCount.get();
     }
-
 
     @Override
     public String toString() {
