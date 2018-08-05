@@ -25,7 +25,12 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 
 
 /**
- * 分区选择器
+ * 分区选择器,生产者发送消息时，使用该分区选择器选择一个分区保存消息，默认使用循环的方式选择分区
+ *
+ * 生产者在通过zk获取分区列表之后，会按照brokerId和分区号的顺序排列组织成一个有序的分区列表，发送的时候按照从头到尾循环往复的方式选择一个
+ * 分区来发送消息。这是默认的分区策略，考虑到我们的broker服务器软硬件配置基本一致，默认的轮询策略已然足够。如果你想实现自己的负载均衡策略，
+ * 可以实现上文提到过的PartitionSelector接口，并在创建producer的时候传入即可。在broker因为重启或者故障等因素无法服务的时候，producer
+ * 通过zookeeper会感知到这个变化，将失效的分区从列表中移除做到fail over。因为从故障到感知变化有一个延迟，可能在那一瞬间会有部分的消息发送失败。
  * 
  * @author boyan
  * @Date 2011-4-26
@@ -36,15 +41,12 @@ public interface PartitionSelector {
     /**
      * 根据topic、message从partitions列表中选择分区
      * 
-     * @param topic
-     *            topic
-     * @param partitions
-     *            分区列表
-     * @param message
-     *            消息
+     * @param topic         表示该消息所属的主题
+     * @param partitions    表示可选择的分区列表
+     * @param message       消息
+     *
      * @return
-     * @throws MetaClientException
-     *             此方法抛出的任何异常都应当包装为MetaClientException
+     * @throws MetaClientException 此方法抛出的任何异常都应当包装为MetaClientException
      */
     public Partition getPartition(String topic, List<Partition> partitions, Message message) throws MetaClientException;
 }

@@ -10,6 +10,7 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 
 /**
  * Random partition selector
+ * 随机分区选择器
  * 
  * @author dennis<killme2008@gmail.com>
  * 
@@ -17,7 +18,6 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 public class RandomPartitionSelector extends AbstractPartitionSelector {
 
     final Random rand = new Random();
-
 
     @Override
     public Partition getPartition0(String topic, List<Partition> partitions, Message message)

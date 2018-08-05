@@ -28,5 +28,7 @@ import com.taobao.metamorphosis.exception.MetaClientException;
  * 
  */
 public interface Shutdownable {
+
     public void shutdown() throws MetaClientException;
+
 }

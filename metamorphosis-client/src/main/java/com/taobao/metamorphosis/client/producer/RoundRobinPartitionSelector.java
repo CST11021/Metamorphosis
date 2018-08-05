@@ -34,8 +34,10 @@ import com.taobao.metamorphosis.exception.MetaClientException;
  */
 public class RoundRobinPartitionSelector extends AbstractPartitionSelector {
 
+    /**
+     * 统计获取分区的次数，以轮询的方式返回分区
+     */
     private final PositiveAtomicCounter sets = new PositiveAtomicCounter();
-
 
     @Override
     public Partition getPartition0(final String topic, final List<Partition> partitions, final Message message)

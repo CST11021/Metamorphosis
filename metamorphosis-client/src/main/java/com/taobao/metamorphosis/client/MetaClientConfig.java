@@ -27,54 +27,45 @@ import com.taobao.metamorphosis.utils.ZkUtils.ZKConfig;
 
 
 public class MetaClientConfig implements Serializable {
+
     static final long serialVersionUID = -1L;
+
+    Properties partitionsInfo;
+
     protected String serverUrl;
 
-    /**
-     * 从diamond获取partitions配置的dataId，默认为"metamorphosis.partitions"
-     * */
+    /** 从diamond获取partitions配置的dataId，默认为"metamorphosis.partitions" */
     private final String diamondPartitionsDataId = DiamondUtils.DEFAULT_PARTITIONS_DATAID;
 
-    /**
-     * 从diamond获取partitions配置的group，默认为DEFAULT_GROUP
-     */
+    /** 从diamond获取partitions配置的group，默认为DEFAULT_GROUP */
     private final String diamondPartitionsGroup = "DEFAULT_GROUP";// Constants.DEFAULT_GROUP;
 
     protected ZKConfig zkConfig;
 
-    /**
-     * recover本地消息的时间间隔
-     */
+    /** recover本地消息的时间间隔 */
     private long recoverMessageIntervalInMills = 5 * 60 * 1000L;
 
     private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
 
+    // ------------------
+    // getter and setter...
+    // ------------------
 
     public int getRecoverThreadCount() {
         return this.recoverThreadCount;
     }
-
-
     public void setRecoverThreadCount(final int recoverThreadCount) {
         this.recoverThreadCount = recoverThreadCount;
     }
-
-
     public long getRecoverMessageIntervalInMills() {
         return this.recoverMessageIntervalInMills;
     }
-
-
     public void setRecoverMessageIntervalInMills(final long recoverMessageIntervalInMills) {
         this.recoverMessageIntervalInMills = recoverMessageIntervalInMills;
     }
-
-
     public ZKConfig getZkConfig() {
         return this.zkConfig;
     }
-
-
     public void setZkConfig(final ZKConfig zkConfig) {
         if (zkConfig == null) {
             throw new IllegalArgumentException("Null zkconfig");
@@ -84,90 +75,54 @@ public class MetaClientConfig implements Serializable {
         }
         this.zkConfig = zkConfig;
     }
-
-
     public String getZkRoot() {
         return this.zkConfig.getZkRoot();
     }
-
-
     public void setZkRoot(String zkRoot) {
         this.zkConfig.setZkRoot(zkRoot);
     }
-
-
     public boolean isZkEnable() {
         return this.zkConfig.isZkEnable();
     }
-
-
     public void setZkEnable(boolean zkEnable) {
         this.zkConfig.setZkEnable(zkEnable);
     }
-
-
     public String getZkConnect() {
         return this.zkConfig.getZkConnect();
     }
-
-
     public void setZkConnect(String zkConnect) {
         this.zkConfig.setZkConnect(zkConnect);
     }
-
-
     public int getZkSessionTimeoutMs() {
         return this.zkConfig.getZkSessionTimeoutMs();
     }
-
-
     public void setZkSessionTimeoutMs(int zkSessionTimeoutMs) {
         this.zkConfig.setZkSessionTimeoutMs(zkSessionTimeoutMs);
     }
-
-
     public int getZkConnectionTimeoutMs() {
         return this.zkConfig.getZkConnectionTimeoutMs();
     }
-
-
     public void setZkConnectionTimeoutMs(int zkConnectionTimeoutMs) {
         this.zkConfig.setZkConnectionTimeoutMs(zkConnectionTimeoutMs);
     }
-
-
     public int getZkSyncTimeMs() {
         return this.zkConfig.getZkSyncTimeMs();
     }
-
-
     public void setZkSyncTimeMs(int zkSyncTimeMs) {
         this.zkConfig.setZkSyncTimeMs(zkSyncTimeMs);
     }
-
-
     public String getServerUrl() {
         return this.serverUrl;
     }
-
-
     public void setServerUrl(final String serverUrl) {
         this.serverUrl = serverUrl;
     }
-
-
     public String getDiamondPartitionsDataId() {
         return this.diamondPartitionsDataId;
     }
-
-
     public String getDiamondPartitionsGroup() {
         return this.diamondPartitionsGroup;
     }
-
-    Properties partitionsInfo;
-
-
     /**
      * 设置topic的分布情况.
      * 对于使用严格顺序发送消息有效(OrderedMessageProducer),目前版本没有diamond所以从这里设置和获取。 <br>
@@ -181,12 +136,9 @@ public class MetaClientConfig implements Serializable {
     public void setPartitionsInfo(final Properties partitionsInfo) {
         this.partitionsInfo = partitionsInfo;
     }
-
-
     public Properties getPartitionsInfo() {
         return this.partitionsInfo;
     }
-
 
     @Override
     public int hashCode() {
@@ -202,7 +154,6 @@ public class MetaClientConfig implements Serializable {
         result = prime * result + (this.zkConfig == null ? 0 : this.zkConfig.hashCode());
         return result;
     }
-
 
     @Override
     public boolean equals(Object obj) {

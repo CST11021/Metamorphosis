@@ -254,12 +254,13 @@ public class ZkUtils {
     public static class ZKConfig extends Config implements Serializable {
         static final long serialVersionUID = -1L;
 
+        /** 表示根目录，默认为"/meta" */
         @Key(name = "zk.zkRoot")
         public String zkRoot = "/meta";
         /** 是否启用zookeeper（是否将broker相关配置注册到zk） */
         @Key(name = "zk.zkEnable")
         public boolean zkEnable = true;
-        /** ZK host string */
+        /** 表示连接zk的信息，例如：127.0.0.1:2181 */
         @Key(name = "zk.zkConnect")
         public String zkConnect;
         /** zookeeper session timeout */

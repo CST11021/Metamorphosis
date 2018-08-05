@@ -58,7 +58,7 @@ import com.taobao.metamorphosis.utils.StatConstants;
 
 
 /**
- * 消费生产者实现
+ * 简单的消息生产者
  * 
  * @author boyan
  * @Date 2011-4-21
@@ -66,21 +66,26 @@ import com.taobao.metamorphosis.utils.StatConstants;
  * @Date 2011-8-3
  */
 public class SimpleMessageProducer implements MessageProducer, TransactionSession {
+
     private static final Log log = LogFactory.getLog(SimpleMessageProducer.class);
+
+    /** 表示生产者发送消息时的超时时间，这里是3秒，如果发送消息3秒内，没有返回，则抛出异常 */
     protected static final long DEFAULT_OP_TIMEOUT = 3000L;
-    private static final int TIMEOUT_THRESHOLD = Integer.parseInt(System.getProperty("meta.send.timeout.threshold",
-            "200"));
+    private static final int TIMEOUT_THRESHOLD = Integer.parseInt(System.getProperty("meta.send.timeout.threshold", "200"));
     private final MetaMessageSessionFactory messageSessionFactory;
     protected final RemotingClientWrapper remotingClient;
     protected final PartitionSelector partitionSelector;
+    /** 用于Producer和zk的交互 */
     protected final ProducerZooKeeper producerZooKeeper;
     protected final String sessionId;
     // 默认事务超时时间为10秒
     protected volatile int transactionTimeout = 0;
     // private final boolean ordered;
     private volatile boolean shutdown;
+    /** 消息发送失败的重试次数 */
     private static final int MAX_RETRY = 1;
     private final LongSequenceGenerator localTxIdGenerator;
+    /** 表示已发布的topic */
     private final ConcurrentHashSet<String> publishedTopics = new ConcurrentHashSet<String>();
     protected long transactionRequestTimeoutInMills = 5000;
 
@@ -95,7 +100,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         this.partitionSelector = partitionSelector;
         this.producerZooKeeper = producerZooKeeper;
         this.localTxIdGenerator = new LongSequenceGenerator();
-
         // this.ordered = ordered;
     }
 
@@ -108,7 +112,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         this.transactionRequestTimeoutInMills = TimeUnit.MILLISECONDS.convert(time, timeUnit);
     }
 
-
     long getTransactionRequestTimeoutInMills() {
         return this.transactionRequestTimeoutInMills;
     }
@@ -117,12 +120,10 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         return this.messageSessionFactory;
     }
 
-
     @Override
     public PartitionSelector getPartitionSelector() {
         return this.partitionSelector;
     }
-
 
     @Override
     @Deprecated
@@ -130,9 +131,9 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         return false;
     }
 
-
     @Override
     public void publish(final String topic) {
+        // 检查生产者服务是否已关闭
         this.checkState();
         this.checkTopic(topic);
         // It is not always synchronized with shutdown,but it is acceptable.
@@ -143,7 +144,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         // this.localMessageStorageManager.setMessageRecoverer(this.recoverer);
     }
 
-
     @Override
     public void setDefaultTopic(final String topic) {
         // It is not always synchronized with shutdown,but it is acceptable.
@@ -153,7 +153,10 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         }
     }
 
-
+    /**
+     * 检查这个topic是否合法
+     * @param topic
+     */
     private void checkTopic(final String topic) {
         if (StringUtils.isBlank(topic)) {
             throw new IllegalArgumentException("Blank topic:" + topic);
@@ -162,15 +165,14 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
 
     static final Pattern RESULT_SPLITER = Pattern.compile(" ");
 
-
     @Override
     public SendResult sendMessage(final Message message, final long timeout, final TimeUnit unit)
             throws MetaClientException, InterruptedException {
         this.checkState();
         this.checkMessage(message);
+        // 将消息发送到mateq服务器
         return this.sendMessageToServer(message, timeout, unit);
     }
-
 
     /** 正常的消息发送到服务器 */
     protected SendResult sendMessageToServer(final Message message, final long timeout, final TimeUnit unit)
@@ -188,7 +190,9 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         final long start = System.currentTimeMillis();
         int retry = 0;
         final long timeoutInMills = TimeUnit.MILLISECONDS.convert(timeout, unit);
+        // 将消息内容转为字节数组
         final byte[] data = MessageUtils.encodePayload(message);
+
         try {
             for (int i = 0; i < MAX_RETRY; i++) {
                 result = this.send0(message, data, timeout, unit);
@@ -205,22 +209,24 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
             final long duration = System.currentTimeMillis() - start;
             MetaStatLog.addStatValue2(null, StatConstants.PUT_TIME_STAT, message.getTopic(), duration);
             if (duration > TIMEOUT_THRESHOLD) {
+                // 发送消息超时统计
                 MetaStatLog.addStatValue2(null, StatConstants.PUT_TIMEOUT_STAT, message.getTopic(), duration);
             }
             if (retry > 0) {
+                // 发送消息重试次数统计
                 MetaStatLog.addStatValue2(null, StatConstants.PUT_RETRY_STAT, message.getTopic(), retry);
             }
         }
+
         return result;
     }
-
 
     private Partition selectPartition(final Message message) throws MetaClientException {
         return this.producerZooKeeper.selectPartition(message.getTopic(), message, this.partitionSelector);
     }
 
     /**
-     * 事务相关代码
+     * 事务相关代码，表示最后一个发送消息的信息
      * 
      * @author boyan
      * @date 2011-08-17
@@ -244,7 +250,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
 
     }
 
-
     private TransactionContext getTx() throws MetaClientException {
         final TransactionContext ctx = this.transactionContext.get();
         if (ctx == null) {
@@ -253,7 +258,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         return ctx;
     }
 
-
     @Override
     public void removeContext(final TransactionContext ctx) {
         assert this.transactionContext.get() == ctx;
@@ -261,12 +265,10 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         this.resetLastSentInfo();
     }
 
-
     @Override
     public String getSessionId() {
         return this.sessionId;
     }
-
 
     @Override
     public void setTransactionTimeout(final int seconds) throws MetaClientException {
@@ -277,12 +279,10 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
 
     }
 
-
     @Override
     public int getTransactionTimeout() throws MetaClientException {
         return this.transactionTimeout;
     }
-
 
     /**
      * 开启一个事务并关联到当前线程
@@ -295,8 +295,7 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         // 没有在此方法里调用begin，而是等到第一次发送消息前才调用
         TransactionContext ctx = this.transactionContext.get();
         if (ctx == null) {
-            ctx =
-                    new TransactionContext(this.remotingClient, null, this, this.localTxIdGenerator,
+            ctx = new TransactionContext(this.remotingClient, null, this, this.localTxIdGenerator,
                         this.transactionTimeout, this.transactionRequestTimeoutInMills);
             this.transactionContext.set(ctx);
         }
@@ -306,9 +305,8 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
 
     }
 
-
     /**
-     * 在第一次发送前开始事务
+     * 在第一次发送消息前开始事务
      * 
      * @param serverUrl
      * @throws MetaClientException
@@ -322,7 +320,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         }
     }
 
-
     /**
      * 记录上一次投递信息
      * 
@@ -333,7 +330,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
             this.lastSentInfo.set(new LastSentInfo(serverUrl));
         }
     }
-
 
     /**
      * 返回事务id
@@ -350,7 +346,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         }
     }
 
-
     /**
      * 判断是否处于事务中
      * 
@@ -359,7 +354,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
     protected boolean isInTransaction() {
         return this.transactionContext.get() != null;
     }
-
 
     /**
      * 提交事务，将事务内发送的消息持久化，此方法仅能在beginTransaction之后调用
@@ -379,7 +373,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         }
     }
 
-
     /**
      * 回滚事务内所发送的任何消息，此方法仅能在beginTransaction之后调用
      * 
@@ -398,12 +391,20 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         }
     }
 
-
     protected void resetLastSentInfo() {
         this.lastSentInfo.remove();
     }
 
-
+    /**
+     * 将消息发送到MQ服务器
+     * @param message       消息对象
+     * @param encodedData   消息的正文
+     * @param timeout       发送消息的超时时间
+     * @param unit          超时时间单位
+     * @return
+     * @throws InterruptedException
+     * @throws MetaClientException
+     */
     private SendResult send0(final Message message, final byte[] encodedData, final long timeout, final TimeUnit unit)
             throws InterruptedException, MetaClientException {
         try {
@@ -416,8 +417,7 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
                 if (info != null) {
                     serverUrl = info.serverUrl;
                     // 选择该broker内的某个分区
-                    partition =
-                            this.producerZooKeeper.selectPartition(topic, message, this.partitionSelector, serverUrl);
+                    partition = this.producerZooKeeper.selectPartition(topic, message, this.partitionSelector, serverUrl);
                     if (partition == null) {
                         // 没有可用分区，抛出异常
                         throw new MetaClientException("There is no partitions in `" + serverUrl
@@ -446,9 +446,16 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
             }
 
             final int flag = MessageFlagUtils.getFlag(message);
-            final PutCommand putCommand =
-                    new PutCommand(topic, partition.getPartition(), encodedData, flag, CheckSum.crc32(encodedData),
-                        this.getTransactionId(), OpaqueGenerator.getNextOpaque());
+
+            // TODO whz 20180805
+            final PutCommand putCommand = new PutCommand(
+                    topic,
+                    partition.getPartition(),
+                    encodedData,
+                    flag,
+                    CheckSum.crc32(encodedData),
+                    this.getTransactionId(),
+                    OpaqueGenerator.getNextOpaque());
             final BooleanCommand resp = this.invokeToGroup(serverUrl, partition, putCommand, message, timeout, unit);
             return this.genSendResult(message, partition, serverUrl, resp);
         }
@@ -466,7 +473,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
             throw new MetaClientException("send message failed", e);
         }
     }
-
 
     private SendResult genSendResult(final Message message, final Partition partition, final String serverUrl,
             final BooleanCommand resp) {
@@ -495,7 +501,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         }
     }
 
-
     protected BooleanCommand invokeToGroup(final String serverUrl, final Partition partition,
             final PutCommand putCommand, final Message message, final long timeout, final TimeUnit unit)
                     throws InterruptedException, TimeoutException, NotifyRemotingException {
@@ -503,13 +508,14 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         return (BooleanCommand) this.remotingClient.invokeToGroup(serverUrl, putCommand, timeout, unit);
     }
 
-
+    /**
+     * 检查状态，检查生产者服务是否已经关闭
+     */
     protected void checkState() {
         if (this.shutdown) {
             throw new IllegalStateException("Producer has been shutdown");
         }
     }
-
 
     protected void checkMessage(final Message message) throws MetaClientException {
         if (message == null) {
@@ -522,7 +528,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
             throw new InvalidMessageException("Null data");
         }
     }
-
 
     @Override
     public void sendMessage(final Message message, final SendMessageCallback cb, final long time, final TimeUnit unit) {
@@ -573,18 +578,15 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
 
     }
 
-
     @Override
     public void sendMessage(final Message message, final SendMessageCallback cb) {
         this.sendMessage(message, cb, DEFAULT_OP_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
-
     @Override
     public SendResult sendMessage(final Message message) throws MetaClientException, InterruptedException {
         return this.sendMessage(message, DEFAULT_OP_TIMEOUT, TimeUnit.MILLISECONDS);
     }
-
 
     @Override
     public synchronized void shutdown() throws MetaClientException {

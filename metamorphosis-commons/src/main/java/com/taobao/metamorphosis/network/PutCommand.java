@@ -42,60 +42,13 @@ public class PutCommand extends AbstractRequestCommand {
     // 23.
     private TransactionId transactionId;
 
-
-    public TransactionId getTransactionId() {
-        return this.transactionId;
-    }
-
-
-    public void setTransactionId(final TransactionId transactionId) {
-        this.transactionId = transactionId;
-    }
-
-
-    public byte[] getData() {
-        return this.data;
-    }
-
-
-    public int getCheckSum() {
-        return this.checkSum;
-    }
-
-
-    public void setCheckSum(int checkSum) {
-        this.checkSum = checkSum;
-    }
-
-
-    public int getFlag() {
-        return this.flag;
-    }
-
-
-    public void setData(final byte[] data) {
-        this.data = data;
-    }
-
-
-    public void setPartition(final int partition) {
-        this.partition = partition;
-    }
-
-
-    public int getPartition() {
-        return this.partition;
-    }
-
-
     public PutCommand(final String topic, final int partition, final byte[] data, final TransactionId transactionId,
-            final int flag, final Integer opaque) {
+                      final int flag, final Integer opaque) {
         this(topic, partition, data, flag, -1, transactionId, opaque);
     }
 
-
     public PutCommand(final String topic, final int partition, final byte[] data, final int flag,
-            final int checkSum, final TransactionId transactionId, final Integer opaque) {
+                      final int checkSum, final TransactionId transactionId, final Integer opaque) {
         super(topic, opaque);
         this.partition = partition;
         this.data = data;
@@ -114,7 +67,6 @@ public class PutCommand extends AbstractRequestCommand {
             }
         };
     }
-
 
     @Override
     public IoBuffer encode() {
@@ -141,7 +93,6 @@ public class PutCommand extends AbstractRequestCommand {
         return buffer;
     }
 
-
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -153,7 +104,6 @@ public class PutCommand extends AbstractRequestCommand {
         result = prime * result + (this.transactionId == null ? 0 : this.transactionId.hashCode());
         return result;
     }
-
 
     @Override
     public boolean equals(Object obj) {
@@ -188,6 +138,39 @@ public class PutCommand extends AbstractRequestCommand {
             return false;
         }
         return true;
+    }
+
+
+    public TransactionId getTransactionId() {
+        return this.transactionId;
+    }
+    public void setTransactionId(final TransactionId transactionId) {
+        this.transactionId = transactionId;
+    }
+
+    public byte[] getData() {
+        return this.data;
+    }
+    public void setData(final byte[] data) {
+        this.data = data;
+    }
+
+    public int getCheckSum() {
+        return this.checkSum;
+    }
+    public void setCheckSum(int checkSum) {
+        this.checkSum = checkSum;
+    }
+
+    public int getFlag() {
+        return this.flag;
+    }
+
+    public void setPartition(final int partition) {
+        this.partition = partition;
+    }
+    public int getPartition() {
+        return this.partition;
     }
 
 }

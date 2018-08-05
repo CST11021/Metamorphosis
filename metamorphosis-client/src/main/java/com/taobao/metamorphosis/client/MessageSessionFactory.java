@@ -48,7 +48,6 @@ public interface MessageSessionFactory extends Shutdownable {
     @Override
     public void shutdown() throws MetaClientException;
 
-
     /**
      * 创建消息生产者
      * 
@@ -58,14 +57,12 @@ public interface MessageSessionFactory extends Shutdownable {
      */
     public MessageProducer createProducer(PartitionSelector partitionSelector);
 
-
     /**
      * 创建消息生产者，默认使用轮询分区选择器
      * 
      * @return
      */
     public MessageProducer createProducer();
-
 
     /**
      * 创建消息生产者，默认使用轮询分区选择器。本方法已经废弃，请勿使用，不排除在未来某个版本删除。
@@ -77,19 +74,15 @@ public interface MessageSessionFactory extends Shutdownable {
     @Deprecated
     public MessageProducer createProducer(boolean ordered);
 
-
     /**
      * 创建消息生产者,本方法已经废弃，请勿使用，不排除在未来某个版本删除。
      * 
-     * @param partitionSelector
-     *            分区选择器
-     * @param ordered
-     *            是否有序，true为有序，如果有序，则消息按照发送顺序保存在MQ server
+     * @param partitionSelector 分区选择器
+     * @param ordered           是否有序，true为有序，如果有序，则消息按照发送顺序保存在MQ server
      * @return
      */
     @Deprecated
     public MessageProducer createProducer(PartitionSelector partitionSelector, boolean ordered);
-
 
     /**
      * 创建消息消费者，默认将offset存储在zk
@@ -100,6 +93,17 @@ public interface MessageSessionFactory extends Shutdownable {
      */
     public MessageConsumer createConsumer(ConsumerConfig consumerConfig);
 
+    /**
+     * 创建消息消费者，使用指定的offset存储器
+     *
+     * @param consumerConfig
+     *            消费者配置
+     * @param offsetStorage
+     *            offset存储器
+     * @return
+     */
+    public MessageConsumer createConsumer(ConsumerConfig consumerConfig, OffsetStorage offsetStorage);
+
 
     /**
      * Get statistics information from all brokers in this session factory.
@@ -108,7 +112,6 @@ public interface MessageSessionFactory extends Shutdownable {
      * @since 1.4.2
      */
     public Map<InetSocketAddress, StatsResult> getStats() throws InterruptedException;
-
 
     /**
      * Get item statistics information from all brokers in this session factory.
@@ -121,7 +124,6 @@ public interface MessageSessionFactory extends Shutdownable {
      */
     public Map<InetSocketAddress, StatsResult> getStats(String item) throws InterruptedException;
 
-
     /**
      * Get statistics information from special broker.If the broker is not
      * connected in this session factory,it will return null.
@@ -132,7 +134,6 @@ public interface MessageSessionFactory extends Shutdownable {
      * @since 1.4.2
      */
     public StatsResult getStats(InetSocketAddress target) throws InterruptedException;
-
 
     /**
      * Get item statistics information from special broker.If the broker is not
@@ -150,25 +151,12 @@ public interface MessageSessionFactory extends Shutdownable {
 
 
     /**
-     * 创建消息消费者，使用指定的offset存储器
-     * 
-     * @param consumerConfig
-     *            消费者配置
-     * @param offsetStorage
-     *            offset存储器
-     * @return
-     */
-    public MessageConsumer createConsumer(ConsumerConfig consumerConfig, OffsetStorage offsetStorage);
-
-
-    /**
-     * Get partitions list for topic
+     * 根据topic获取该topic下的所有分区
      * 
      * @param topic
      * @return partitions list
      */
     public List<Partition> getPartitionsForTopic(String topic);
-
 
     /**
      * Returns a topic browser to iterate all messages under the topic from all
@@ -186,7 +174,6 @@ public interface MessageSessionFactory extends Shutdownable {
      * @return topic browser
      */
     public TopicBrowser createTopicBrowser(String topic, int maxSize, long timeout, TimeUnit timeUnit);
-
 
     /**
      * Returns a topic browser to iterate all messages under the topic from all

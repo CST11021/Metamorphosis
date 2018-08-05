@@ -65,19 +65,16 @@ public class RemotingClientWrapper implements RemotingClient {
         this.remotingClient = remotingClient;
     }
 
-
     @Override
     public void connect(String url, String targetGroup, int connCount) throws NotifyRemotingException {
         this.remotingClient.connect(url, targetGroup, connCount);
 
     }
 
-
     @Override
     public void connect(String url, String targetGroup) throws NotifyRemotingException {
         this.remotingClient.connect(url, targetGroup);
     }
-
 
     @Override
     public void addAllProcessors(
@@ -85,46 +82,37 @@ public class RemotingClientWrapper implements RemotingClient {
         this.remotingClient.addAllProcessors(map);
     }
 
-
     @Override
     public void addConnectionLifeCycleListener(final ConnectionLifeCycleListener connectionLifeCycleListener) {
         this.remotingClient.addConnectionLifeCycleListener(connectionLifeCycleListener);
     }
 
-
     @Override
-    public void awaitReadyInterrupt(final String url, final long time) throws NotifyRemotingException,
-    InterruptedException {
+    public void awaitReadyInterrupt(final String url, final long time) throws NotifyRemotingException, InterruptedException {
         this.remotingClient.awaitReadyInterrupt(url, time);
     }
-
 
     @Override
     public void awaitReadyInterrupt(final String url) throws NotifyRemotingException, InterruptedException {
         this.remotingClient.awaitReadyInterrupt(url);
     }
 
-
     @Override
     public void connect(String url) throws NotifyRemotingException {
         this.connect(url, 1);
     }
-
 
     @Override
     public void connect(String url, int connCount) throws NotifyRemotingException {
         this.connectWithRef(url, connCount, null);
     }
 
-
     @Override
     public void close(String url, boolean allowReconnect) throws NotifyRemotingException {
         this.closeWithRef(url, null, allowReconnect);
     }
 
-
-    public synchronized void closeWithRef(final String url, Object ref, final boolean allowReconnect)
-            throws NotifyRemotingException {
+    public synchronized void closeWithRef(final String url, Object ref, final boolean allowReconnect) throws NotifyRemotingException {
         final Set<Object> refs = this.getReferences(url);
         if (refs != null) {
             refs.remove(ref);
@@ -147,18 +135,15 @@ public class RemotingClientWrapper implements RemotingClient {
         }
     }
 
-
     @Override
     public void awaitClosed(String arg0, long arg1) throws InterruptedException, TimeoutException {
         this.remotingClient.awaitClosed(arg0, arg1);
     }
 
-
     @Override
     public void awaitClosed(String arg0) throws InterruptedException, TimeoutException {
         this.remotingClient.awaitClosed(arg0);
     }
-
 
     private boolean isOnlyMe(final Set<Object> refs) {
         return refs.size() == 1 && refs.contains(this);
@@ -180,7 +165,6 @@ public class RemotingClientWrapper implements RemotingClient {
         refs.add(ref);
     }
 
-
     static String tryGetLoopbackURL(String url) {
         try {
             URI uri = new URI(url);
@@ -196,7 +180,6 @@ public class RemotingClientWrapper implements RemotingClient {
         return url;
     }
 
-
     private Set<Object> getReferences(final String url) {
         Set<Object> refs = this.refsCache.get(url);
         if (refs == null) {
@@ -209,63 +192,54 @@ public class RemotingClientWrapper implements RemotingClient {
         return refs;
     }
 
-
     public void connectWithRef(final String url, Object ref) throws NotifyRemotingException {
         this.connectWithRef(url, 1, ref);
     }
-
 
     @Override
     public Object getAttribute(final String group, final String key) {
         return this.remotingClient.getAttribute(group, key);
     }
 
-
     @Override
     public int getConnectionCount(final String group) {
         return this.remotingClient.getConnectionCount(group);
     }
-
 
     @Override
     public Set<String> getGroupSet() {
         return this.remotingClient.getGroupSet();
     }
 
-
     @Override
     public RequestProcessor<? extends RequestCommand> getProcessor(final Class<? extends RequestCommand> clazz) {
         return this.remotingClient.getProcessor(clazz);
     }
-
 
     @Override
     public InetSocketAddress getRemoteAddress(final String url) {
         return this.remotingClient.getRemoteAddress(url);
     }
 
-
     @Override
     public String getRemoteAddressString(final String url) {
         return this.remotingClient.getRemoteAddressString(url);
     }
-
 
     @Override
     public RemotingContext getRemotingContext() {
         return this.remotingClient.getRemotingContext();
     }
 
-
     @Override
     public void insertTimer(final TimerRef timerRef) {
         this.remotingClient.insertTimer(timerRef);
     }
 
-
     @Override
     public ResponseCommand invokeToGroup(final String group, final RequestCommand command, final long time,
             final TimeUnit timeUnit) throws InterruptedException, TimeoutException, NotifyRemotingException {
+
         ResponseCommand resp = this.remotingClient.invokeToGroup(group, command, time, timeUnit);
         if (resp.getResponseStatus() == ResponseStatus.ERROR_COMM) {
             BooleanCommand booleanCommand = (BooleanCommand) resp;
@@ -278,13 +252,11 @@ public class RemotingClientWrapper implements RemotingClient {
         return resp;
     }
 
-
     @Override
     public ResponseCommand invokeToGroup(final String group, final RequestCommand command) throws InterruptedException,
     TimeoutException, NotifyRemotingException {
         return this.remotingClient.invokeToGroup(group, command);
     }
-
 
     @Override
     public Map<Connection, ResponseCommand> invokeToGroupAllConnections(final String group,
@@ -293,44 +265,36 @@ public class RemotingClientWrapper implements RemotingClient {
         return this.remotingClient.invokeToGroupAllConnections(group, command, time, timeUnit);
     }
 
-
     @Override
     public Map<Connection, ResponseCommand> invokeToGroupAllConnections(final String group, final RequestCommand command)
             throws InterruptedException, NotifyRemotingException {
         return this.remotingClient.invokeToGroupAllConnections(group, command);
     }
 
-
     @Override
     public boolean isConnected(final String url) {
         return this.remotingClient.isConnected(url);
     }
-
 
     @Override
     public boolean isStarted() {
         return this.remotingClient.isStarted();
     }
 
-
     @Override
-    public <T extends RequestCommand> void registerProcessor(final Class<T> commandClazz,
-            final RequestProcessor<T> processor) {
+    public <T extends RequestCommand> void registerProcessor(final Class<T> commandClazz, final RequestProcessor<T> processor) {
         this.remotingClient.registerProcessor(commandClazz, processor);
     }
-
 
     @Override
     public Object removeAttribute(final String group, final String key) {
         return this.remotingClient.removeAttribute(group, key);
     }
 
-
     @Override
     public void removeConnectionLifeCycleListener(final ConnectionLifeCycleListener connectionLifeCycleListener) {
         this.remotingClient.removeConnectionLifeCycleListener(connectionLifeCycleListener);
     }
-
 
     @Override
     public Connection selectConnectionForGroup(final String group, final ConnectionSelector connectionSelector,
@@ -338,12 +302,10 @@ public class RemotingClientWrapper implements RemotingClient {
         return this.remotingClient.selectConnectionForGroup(group, connectionSelector, request);
     }
 
-
     @Override
     public void sendToAllConnections(final RequestCommand command) throws NotifyRemotingException {
         this.remotingClient.sendToAllConnections(command);
     }
-
 
     @Override
     public void sendToGroup(final String group, final RequestCommand command,
@@ -352,19 +314,16 @@ public class RemotingClientWrapper implements RemotingClient {
         this.remotingClient.sendToGroup(group, command, listener, time, timeunut);
     }
 
-
     @Override
     public void sendToGroup(final String group, final RequestCommand command,
             final SingleRequestCallBackListener listener) throws NotifyRemotingException {
         this.remotingClient.sendToGroup(group, command, listener);
     }
 
-
     @Override
     public void sendToGroup(final String group, final RequestCommand command) throws NotifyRemotingException {
         this.remotingClient.sendToGroup(group, command);
     }
-
 
     @Override
     public void sendToGroupAllConnections(final String group, final RequestCommand command,
@@ -373,13 +332,11 @@ public class RemotingClientWrapper implements RemotingClient {
         this.remotingClient.sendToGroupAllConnections(group, command, listener, time, timeUnit);
     }
 
-
     @Override
     public void sendToGroupAllConnections(final String group, final RequestCommand command,
             final GroupAllConnectionCallBackListener listener) throws NotifyRemotingException {
         this.remotingClient.sendToGroupAllConnections(group, command, listener);
     }
-
 
     @Override
     public void sendToGroupAllConnections(final String group, final RequestCommand command)
@@ -387,49 +344,41 @@ public class RemotingClientWrapper implements RemotingClient {
         this.remotingClient.sendToGroupAllConnections(group, command);
     }
 
-
     @Override
     public void sendToGroups(final Map<String, RequestCommand> groupObjects, final MultiGroupCallBackListener listener,
             final long timeout, final TimeUnit timeUnit, final Object... args) throws NotifyRemotingException {
         this.remotingClient.sendToGroups(groupObjects, listener, timeout, timeUnit, args);
     }
 
-
     @Override
     public void sendToGroups(final Map<String, RequestCommand> groupObjects) throws NotifyRemotingException {
         this.remotingClient.sendToGroups(groupObjects);
     }
-
 
     @Override
     public void setAttribute(final String group, final String key, final Object value) {
         this.remotingClient.setAttribute(group, key, value);
     }
 
-
     @Override
     public Object setAttributeIfAbsent(final String group, final String key, final Object value) {
         return this.remotingClient.setAttributeIfAbsent(group, key, value);
     }
-
 
     @Override
     public void setClientConfig(final ClientConfig clientConfig) {
         this.remotingClient.setClientConfig(clientConfig);
     }
 
-
     @Override
     public void setConnectionSelector(final ConnectionSelector selector) {
         this.remotingClient.setConnectionSelector(selector);
     }
 
-
     @Override
     public void start() throws NotifyRemotingException {
         this.remotingClient.start();
     }
-
 
     @Override
     public void stop() throws NotifyRemotingException {
@@ -437,12 +386,10 @@ public class RemotingClientWrapper implements RemotingClient {
         this.refsCache.clear();
     }
 
-
     @Override
     public RequestProcessor<? extends RequestCommand> unreigsterProcessor(final Class<? extends RequestCommand> clazz) {
         return this.remotingClient.unreigsterProcessor(clazz);
     }
-
 
     @Override
     public void transferToGroup(String group, IoBuffer head, IoBuffer tail, FileChannel channel, long position,
@@ -451,7 +398,6 @@ public class RemotingClientWrapper implements RemotingClient {
         this.remotingClient.transferToGroup(group, head, tail, channel, position, size, opaque, listener, time, unit);
 
     }
-
 
     @Override
     public void transferToGroup(String group, IoBuffer head, IoBuffer tail, FileChannel channel, long position,

@@ -39,7 +39,6 @@ public final class MetaStatLog {
 
     public static boolean startRealTimeStat = false;
 
-
     private MetaStatLog() {
 
     }
@@ -47,8 +46,7 @@ public final class MetaStatLog {
     // 没有任何作用，仅是为了注册监听器
     static MetaStatLog ME = new MetaStatLog();
 
-    static ConcurrentHashMap<String/* key1 */, ConcurrentHashMap<String, ConcurrentHashMap<String, StatCounter>>> realTimeStatMap =
-            new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, StatCounter>>>();
+    static ConcurrentHashMap<String/* key1 */, ConcurrentHashMap<String, ConcurrentHashMap<String, StatCounter>>> realTimeStatMap = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, StatCounter>>>();
 
     public static volatile long lastResetTime = System.currentTimeMillis();
 
@@ -73,7 +71,6 @@ public final class MetaStatLog {
         }
     }
 
-
     public static void clearRealTimeStat() {
         realTimeStatMap =
                 new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, StatCounter>>>();
@@ -96,7 +93,6 @@ public final class MetaStatLog {
         }
     }
 
-
     public synchronized static final void resetRealTimeStat() {
         for (final Map.Entry<String, ConcurrentHashMap<String, ConcurrentHashMap<String, StatCounter>>> entry1 : realTimeStatMap
             .entrySet()) {
@@ -108,7 +104,6 @@ public final class MetaStatLog {
         }
         lastResetTime = System.currentTimeMillis();
     }
-
 
     public static List<String> getRealTimeStatItemNames() {
         final List<String> result = new ArrayList<String>();
@@ -127,7 +122,6 @@ public final class MetaStatLog {
         return result;
     }
 
-
     public static final String getRealTimeStatResult(final String key1, final String key2, final String key3) {
         final ConcurrentHashMap<String, ConcurrentHashMap<String, StatCounter>> map1 = realTimeStatMap.get(key1);
         if (map1 == null) {
@@ -143,7 +137,6 @@ public final class MetaStatLog {
         }
         return formatOutput(counter);
     }
-
 
     private static String formatOutput(final StatCounter counter) {
         final double count = counter.count.get();
@@ -163,7 +156,6 @@ public final class MetaStatLog {
         return String.format(OUTPUT_FORMAT, numberFormat.format(count), numberFormat.format(values), averageValueStr,
             averageCountStr, duration);
     }
-
 
     public static final String getGroupedRealTimeStatResult(final String key1) {
         final ConcurrentHashMap<String, ConcurrentHashMap<String, StatCounter>> map1 = realTimeStatMap.get(key1);
@@ -186,7 +178,6 @@ public final class MetaStatLog {
         return formatOutput(statCounter);
     }
 
-
     public static final String getGroupedRealTimeStatResult(final String key1, final String key2) {
         final ConcurrentHashMap<String, ConcurrentHashMap<String, StatCounter>> map1 = realTimeStatMap.get(key1);
         if (null == map1) {
@@ -206,16 +197,13 @@ public final class MetaStatLog {
         return formatOutput(statCounter);
     }
 
-
     public static long getDuration() {
         return (System.currentTimeMillis() - lastResetTime) / 1000;
     }
 
     public static String OUTPUT_FORMAT = "Count=%s,Value=%s,Value/Count=%s,Count/Duration=%s,Duration=%d";
 
-
-    public static final void addStat(final String appName, final String keyOne, final String keyTwo,
-            final String keyThree) {
+    public static final void addStat(final String appName, final String keyOne, final String keyTwo, final String keyThree) {
         realTimeStat(keyOne, keyTwo, keyThree, 0);
     }
 
@@ -265,13 +253,11 @@ public final class MetaStatLog {
 
     }
 
-
     public static final void realTimeStat(final String key1, final String key2, final String key3, final long value) {
         if (startRealTimeStat) {
             processMap2(key1, key2, key3, value);
         }
     }
-
 
     private static void processMap2(final String key1, final String key2, final String key3, final long value) {
         ConcurrentHashMap<String, ConcurrentHashMap<String, StatCounter>> statMap1 = realTimeStatMap.get(key1);
@@ -304,30 +290,23 @@ public final class MetaStatLog {
         statCounter.addValue(value);
     }
 
-
     public static final void addStat(final String appName, final String keyOne, final String keyTwo) {
         realTimeStat(keyOne, keyTwo, "*", 0);
     }
-
 
     public static final void addStat(final String appName, final String keyOne) {
         realTimeStat(keyOne, "*", "*", 0);
     }
 
-
     public static final void addStatValue2(final String appName, final String keyOne, final long value) {
         realTimeStat(keyOne, "*", "*", value);
     }
 
-
-    public static final void addStatValue2(final String appName, final String keyOne, final String keyTwo,
-            final long value) {
+    public static final void addStatValue2(final String appName, final String keyOne, final String keyTwo, final long value) {
         realTimeStat(keyOne, keyTwo, "*", value);
     }
 
-
-    public static final void addStatValue2(final String appName, final String keyOne, final String keyTwo,
-            final String keyThree, final long value) {
+    public static final void addStatValue2(final String appName, final String keyOne, final String keyTwo, final String keyThree, final long value) {
         realTimeStat(keyOne, keyTwo, keyThree, value);
     }
 

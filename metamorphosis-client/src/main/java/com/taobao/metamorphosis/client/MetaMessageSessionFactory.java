@@ -85,34 +85,8 @@ import com.taobao.metamorphosis.utils.ZkUtils.ZKConfig;
  * @Date 2011-8-4
  */
 public class MetaMessageSessionFactory implements MessageSessionFactory {
-    private static final int MAX_RECONNECT_TIMES = Integer.valueOf(System.getProperty(
-        "metaq.client.network.max.reconnect.times", "350"));
-    private static final int STATS_OPTIMEOUT = 3000;
-    protected RemotingClientWrapper remotingClient;
-    private final MetaClientConfig metaClientConfig;
-    private volatile ZkClient zkClient;
 
     static final Log log = LogFactory.getLog(MetaMessageSessionFactory.class);
-
-    private final CopyOnWriteArrayList<ZkClientChangedListener> zkClientChangedListeners =
-            new CopyOnWriteArrayList<ZkClientChangedListener>();
-
-    protected final ProducerZooKeeper producerZooKeeper;
-
-    private final ConsumerZooKeeper consumerZooKeeper;
-
-    // private DiamondManager diamondManager;
-    private final CopyOnWriteArrayList<Shutdownable> children = new CopyOnWriteArrayList<Shutdownable>();
-    private volatile boolean shutdown;
-    private volatile boolean isHutdownHookCalled = false;
-    private final Thread shutdownHook;
-    private ZKConfig zkConfig;
-    private final RecoverManager recoverManager;
-    private final SubscribeInfoManager subscribeInfoManager;
-
-    protected final IdGenerator sessionIdGenerator;
-
-    protected MetaZookeeper metaZookeeper;
 
     static {
         ExceptionMonitor.setInstance(new ExceptionMonitor() {
@@ -120,91 +94,60 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
             public void exceptionCaught(final Throwable cause) {
                 boolean isResetConnEx =
                         cause instanceof IOException && cause.getMessage().indexOf("Connection reset by peer") >= 0;
-                        if (log.isErrorEnabled() && !isResetConnEx) {
-                            log.error("Networking unexpected exception", cause);
-                        }
+                if (log.isErrorEnabled() && !isResetConnEx) {
+                    log.error("Networking unexpected exception", cause);
+                }
             }
         });
     }
 
+    static final char[] INVALID_GROUP_CHAR = { '~', '!', '#', '$', '%', '^', '&', '*', '(', ')', '+', '=', '`', '\'',
+            '"', ',', ';', '/', '?', '[', ']', '<', '>', '.', ':', ' ' };
 
-    /**
-     * 返回通讯客户端
-     * 
-     * @return
-     */
-    public RemotingClientWrapper getRemotingClient() {
-        return this.remotingClient;
-    }
+    private static final int MAX_RECONNECT_TIMES = Integer.valueOf(
+            System.getProperty("metaq.client.network.max.reconnect.times", "350"));
+    private static final int STATS_OPTIMEOUT = 3000;
+    /** 通讯客户端 */
+    protected RemotingClientWrapper remotingClient;
+    /** 客户端配置 */
+    private final MetaClientConfig metaClientConfig;
+    private volatile ZkClient zkClient;
+    private final CopyOnWriteArrayList<ZkClientChangedListener> zkClientChangedListeners = new CopyOnWriteArrayList<ZkClientChangedListener>();
 
+    /** 生产者和zk交互管理器 */
+    protected final ProducerZooKeeper producerZooKeeper;
 
-    /**
-     * 返回订阅关系管理器
-     * 
-     * @return
-     */
-    public SubscribeInfoManager getSubscribeInfoManager() {
-        return this.subscribeInfoManager;
-    }
+    /** 消费者和zk交互管理器 */
+    private final ConsumerZooKeeper consumerZooKeeper;
 
+    // private DiamondManager diamondManager;
 
-    /**
-     * 返回客户端配置
-     * 
-     * @return
-     */
-    public MetaClientConfig getMetaClientConfig() {
-        return this.metaClientConfig;
-    }
+    /** 表示此工厂创建的所有子对象，如生产者、消费者等 */
+    private final CopyOnWriteArrayList<Shutdownable> children = new CopyOnWriteArrayList<Shutdownable>();
+    private volatile boolean shutdown;
+    private volatile boolean isHutdownHookCalled = false;
+    private final Thread shutdownHook;
+    private ZKConfig zkConfig;
+    /** 本地恢复消息管理器 */
+    private final RecoverManager recoverManager;
+    /** 订阅关系管理器 */
+    private final SubscribeInfoManager subscribeInfoManager;
 
+    protected final IdGenerator sessionIdGenerator;
 
-    /**
-     * 返回生产者和zk交互管理器
-     * 
-     * @return
-     */
-    public ProducerZooKeeper getProducerZooKeeper() {
-        return this.producerZooKeeper;
-    }
+    protected MetaZookeeper metaZookeeper;
 
-
-    /**
-     * 返回消费者和zk交互管理器
-     * 
-     * @return
-     */
-    public ConsumerZooKeeper getConsumerZooKeeper() {
-        return this.consumerZooKeeper;
-    }
-
-
-    /**
-     * 返回本地恢复消息管理器
-     * 
-     * @return
-     */
-    public RecoverManager getRecoverStorageManager() {
-        return this.recoverManager;
-    }
-
-
-    /**
-     * 返回此工厂创建的所有子对象，如生产者、消费者等
-     * 
-     * @return
-     */
-    public CopyOnWriteArrayList<Shutdownable> getChildren() {
-        return this.children;
-    }
-
-    public static final boolean TCP_NO_DELAY = Boolean.valueOf(System.getProperty("metaq.network.tcp_nodelay", "true"));
+    public static final boolean TCP_NO_DELAY = Boolean.valueOf(
+            System.getProperty("metaq.network.tcp_nodelay", "true"));
     public static final long MAX_SCHEDULE_WRITTEN_BYTES = Long.valueOf(System.getProperty(
-        "metaq.network.max_schedule_written_bytes", String.valueOf(Runtime.getRuntime().maxMemory() / 3)));
+            "metaq.network.max_schedule_written_bytes", String.valueOf(Runtime.getRuntime().maxMemory() / 3)));
 
 
     public MetaMessageSessionFactory(final MetaClientConfig metaClientConfig) throws MetaClientException {
         super();
         try {
+            // 1、检查配置信息，并设置gecko的客户端配置
+
             this.checkConfig(metaClientConfig);
             this.metaClientConfig = metaClientConfig;
             final ClientConfig clientConfig = new ClientConfig();
@@ -212,24 +155,30 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
             clientConfig.setMaxReconnectTimes(MAX_RECONNECT_TIMES);
             clientConfig.setWireFormatType(new MetamorphosisWireFormatType());
             clientConfig.setMaxScheduleWrittenBytes(MAX_SCHEDULE_WRITTEN_BYTES);
+
+            // 2、创建客户端
+
             try {
                 this.remotingClient = new RemotingClientWrapper(RemotingFactory.connect(clientConfig));
             }
             catch (final NotifyRemotingException e) {
                 throw new NetworkException("Create remoting client failed", e);
             }
-            // 如果有设置，则使用设置的url并连接，否则使用zk发现服务器
+
+            // 3、连接mateq服务器
+
             if (this.metaClientConfig.getServerUrl() != null) {
+                // 如果有设置，则使用设置的url并连接，否则使用zk发现服务器
                 this.connectServer(this.metaClientConfig);
             }
             else {
                 this.initZooKeeper();
             }
 
-            this.producerZooKeeper =
-                    new ProducerZooKeeper(this.metaZookeeper, this.remotingClient, this.zkClient, metaClientConfig);
+            // 4、初始化其他信息
+
+            this.producerZooKeeper = new ProducerZooKeeper(this.metaZookeeper, this.remotingClient, this.zkClient, metaClientConfig);
             this.sessionIdGenerator = new IdGenerator();
-            // modify by wuhua
             this.consumerZooKeeper = this.initConsumerZooKeeper(this.remotingClient, this.zkClient, this.zkConfig);
             this.zkClientChangedListeners.add(this.producerZooKeeper);
             this.zkClientChangedListeners.add(this.consumerZooKeeper);
@@ -250,6 +199,7 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
 
             };
             Runtime.getRuntime().addShutdownHook(this.shutdownHook);
+
         }
         catch (MetaClientException e) {
             this.shutdown();
@@ -261,21 +211,26 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
 
-
-    // add by wuhua
-    protected ConsumerZooKeeper initConsumerZooKeeper(final RemotingClientWrapper remotingClientWrapper,
-            final ZkClient zkClient2, final ZKConfig config) {
+    protected ConsumerZooKeeper initConsumerZooKeeper(final RemotingClientWrapper remotingClientWrapper, final ZkClient zkClient2, final ZKConfig config) {
         return new ConsumerZooKeeper(this.metaZookeeper, this.remotingClient, this.zkClient, this.zkConfig);
     }
 
-
+    /**
+     * 检查metaq的客户端配置
+     * @param metaClientConfig      客户端配置信息
+     * @throws MetaClientException
+     */
     private void checkConfig(final MetaClientConfig metaClientConfig) throws MetaClientException {
         if (metaClientConfig == null) {
             throw new MetaClientException("null configuration");
         }
     }
 
-
+    /**
+     * 连接metaq服务器
+     * @param metaClientConfig
+     * @throws NetworkException
+     */
     private void connectServer(final MetaClientConfig metaClientConfig) throws NetworkException {
         try {
             this.remotingClient.connect(metaClientConfig.getServerUrl());
@@ -289,7 +244,10 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
 
-
+    /**
+     * 读取配置信息，并初始化ZkClient
+     * @throws MetaClientException
+     */
     private void initZooKeeper() throws MetaClientException {
         // 优先使用设置的zookeepr，其次从diamond获取
         this.zkConfig = null;
@@ -301,10 +259,13 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
             this.zkConfig = this.loadZkConfigFromLocalFile();
 
         }
+
         if (this.zkConfig != null) {
-            this.zkClient =
-                    new ZkClient(this.zkConfig.zkConnect, this.zkConfig.zkSessionTimeoutMs,
-                        this.zkConfig.zkConnectionTimeoutMs, new ZkUtils.StringSerializer());
+            this.zkClient = new ZkClient(
+                    this.zkConfig.zkConnect,
+                    this.zkConfig.zkSessionTimeoutMs,
+                    this.zkConfig.zkConnectionTimeoutMs,
+                    new ZkUtils.StringSerializer());
             this.metaZookeeper = new MetaZookeeper(this.zkClient, this.zkConfig.zkRoot);
         }
         else {
@@ -312,12 +273,6 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.metamorphosis.client.SessionFactory#close()
-     */
     @Override
     public synchronized void shutdown() throws MetaClientException {
         if (this.shutdown) {
@@ -352,7 +307,6 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
 
     }
-
 
     /**
      * 暂时从zk.properties里加载
@@ -389,67 +343,37 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.SessionFactory#createProducer(com.taobao
-     * .metamorphosis.client.producer.PartitionSelector)
-     */
     @Override
     public MessageProducer createProducer(final PartitionSelector partitionSelector) {
         return this.createProducer(partitionSelector, false);
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.metamorphosis.client.SessionFactory#createProducer()
-     */
     @Override
     public MessageProducer createProducer() {
         return this.createProducer(new RoundRobinPartitionSelector(), false);
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.SessionFactory#createProducer(boolean)
-     */
     @Override
     @Deprecated
     public MessageProducer createProducer(final boolean ordered) {
         return this.createProducer(new RoundRobinPartitionSelector(), ordered);
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.SessionFactory#createProducer(com.taobao
-     * .metamorphosis.client.producer.PartitionSelector, boolean)
-     */
     @Override
     @Deprecated
     public MessageProducer createProducer(final PartitionSelector partitionSelector, final boolean ordered) {
         if (partitionSelector == null) {
             throw new IllegalArgumentException("Null partitionSelector");
         }
+
         return this.addChild(new SimpleMessageProducer(this, this.remotingClient, partitionSelector,
             this.producerZooKeeper, this.sessionIdGenerator.generateId()));
     }
-
 
     protected <T extends Shutdownable> T addChild(final T child) {
         this.children.add(child);
         return child;
     }
-
 
     /**
      * 删除子会话
@@ -461,9 +385,7 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         this.children.remove(child);
     }
 
-
-    private synchronized MessageConsumer createConsumer0(final ConsumerConfig consumerConfig,
-            final OffsetStorage offsetStorage, final RecoverManager recoverManager0) {
+    private synchronized MessageConsumer createConsumer0(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage, final RecoverManager recoverManager0) {
         if (consumerConfig.getServerUrl() == null) {
             consumerConfig.setServerUrl(this.metaClientConfig.getServerUrl());
         }
@@ -480,7 +402,6 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
             this.createLoadBalanceStrategy(consumerConfig)));
     }
 
-
     protected LoadBalanceStrategy createLoadBalanceStrategy(final ConsumerConfig consumerConfig) {
         switch (consumerConfig.getLoadBalanceStrategyType()) {
         case DEFAULT:
@@ -493,9 +414,7 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
 
-
-    protected MessageConsumer createConsumer(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage,
-            final RecoverManager recoverManager0) {
+    protected MessageConsumer createConsumer(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage, final RecoverManager recoverManager0) {
         OffsetStorage offsetStorageCopy = offsetStorage;
         if (offsetStorageCopy == null) {
             offsetStorageCopy = new ZkOffsetStorage(this.metaZookeeper, this.zkClient);
@@ -507,21 +426,17 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
 
     }
 
-
     @Override
     public MessageConsumer createConsumer(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage) {
         return this.createConsumer(consumerConfig, offsetStorage, this.recoverManager);
     }
-
 
     @Override
     public Map<InetSocketAddress, StatsResult> getStats(String item) throws InterruptedException {
         return this.getStats0(null, item);
     }
 
-
-    private Map<InetSocketAddress, StatsResult> getStats0(InetSocketAddress target, String item)
-            throws InterruptedException {
+    private Map<InetSocketAddress, StatsResult> getStats0(InetSocketAddress target, String item) throws InterruptedException {
         Set<String> groups = this.remotingClient.getGroupSet();
         if (groups == null || groups.size() <= 1) {
             return Collections.emptyMap();
@@ -555,9 +470,7 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
 
-
-    private void parseStatsValues(InetSocketAddress sockAddr, Map<InetSocketAddress, StatsResult> rt, String group,
-            String body) throws URISyntaxException {
+    private void parseStatsValues(InetSocketAddress sockAddr, Map<InetSocketAddress, StatsResult> rt, String group, String body) throws URISyntaxException {
         String[] lines = body.split("\r\n");
         Map<String/* key */, String/* stats value */> values = new HashMap<String, String>();
         for (String line : lines) {
@@ -574,24 +487,20 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         rt.put(sockAddr, new StatsResult(values));
     }
 
-
     @Override
     public Map<InetSocketAddress, StatsResult> getStats() throws InterruptedException {
         return this.getStats((String) null);
     }
-
 
     @Override
     public StatsResult getStats(InetSocketAddress target, String item) throws InterruptedException {
         return this.getStats0(target, item).get(target);
     }
 
-
     @Override
     public StatsResult getStats(InetSocketAddress target) throws InterruptedException {
         return this.getStats(target, null);
     }
-
 
     @Override
     public List<Partition> getPartitionsForTopic(String topic) {
@@ -611,22 +520,10 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.SessionFactory#createConsumer(com.taobao
-     * .metamorphosis.client.consumer.ConsumerConfig)
-     */
     @Override
     public MessageConsumer createConsumer(final ConsumerConfig consumerConfig) {
         return this.createConsumer(consumerConfig, null, null);
     }
-
-    static final char[] INVALID_GROUP_CHAR = { '~', '!', '#', '$', '%', '^', '&', '*', '(', ')', '+', '=', '`', '\'',
-                                               '"', ',', ';', '/', '?', '[', ']', '<', '>', '.', ':', ' ' };
-
 
     protected void checkConsumerConfig(final ConsumerConfig consumerConfig) {
         if (StringUtils.isBlank(consumerConfig.getGroup())) {
@@ -650,18 +547,49 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
 
-
     @Override
     public TopicBrowser createTopicBrowser(String topic) {
         return this.createTopicBrowser(topic, 1024 * 1024, 5, TimeUnit.SECONDS);
     }
-
 
     @Override
     public TopicBrowser createTopicBrowser(String topic, int maxSize, long timeout, TimeUnit timeUnit) {
         MessageConsumer consumer = this.createConsumer(new ConsumerConfig("Just_for_Browser"));
         return new MetaTopicBrowser(topic, maxSize, TimeUnit.MILLISECONDS.convert(timeout, timeUnit), consumer,
             this.getPartitionsForTopic(topic));
+    }
+
+
+    // --------------------
+    // getter and setter...
+    // --------------------
+
+    public RemotingClientWrapper getRemotingClient() {
+        return this.remotingClient;
+    }
+
+    public SubscribeInfoManager getSubscribeInfoManager() {
+        return this.subscribeInfoManager;
+    }
+
+    public MetaClientConfig getMetaClientConfig() {
+        return this.metaClientConfig;
+    }
+
+    public ProducerZooKeeper getProducerZooKeeper() {
+        return this.producerZooKeeper;
+    }
+
+    public ConsumerZooKeeper getConsumerZooKeeper() {
+        return this.consumerZooKeeper;
+    }
+
+    public RecoverManager getRecoverStorageManager() {
+        return this.recoverManager;
+    }
+
+    public CopyOnWriteArrayList<Shutdownable> getChildren() {
+        return this.children;
     }
 
 }

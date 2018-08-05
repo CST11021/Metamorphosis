@@ -26,8 +26,11 @@ package com.taobao.metamorphosis.client.transaction;
  */
 public interface TransactionSession {
 
+    /**
+     * 移除事务上下文
+     * @param ctx
+     */
     public void removeContext(TransactionContext ctx);
-
 
     public String getSessionId();
 

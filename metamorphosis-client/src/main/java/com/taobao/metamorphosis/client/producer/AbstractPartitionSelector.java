@@ -24,7 +24,6 @@ public abstract class AbstractPartitionSelector implements PartitionSelector {
         return this.getPartition0(topic, partitions, message);
     }
 
-
     public abstract Partition getPartition0(String topic, List<Partition> partitions, Message message)
             throws MetaClientException;
 }

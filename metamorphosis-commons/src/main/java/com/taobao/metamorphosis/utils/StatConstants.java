@@ -29,8 +29,9 @@ public class StatConstants {
      * 发送消息时间统计
      */
     public static final String PUT_TIME_STAT = "cli_put_time";
+
     /**
-     * 发送消息查过一定值的统计
+     * 发送消息超时的统计
      */
     public static final String PUT_TIMEOUT_STAT = "cli_put_timeout";
 
