@@ -34,33 +34,23 @@ public interface Store {
 
     void add(byte[] key, byte[] data) throws IOException;
 
-
     void add(byte[] key, byte[] data, boolean force) throws IOException;
-
 
     boolean remove(byte[] key) throws IOException;
 
-
     boolean remove(byte[] key, boolean force) throws IOException;
-
 
     byte[] get(byte[] key) throws IOException;
 
-
     boolean update(byte[] key, byte[] data) throws IOException;
-
 
     int size();
 
-
     public long getMaxFileCount();
-
 
     public void setMaxFileCount(long maxFileCount);
 
-
     Iterator<byte[]> iterator() throws IOException;
-
 
     void close() throws IOException;
 }

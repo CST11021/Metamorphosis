@@ -33,10 +33,10 @@ import com.taobao.common.store.util.BytesKey;
  * 
  */
 public class MemStore implements Store {
+
     private final Map<BytesKey, byte[]> datas = new ConcurrentHashMap<BytesKey, byte[]>();
 
-
-    /*
+    /**
      * (non-Javadoc)
      * 
      * @see com.taobao.common.store.Store#add(byte[], byte[])
@@ -46,21 +46,18 @@ public class MemStore implements Store {
         this.datas.put(new BytesKey(key), data);
     }
 
-
     @Override
     public void add(final byte[] key, final byte[] data, final boolean force) throws IOException {
         this.datas.put(new BytesKey(key), data);
 
     }
 
-
     @Override
     public boolean remove(final byte[] key, final boolean force) throws IOException {
         return null != this.datas.remove(new BytesKey(key));
     }
 
-
-    /*
+    /**
      * (non-Javadoc)
      * 
      * @see com.taobao.common.store.Store#get(byte[])
@@ -70,8 +67,7 @@ public class MemStore implements Store {
         return this.datas.get(new BytesKey(key));
     }
 
-
-    /*
+    /**
      * (non-Javadoc)
      * 
      * @see com.taobao.common.store.Store#iterator()
@@ -103,8 +99,7 @@ public class MemStore implements Store {
         };
     }
 
-
-    /*
+    /**
      * (non-Javadoc)
      * 
      * @see com.taobao.common.store.Store#remove(byte[])
@@ -114,8 +109,7 @@ public class MemStore implements Store {
         return null != this.datas.remove(new BytesKey(key));
     }
 
-
-    /*
+    /**
      * (non-Javadoc)
      * 
      * @see com.taobao.common.store.Store#size()
@@ -125,8 +119,7 @@ public class MemStore implements Store {
         return this.datas.size();
     }
 
-
-    /*
+    /**
      * (non-Javadoc)
      * 
      * @see com.taobao.common.store.Store#update(byte[], byte[])
@@ -137,20 +130,18 @@ public class MemStore implements Store {
         return true;
     }
 
-
     @Override
     public void close() throws IOException {
         // nodo
     }
-
 
     @Override
     public long getMaxFileCount() {
         return Long.MAX_VALUE;
     }
 
-
     @Override
     public void setMaxFileCount(final long maxFileCount) {
     }
+
 }
