@@ -189,7 +189,9 @@ public final class MessageUtils {
 
 
     /**
-     * 将消息属性和消息payload打包，结构如下：</br></br> 0或者1个定长attribute + payload
+     * 返回：消息的data + 消息的attribute
+     *
+     * 将消息属性和消息payload打包，结构如下：0或者1个定长attribute + payload
      * 
      * @param message
      * @return
@@ -197,13 +199,14 @@ public final class MessageUtils {
     public final static byte[] encodePayload(final Message message) {
         final byte[] payload = message.getData();
         final String attribute = message.getAttribute();
+
         byte[] attrData = null;
         if (attribute != null) {
             attrData = ByteUtils.getBytes(attribute);
-        }
-        else {
+        } else {
             return payload;
         }
+
         final int attrLen = attrData == null ? 0 : attrData.length;
         final ByteBuffer buffer = ByteBuffer.allocate(4 + attrLen + payload.length);
         if (attribute != null) {

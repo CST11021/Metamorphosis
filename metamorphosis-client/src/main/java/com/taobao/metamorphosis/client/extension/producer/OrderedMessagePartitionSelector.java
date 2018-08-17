@@ -25,23 +25,26 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 
 
 /**
- * <pre>
+ *
+ * 有序的消息选择器support类
+ *
  * 支持获取某topic分区总数,当前可用分区数跟配置分区不对应时 将抛出一个特殊的异常
  * <code>AvailablePartitionNumException</code>, 以便发送消息时可识别这个失败原因,从而做相应处理.
  * 
  * 需要按照消息内容(例如某个id)散列到固定分区并要求有序的场景中使用
- * </pre>
  * 
  * @author 无花
  * @since 2011-8-2 下午4:41:35
  */
-// 不放在NumAwarePartitionSelector中做是因为,当可用分区跟欲配置的分区信息不一致时,不一定都要按照这一种方式处理,
-// 留出扩展余地
+// 不放在NumAwarePartitionSelector中做是因为,当可用分区跟欲配置的分区信息不一致时,不一定都要按照这一种方式处理,留出扩展余地
 public abstract class OrderedMessagePartitionSelector extends ConfigPartitionsSupport {
 
     @Override
     public Partition getPartition(String topic, List<Partition> partitions, Message message) throws MetaClientException {
+        // 可用的分区数量
         int availablePartitionNum = partitions != null ? partitions.size() : 0;
+
+        // 配置的分区数量
         List<Partition> configPartitions = this.getConfigPartitions(topic);
         int configPartitionsNum = configPartitions.size();
 
@@ -56,8 +59,7 @@ public abstract class OrderedMessagePartitionSelector extends ConfigPartitionsSu
             throw new MetaClientException("selected null partition");
         }
 
-        // 可用分区数为0,对于顺序消息认为是临时没有可用分区(比如只有一台服务器,而它正在重启),不认为是没发布topic,
-        // 进入消息写本地机制
+        // 可用分区数为0,对于顺序消息认为是临时没有可用分区(比如只有一台服务器,而它正在重启),不认为是没发布topic,进入消息写本地机制
         if (availablePartitionNum == 0) {
             throw new AvailablePartitionNumException("selected partition[" + selectedPartition + "]for topic[" + topic
                     + "]can not write now");
@@ -83,7 +85,13 @@ public abstract class OrderedMessagePartitionSelector extends ConfigPartitionsSu
 
     }
 
-
+    /**
+     * 从分区列表中选择一个分区，抽象方法，留给子类扩展
+     * @param topic
+     * @param partitions
+     * @param message
+     * @return
+     */
     protected abstract Partition choosePartition(String topic, List<Partition> partitions, Message message);
 
 }

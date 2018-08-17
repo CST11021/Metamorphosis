@@ -32,6 +32,10 @@ public interface TransactionSession {
      */
     public void removeContext(TransactionContext ctx);
 
+    /**
+     * ªÒ»°sessionId
+     * @return
+     */
     public String getSessionId();
 
 }

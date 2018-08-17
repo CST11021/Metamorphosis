@@ -46,9 +46,25 @@ import com.taobao.metamorphosis.exception.MetaClientException;
  * 
  */
 public class SimpleXAMessageProducer extends SimpleMessageProducer implements XAMessageProducer, BrokerChangeListener {
+
     private String uniqueQualifier = DEFAULT_UNIQUE_QUALIFIER_PREFIX + "-" + getLocalhostName();
 
     private static final String OVERWRITE_HOSTNAME_SYSTEM_PROPERTY = "metaq.client.xaproducer.hostname";
+
+    final Set<String> publishedTopics = new ConcurrentHashSet<String>();
+
+    private final Random rand = new Random();
+
+    private volatile String[] urls;
+
+
+    public SimpleXAMessageProducer(final MetaMessageSessionFactory messageSessionFactory,
+                                   final RemotingClientWrapper remotingClient,
+                                   final PartitionSelector partitionSelector,
+                                   final ProducerZooKeeper producerZooKeeper,
+                                   final String sessionId) {
+        super(messageSessionFactory, remotingClient, partitionSelector, producerZooKeeper, sessionId);
+    }
 
 
     public static String getLocalhostName() {
@@ -64,20 +80,6 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
         }
     }
 
-
-    public SimpleXAMessageProducer(final MetaMessageSessionFactory messageSessionFactory,
-            final RemotingClientWrapper remotingClient, final PartitionSelector partitionSelector,
-            final ProducerZooKeeper producerZooKeeper, final String sessionId) {
-        super(messageSessionFactory, remotingClient, partitionSelector, producerZooKeeper, sessionId);
-    }
-
-    final Set<String> publishedTopics = new ConcurrentHashSet<String>();
-
-    private final Random rand = new Random();
-
-    private volatile String[] urls;
-
-
     @Override
     public void publish(final String topic) {
         super.publish(topic);
@@ -87,12 +89,10 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
         }
     }
 
-
     @Override
     public void brokersChanged(String topic) {
         this.generateTransactionBrokerURLs();
     }
-
 
     private void generateTransactionBrokerURLs() {
         final List<Set<String>> brokerUrls = new ArrayList<Set<String>>();
@@ -112,7 +112,6 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
 
     }
 
-
     private String selectTransactionBrokerURL() {
         String[] copiedUrls = this.urls;
         if (copiedUrls == null || copiedUrls.length == 0) {
@@ -120,7 +119,6 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
         }
         return copiedUrls[this.rand.nextInt(copiedUrls.length)];
     }
-
 
     static <T> Set<T> intersect(final List<Set<T>> sets) {
         if (sets == null || sets.size() == 0) {
@@ -135,12 +133,10 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
         return rt;
     }
 
-
     @Override
     public String getUniqueQualifier() {
         return this.uniqueQualifier;
     }
-
 
     @Override
     public void setUniqueQualifier(String uniqueQualifier) {
@@ -148,13 +144,11 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
         this.uniqueQualifier = uniqueQualifier;
     }
 
-
     @Override
     public void setUniqueQualifierPrefix(String prefix) {
         this.checkUniqueQualifier(prefix);
         this.uniqueQualifier = prefix + "-" + getLocalhostName();
     }
-
 
     private void checkUniqueQualifier(String prefix) {
         if (StringUtils.isBlank(prefix)) {
@@ -165,7 +159,6 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
                     "Invalid unique qualifier,it should not contains newline,':' or blank characters.");
         }
     }
-
 
     @Override
     public XAResource getXAResource() throws MetaClientException {
@@ -186,7 +179,6 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
             return xares;
         }
     }
-
 
     @Override
     public synchronized void shutdown() throws MetaClientException {

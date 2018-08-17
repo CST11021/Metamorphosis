@@ -33,12 +33,15 @@ public interface ConfigPartitionsAware {
 
     /**
      * 设置顺序消息配置的总体分区信息
-     * */
-    public void setConfigPartitions(Map<String/* topic */, List<Partition>/* partitions */> map);
+     * @param map Map<topic, partitions>
+     */
+    public void setConfigPartitions(Map<String, List<Partition>> map);
 
 
     /**
      * 获取某个topic消息的总体分区信息
-     * */
+     * @param topic
+     * @return
+     */
     public List<Partition> getConfigPartitions(String topic);
 }

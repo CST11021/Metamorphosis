@@ -25,13 +25,18 @@ import org.apache.commons.lang.StringUtils;
 import com.taobao.metamorphosis.utils.DiamondUtils;
 import com.taobao.metamorphosis.utils.ZkUtils.ZKConfig;
 
-
+/**
+ * MQ的客户端配置
+ */
 public class MetaClientConfig implements Serializable {
 
     static final long serialVersionUID = -1L;
 
+    protected ZKConfig zkConfig;
+
     Properties partitionsInfo;
 
+    /** MQ服务器的连接信息，如果有设置，则使用设置的url并连接指定的MQ服务器，否则使用zk发现服务器 */
     protected String serverUrl;
 
     /** 从diamond获取partitions配置的dataId，默认为"metamorphosis.partitions" */
@@ -39,8 +44,6 @@ public class MetaClientConfig implements Serializable {
 
     /** 从diamond获取partitions配置的group，默认为DEFAULT_GROUP */
     private final String diamondPartitionsGroup = "DEFAULT_GROUP";// Constants.DEFAULT_GROUP;
-
-    protected ZKConfig zkConfig;
 
     /** recover本地消息的时间间隔 */
     private long recoverMessageIntervalInMills = 5 * 60 * 1000L;

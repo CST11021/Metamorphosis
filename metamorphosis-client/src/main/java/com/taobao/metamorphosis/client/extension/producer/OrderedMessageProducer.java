@@ -38,26 +38,42 @@ import com.taobao.metamorphosis.utils.HexSupport;
 
 
 /**
- * <pre>
  * 有序消息生产者的实现类,需要按照消息内容(例如某个id)散列到固定分区并要求有序的场景中使用.
  * 当预期的分区不可用时,消息将缓存到本地,分区可用时恢复.
- * </pre>
  * 
  * @author 无花
  * @since 2011-8-24 下午4:37:48
  */
-
 public class OrderedMessageProducer extends SimpleMessageProducer {
     private static final Log log = LogFactory.getLog(OrderedMessageProducer.class);
 
+    /** 当预期的分区不可用时,消息将缓存到本地,分区可用时恢复 */
     private final MessageRecoverManager localMessageStorageManager;
+
+    /** 有序的消息发送器 */
     private final OrderedMessageSender orderMessageSender;
+
+    /** 用于恢复消息的管理器 */
+    private final MessageRecoverManager.MessageRecoverer recoverer = new MessageRecoverManager.MessageRecoverer() {
+
+        @Override
+        public void handle(final Message msg) throws Exception {
+            final SendResult sendResult = OrderedMessageProducer.this.sendMessageToServer(msg, DEFAULT_OP_TIMEOUT, TimeUnit.MILLISECONDS);
+            // 恢复时还是失败,抛出异常停止后续消息的恢复
+            if (!sendResult.isSuccess()) {
+                throw new MetaClientException(sendResult.getErrorMessage());
+            }
+        }
+
+    };
 
 
     public OrderedMessageProducer(final MetaMessageSessionFactory messageSessionFactory,
-            final RemotingClientWrapper remotingClient, final PartitionSelector partitionSelector,
-            final ProducerZooKeeper producerZooKeeper, final String sessionId,
-            final MessageRecoverManager localMessageStorageManager) {
+                                  final RemotingClientWrapper remotingClient,
+                                  final PartitionSelector partitionSelector,
+                                  final ProducerZooKeeper producerZooKeeper,
+                                  final String sessionId,
+                                  final MessageRecoverManager localMessageStorageManager) {
         super(messageSessionFactory, remotingClient, partitionSelector, producerZooKeeper, sessionId);
         this.localMessageStorageManager = localMessageStorageManager;
         this.orderMessageSender = new OrderedMessageSender(this);
@@ -70,23 +86,18 @@ public class OrderedMessageProducer extends SimpleMessageProducer {
         this.localMessageStorageManager.setMessageRecoverer(this.recoverer);
     }
 
-
     @Override
-    public SendResult sendMessage(final Message message, final long timeout, final TimeUnit unit)
-            throws MetaClientException, InterruptedException {
+    public SendResult sendMessage(final Message message, final long timeout, final TimeUnit unit) throws MetaClientException, InterruptedException {
         this.checkState();
         this.checkMessage(message);
         return this.orderMessageSender.sendMessage(message, timeout, unit);
     }
 
-
     Partition selectPartition(final Message message) throws MetaClientException {
         return this.producerZooKeeper.selectPartition(message.getTopic(), message, this.partitionSelector);
     }
 
-
-    SendResult saveMessageToLocal(final Message message, final Partition partition, final long timeout,
-            final TimeUnit unit) {
+    SendResult saveMessageToLocal(final Message message, final Partition partition, final long timeout, final TimeUnit unit) {
         try {
             this.localMessageStorageManager.append(message, partition);
             return new SendResult(true, partition, -1, "send to local");
@@ -101,10 +112,7 @@ public class OrderedMessageProducer extends SimpleMessageProducer {
     private final boolean sendFailAndSaveToLocal = Boolean.parseBoolean(System.getProperty(
         "meta.ordered.saveToLocalWhenFailed", "false"));
 
-
-    SendResult sendMessageToServer(final Message message, final long timeout, final TimeUnit unit,
-            final boolean saveToLocalWhileForbidden) throws MetaClientException, InterruptedException,
-            MetaOpeartionTimeoutException {
+    SendResult sendMessageToServer(final Message message, final long timeout, final TimeUnit unit, final boolean saveToLocalWhileForbidden) throws MetaClientException, InterruptedException, MetaOpeartionTimeoutException {
         final SendResult sendResult = this.sendMessageToServer(message, timeout, unit);
         if (this.needSaveToLocalWhenSendFailed(sendResult)
                 || this.needSaveToLocalWhenForbidden(saveToLocalWhileForbidden, sendResult)) {
@@ -116,43 +124,21 @@ public class OrderedMessageProducer extends SimpleMessageProducer {
         }
     }
 
-
     private boolean needSaveToLocalWhenSendFailed(final SendResult sendResult) {
         return !sendResult.isSuccess() && sendFailAndSaveToLocal;
     }
-
 
     private boolean needSaveToLocalWhenForbidden(final boolean saveToLocalWhileForbidden, final SendResult sendResult) {
         return !sendResult.isSuccess() && sendResult.getErrorMessage().equals(String.valueOf(HttpStatus.Forbidden))
                 && saveToLocalWhileForbidden;
     }
 
-
     int getLocalMessageCount(final String topic, final Partition partition) {
         return this.localMessageStorageManager.getMessageCount(topic, partition);
     }
-
 
     void tryRecoverMessage(final String topic, final Partition partition) {
         this.localMessageStorageManager.recover(topic, partition, this.recoverer);
     }
 
-    private final MessageRecoverManager.MessageRecoverer recoverer = new MessageRecoverManager.MessageRecoverer() {
-
-        @Override
-        public void handle(final Message msg) throws Exception {
-            final SendResult sendResult =
-                    OrderedMessageProducer.this.sendMessageToServer(msg, DEFAULT_OP_TIMEOUT, TimeUnit.MILLISECONDS);
-            // 恢复时还是失败,抛出异常停止后续消息的恢复
-            if (!sendResult.isSuccess() /*
-                                         * &&
-                                         * sendResult.getErrorMessage().equals
-                                         * (String
-                                         * .valueOf(HttpStatus.Forbidden))
-                                         */) {
-                throw new MetaClientException(sendResult.getErrorMessage());
-            }
-        }
-
-    };
 }

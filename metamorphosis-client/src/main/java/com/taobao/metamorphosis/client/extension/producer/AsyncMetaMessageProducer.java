@@ -47,7 +47,6 @@ import com.taobao.metamorphosis.network.PutCommand;
 
 
 /**
- * <pre>
  * 异步单向发送消息给服务器的生产者实现.
  * 
  * 使用场景:
@@ -60,20 +59,22 @@ import com.taobao.metamorphosis.network.PutCommand;
  * @since 2011-10-21 下午1:42:55
  * </pre>
  */
-
 public class AsyncMetaMessageProducer extends SimpleMessageProducer implements AsyncMessageProducer, MessageRecoverer {
     private static final Log log = LogFactory.getLog(AsyncMetaMessageProducer.class);
+
     private static final int DEFAULT_PERMITS = 20000;
 
     private final SlidingWindow slidingWindow;
 
     private IgnoreMessageProcessor ignoreMessageProcessor;
 
-
     public AsyncMetaMessageProducer(final MetaMessageSessionFactory messageSessionFactory,
-            final RemotingClientWrapper remotingClient, final PartitionSelector partitionSelector,
-            final ProducerZooKeeper producerZooKeeper, final String sessionId, final int slidingWindowSize0,
-            final IgnoreMessageProcessor processor) {
+                                    final RemotingClientWrapper remotingClient,
+                                    final PartitionSelector partitionSelector,
+                                    final ProducerZooKeeper producerZooKeeper,
+                                    final String sessionId,
+                                    final int slidingWindowSize0,
+                                    final IgnoreMessageProcessor processor) {
 
         super(messageSessionFactory, remotingClient, partitionSelector, producerZooKeeper, sessionId);
         this.slidingWindow = new SlidingWindow(slidingWindowSize0 > 0 ? slidingWindowSize0 : DEFAULT_PERMITS);
@@ -83,27 +84,11 @@ public class AsyncMetaMessageProducer extends SimpleMessageProducer implements A
     }
 
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.extension.producer.AsyncMessageProducer
-     * #asyncSendMessage(com.taobao.metamorphosis.Message)
-     */
     @Override
     public void asyncSendMessage(final Message message) {
         this.asyncSendMessage(message, DEFAULT_OP_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.extension.producer.AsyncMessageProducer
-     * #asyncSendMessage(com.taobao.metamorphosis.Message, long,
-     * java.util.concurrent.TimeUnit)
-     */
     @Override
     public void asyncSendMessage(final Message message, final long timeout, final TimeUnit unit) {
         try {
@@ -136,16 +121,6 @@ public class AsyncMetaMessageProducer extends SimpleMessageProducer implements A
         }
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.extension.producer.AsyncMessageProducer
-     * #setIgnoreMessageProcessor
-     * (com.taobao.metamorphosis.client.extension.producer
-     * .AsyncMessageProducer.IgnoreMessageProcessor)
-     */
     @Override
     public void setIgnoreMessageProcessor(final IgnoreMessageProcessor ignoreMessageProcessor) {
         this.ignoreMessageProcessor = ignoreMessageProcessor;
@@ -153,9 +128,7 @@ public class AsyncMetaMessageProducer extends SimpleMessageProducer implements A
 
 
     @Override
-    protected BooleanCommand invokeToGroup(final String serverUrl, final Partition partition,
-            final PutCommand putCommand, final Message message, final long timeout, final TimeUnit unit)
-            throws InterruptedException, TimeoutException, NotifyRemotingException {
+    protected BooleanCommand invokeToGroup(final String serverUrl, final Partition partition, final PutCommand putCommand, final Message message, final long timeout, final TimeUnit unit) throws InterruptedException, TimeoutException, NotifyRemotingException {
 
         try {
             return this.trySend(serverUrl, putCommand, timeout, unit);
@@ -169,10 +142,8 @@ public class AsyncMetaMessageProducer extends SimpleMessageProducer implements A
 
     }
 
-
     // 在上层做流量限制,避免大量数据包冲击remoting后造成OOM
-    private BooleanCommand trySend(final String serverUrl, final PutCommand putCommand, final long timeout,
-            final TimeUnit unit) throws NotifyRemotingException, InterruptedException {
+    private BooleanCommand trySend(final String serverUrl, final PutCommand putCommand, final long timeout, final TimeUnit unit) throws NotifyRemotingException, InterruptedException {
         final int dataLength = putCommand.getData() != null ? putCommand.getData().length : 0;
         if (this.slidingWindow.tryAcquireByLength(dataLength)) {// , timeout,
                                                                 // unit
@@ -197,9 +168,7 @@ public class AsyncMetaMessageProducer extends SimpleMessageProducer implements A
         }
     }
 
-
-    private BooleanCommand processOverMessage(final Partition partition, final PutCommand putCommand,
-            final Message message, final MetaMessageOverflowException e2) throws MetaMessageOverflowException {
+    private BooleanCommand processOverMessage(final Partition partition, final PutCommand putCommand, final Message message, final MetaMessageOverflowException e2) throws MetaMessageOverflowException {
         if (this.ignoreMessageProcessor != null) {
             // 不管处理结果怎样都返回成功
             this.handleSendFailMessage(message);
@@ -210,7 +179,6 @@ public class AsyncMetaMessageProducer extends SimpleMessageProducer implements A
             throw e2;
         }
     }
-
 
     private void handleSendFailMessage(final Message message) {
         try {
@@ -295,12 +263,10 @@ public class AsyncMetaMessageProducer extends SimpleMessageProducer implements A
 
     }
 
-
     @Override
     public void handle(final Message msg) throws Exception {
         this.asyncSendMessage(msg);
     }
-
 
     // for test
     IgnoreMessageProcessor getIgnoreMessageProcessor() {

@@ -8,6 +8,8 @@ import com.taobao.metamorphosis.cluster.Partition;
 
 
 /**
+ * 用于查看该topic下的所有分区和消息
+ *
  * Allows browsing of messages on a Topic.
  * 
  * A client uses a TopicBrowser to look at messages on a topic without consuming
@@ -29,14 +31,12 @@ public interface TopicBrowser extends Shutdownable {
      */
     public Iterator<Message> iterator();
 
-
     /**
      * Returns topic's all alive partitions.
      * 
      * @return
      */
     public List<Partition> getPartitions();
-
 
     /**
      * Returns the topic

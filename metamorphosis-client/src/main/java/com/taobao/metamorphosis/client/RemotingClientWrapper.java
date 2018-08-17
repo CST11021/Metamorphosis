@@ -55,10 +55,11 @@ import com.taobao.metamorphosis.network.RemotingUtils;
  * 
  */
 public class RemotingClientWrapper implements RemotingClient {
-    private final RemotingClient remotingClient;
-    private final ConcurrentHashMap<String/* url */, Set<Object>/* references */> refsCache =
-            new ConcurrentHashMap<String, Set<Object>>();
 
+    /** 用于服务器通信的客户端，该通信使用阿里的gecko */
+    private final RemotingClient remotingClient;
+
+    private final ConcurrentHashMap<String/* url */, Set<Object>/* references */> refsCache = new ConcurrentHashMap<String, Set<Object>>();
 
     public RemotingClientWrapper(final RemotingClient remotingClient) {
         super();
@@ -68,7 +69,6 @@ public class RemotingClientWrapper implements RemotingClient {
     @Override
     public void connect(String url, String targetGroup, int connCount) throws NotifyRemotingException {
         this.remotingClient.connect(url, targetGroup, connCount);
-
     }
 
     @Override
@@ -77,8 +77,7 @@ public class RemotingClientWrapper implements RemotingClient {
     }
 
     @Override
-    public void addAllProcessors(
-            final Map<Class<? extends RequestCommand>, RequestProcessor<? extends RequestCommand>> map) {
+    public void addAllProcessors(final Map<Class<? extends RequestCommand>, RequestProcessor<? extends RequestCommand>> map) {
         this.remotingClient.addAllProcessors(map);
     }
 
@@ -237,8 +236,7 @@ public class RemotingClientWrapper implements RemotingClient {
     }
 
     @Override
-    public ResponseCommand invokeToGroup(final String group, final RequestCommand command, final long time,
-            final TimeUnit timeUnit) throws InterruptedException, TimeoutException, NotifyRemotingException {
+    public ResponseCommand invokeToGroup(final String group, final RequestCommand command, final long time, final TimeUnit timeUnit) throws InterruptedException, TimeoutException, NotifyRemotingException {
 
         ResponseCommand resp = this.remotingClient.invokeToGroup(group, command, time, timeUnit);
         if (resp.getResponseStatus() == ResponseStatus.ERROR_COMM) {
@@ -253,21 +251,17 @@ public class RemotingClientWrapper implements RemotingClient {
     }
 
     @Override
-    public ResponseCommand invokeToGroup(final String group, final RequestCommand command) throws InterruptedException,
-    TimeoutException, NotifyRemotingException {
+    public ResponseCommand invokeToGroup(final String group, final RequestCommand command) throws InterruptedException, TimeoutException, NotifyRemotingException {
         return this.remotingClient.invokeToGroup(group, command);
     }
 
     @Override
-    public Map<Connection, ResponseCommand> invokeToGroupAllConnections(final String group,
-        final RequestCommand command, final long time, final TimeUnit timeUnit) throws InterruptedException,
-        NotifyRemotingException {
+    public Map<Connection, ResponseCommand> invokeToGroupAllConnections(final String group, final RequestCommand command, final long time, final TimeUnit timeUnit) throws InterruptedException, NotifyRemotingException {
         return this.remotingClient.invokeToGroupAllConnections(group, command, time, timeUnit);
     }
 
     @Override
-    public Map<Connection, ResponseCommand> invokeToGroupAllConnections(final String group, final RequestCommand command)
-            throws InterruptedException, NotifyRemotingException {
+    public Map<Connection, ResponseCommand> invokeToGroupAllConnections(final String group, final RequestCommand command) throws InterruptedException, NotifyRemotingException {
         return this.remotingClient.invokeToGroupAllConnections(group, command);
     }
 
@@ -297,8 +291,7 @@ public class RemotingClientWrapper implements RemotingClient {
     }
 
     @Override
-    public Connection selectConnectionForGroup(final String group, final ConnectionSelector connectionSelector,
-            final RequestCommand request) throws NotifyRemotingException {
+    public Connection selectConnectionForGroup(final String group, final ConnectionSelector connectionSelector, final RequestCommand request) throws NotifyRemotingException {
         return this.remotingClient.selectConnectionForGroup(group, connectionSelector, request);
     }
 
@@ -308,15 +301,12 @@ public class RemotingClientWrapper implements RemotingClient {
     }
 
     @Override
-    public void sendToGroup(final String group, final RequestCommand command,
-            final SingleRequestCallBackListener listener, final long time, final TimeUnit timeunut)
-                    throws NotifyRemotingException {
+    public void sendToGroup(final String group, final RequestCommand command, final SingleRequestCallBackListener listener, final long time, final TimeUnit timeunut) throws NotifyRemotingException {
         this.remotingClient.sendToGroup(group, command, listener, time, timeunut);
     }
 
     @Override
-    public void sendToGroup(final String group, final RequestCommand command,
-            final SingleRequestCallBackListener listener) throws NotifyRemotingException {
+    public void sendToGroup(final String group, final RequestCommand command, final SingleRequestCallBackListener listener) throws NotifyRemotingException {
         this.remotingClient.sendToGroup(group, command, listener);
     }
 
@@ -326,27 +316,22 @@ public class RemotingClientWrapper implements RemotingClient {
     }
 
     @Override
-    public void sendToGroupAllConnections(final String group, final RequestCommand command,
-            final GroupAllConnectionCallBackListener listener, final long time, final TimeUnit timeUnit)
-                    throws NotifyRemotingException {
+    public void sendToGroupAllConnections(final String group, final RequestCommand command, final GroupAllConnectionCallBackListener listener, final long time, final TimeUnit timeUnit) throws NotifyRemotingException {
         this.remotingClient.sendToGroupAllConnections(group, command, listener, time, timeUnit);
     }
 
     @Override
-    public void sendToGroupAllConnections(final String group, final RequestCommand command,
-            final GroupAllConnectionCallBackListener listener) throws NotifyRemotingException {
+    public void sendToGroupAllConnections(final String group, final RequestCommand command, final GroupAllConnectionCallBackListener listener) throws NotifyRemotingException {
         this.remotingClient.sendToGroupAllConnections(group, command, listener);
     }
 
     @Override
-    public void sendToGroupAllConnections(final String group, final RequestCommand command)
-            throws NotifyRemotingException {
+    public void sendToGroupAllConnections(final String group, final RequestCommand command) throws NotifyRemotingException {
         this.remotingClient.sendToGroupAllConnections(group, command);
     }
 
     @Override
-    public void sendToGroups(final Map<String, RequestCommand> groupObjects, final MultiGroupCallBackListener listener,
-            final long timeout, final TimeUnit timeUnit, final Object... args) throws NotifyRemotingException {
+    public void sendToGroups(final Map<String, RequestCommand> groupObjects, final MultiGroupCallBackListener listener, final long timeout, final TimeUnit timeUnit, final Object... args) throws NotifyRemotingException {
         this.remotingClient.sendToGroups(groupObjects, listener, timeout, timeUnit, args);
     }
 
@@ -392,16 +377,13 @@ public class RemotingClientWrapper implements RemotingClient {
     }
 
     @Override
-    public void transferToGroup(String group, IoBuffer head, IoBuffer tail, FileChannel channel, long position,
-            long size, Integer opaque, SingleRequestCallBackListener listener, long time, TimeUnit unit)
-                    throws NotifyRemotingException {
+    public void transferToGroup(String group, IoBuffer head, IoBuffer tail, FileChannel channel, long position, long size, Integer opaque, SingleRequestCallBackListener listener, long time, TimeUnit unit) throws NotifyRemotingException {
         this.remotingClient.transferToGroup(group, head, tail, channel, position, size, opaque, listener, time, unit);
 
     }
 
     @Override
-    public void transferToGroup(String group, IoBuffer head, IoBuffer tail, FileChannel channel, long position,
-            long size) throws NotifyRemotingException {
+    public void transferToGroup(String group, IoBuffer head, IoBuffer tail, FileChannel channel, long position, long size) throws NotifyRemotingException {
         this.remotingClient.transferToGroup(group, head, tail, channel, position, size);
     }
 

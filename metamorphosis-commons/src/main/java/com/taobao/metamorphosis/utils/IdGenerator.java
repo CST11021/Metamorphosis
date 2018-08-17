@@ -29,9 +29,12 @@ import com.taobao.metamorphosis.network.RemotingUtils;
  */
 public class IdGenerator {
 
+    /** 生成ID的种子，这里用做前缀 */
     private String seed;
-    private final AtomicLong sequence = new AtomicLong(1);
+    /** 表示ID的最大长度 */
     private int length;
+    /** 自增序列 */
+    private final AtomicLong sequence = new AtomicLong(1);
 
 
     /**
@@ -47,13 +50,14 @@ public class IdGenerator {
         }
     }
 
-
     /**
-     * Generate a unqiue id
+     * 生产唯一的ID，例如：
+     * 192.168.14.219-1534472771137-1
+     * 192.168.14.219-1534472771137-2
+     * 192.168.14.219-1534472771137-3
      * 
      * @return a unique id
      */
-
     public synchronized String generateId() {
         final StringBuilder sb = new StringBuilder(this.length);
         sb.append(this.seed);
@@ -61,9 +65,12 @@ public class IdGenerator {
         return sb.toString();
     }
 
-
     /**
      * Generate a unique ID - that is friendly for a URL or file system
+     * 例如：
+     * 192-168-14-219-1534472771137-1
+     * 192-168-14-219-1534472771137-2
+     * 192-168-14-219-1534472771137-3
      * 
      * @return a unique id
      */
@@ -73,6 +80,11 @@ public class IdGenerator {
         result = result.replace('_', '-');
         result = result.replace('.', '-');
         return result;
+    }
+
+    public static void main(String[] args) {
+        IdGenerator idGenerator = new IdGenerator();
+        System.out.println(idGenerator.generateId() + ", " + idGenerator.generateSanitizedId());
     }
 
 }

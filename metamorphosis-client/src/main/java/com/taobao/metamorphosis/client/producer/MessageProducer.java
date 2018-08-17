@@ -34,14 +34,15 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 public interface MessageProducer extends Shutdownable {
 
     /**
-     * 发布topic，以便producer从zookeeper获取broker列表并连接，在发送消息前必须先调用此方法
+     * 发布topic，将topic发布到zk，以便producer从zookeeper获取broker列表并连接，在发送消息前必须先调用此方法
      * 
      * @param topic
      */
     public void publish(String topic);
 
     /**
-     * 设置发送消息的默认topic，当发送的message的topic没有找到可用broker和分区的时候，选择这个默认topic指定的broker发送。调用本方法会自动publish此topic。
+     * 设置发送消息的默认topic：
+     * 当发送的message的topic没有找到可用broker和分区的时候，选择这个默认topic指定的broker发送。调用本方法会自动publish此topic。
      * 
      * @param topic
      */
@@ -91,12 +92,6 @@ public interface MessageProducer extends Shutdownable {
     public SendResult sendMessage(Message message, long timeout, TimeUnit unit) throws MetaClientException, InterruptedException;
 
     /**
-     * 关闭生产者，释放资源
-     */
-    @Override
-    public void shutdown() throws MetaClientException;
-
-    /**
      * 返回本生产者的分区选择器
      * 
      * @return
@@ -110,6 +105,11 @@ public interface MessageProducer extends Shutdownable {
      */
     @Deprecated
     public boolean isOrdered();
+
+
+    // -------------------
+    // 事务相关
+    // -------------------
 
     /**
      * 开启一个事务并关联到当前线程，在事务内发送的消息将作为一个单元提交给服务器，要么全部发送成功，要么全部失败
@@ -160,5 +160,16 @@ public interface MessageProducer extends Shutdownable {
      * @throws MetaClientException
      */
     public void commit() throws MetaClientException;
+
+
+    // -------------------
+    // shutdown
+    // -------------------
+
+    /**
+     * 关闭生产者，释放资源
+     */
+    @Override
+    public void shutdown() throws MetaClientException;
 
 }

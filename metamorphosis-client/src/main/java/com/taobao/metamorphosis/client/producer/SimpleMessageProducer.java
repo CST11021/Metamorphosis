@@ -72,13 +72,18 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
     /** 表示生产者发送消息时的超时时间，这里是3秒，如果发送消息3秒内，没有返回，则抛出异常 */
     protected static final long DEFAULT_OP_TIMEOUT = 3000L;
     private static final int TIMEOUT_THRESHOLD = Integer.parseInt(System.getProperty("meta.send.timeout.threshold", "200"));
+
+    /** 消息会话工厂，用户创建消息生产者对象 */
     private final MetaMessageSessionFactory messageSessionFactory;
+    /** 用于服务器通信的客户端 */
     protected final RemotingClientWrapper remotingClient;
+    /** 分区选择器 */
     protected final PartitionSelector partitionSelector;
     /** 用于Producer和zk的交互 */
     protected final ProducerZooKeeper producerZooKeeper;
+    /** sessionId */
     protected final String sessionId;
-    // 默认事务超时时间为10秒
+    /** 默认事务超时时间为10秒 */
     protected volatile int transactionTimeout = 0;
     // private final boolean ordered;
     private volatile boolean shutdown;
@@ -91,8 +96,10 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
 
 
     public SimpleMessageProducer(final MetaMessageSessionFactory messageSessionFactory,
-            final RemotingClientWrapper remotingClient, final PartitionSelector partitionSelector,
-            final ProducerZooKeeper producerZooKeeper, final String sessionId) {
+                                 final RemotingClientWrapper remotingClient,
+                                 final PartitionSelector partitionSelector,
+                                 final ProducerZooKeeper producerZooKeeper,
+                                 final String sessionId) {
         super();
         this.sessionId = sessionId;
         this.messageSessionFactory = messageSessionFactory;
@@ -125,23 +132,19 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         return this.partitionSelector;
     }
 
-    @Override
-    @Deprecated
-    public boolean isOrdered() {
-        return false;
-    }
+
 
     @Override
     public void publish(final String topic) {
         // 检查生产者服务是否已关闭
         this.checkState();
         this.checkTopic(topic);
-        // It is not always synchronized with shutdown,but it is acceptable.
+
+        // 将这个topic发布到zk
         if (!this.publishedTopics.contains(topic)) {
             this.producerZooKeeper.publishTopic(topic, this);
             this.publishedTopics.add(topic);
         }
-        // this.localMessageStorageManager.setMessageRecoverer(this.recoverer);
     }
 
     @Override
@@ -166,8 +169,7 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
     static final Pattern RESULT_SPLITER = Pattern.compile(" ");
 
     @Override
-    public SendResult sendMessage(final Message message, final long timeout, final TimeUnit unit)
-            throws MetaClientException, InterruptedException {
+    public SendResult sendMessage(final Message message, final long timeout, final TimeUnit unit) throws MetaClientException, InterruptedException {
         this.checkState();
         this.checkMessage(message);
         // 将消息发送到mateq服务器
@@ -175,8 +177,7 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
     }
 
     /** 正常的消息发送到服务器 */
-    protected SendResult sendMessageToServer(final Message message, final long timeout, final TimeUnit unit)
-            throws MetaClientException, InterruptedException, MetaOpeartionTimeoutException {
+    protected SendResult sendMessageToServer(final Message message, final long timeout, final TimeUnit unit) throws MetaClientException, InterruptedException, MetaOpeartionTimeoutException {
         /**
          * 异常信息处理的原则：
          * <ul>
@@ -405,8 +406,7 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
      * @throws InterruptedException
      * @throws MetaClientException
      */
-    private SendResult send0(final Message message, final byte[] encodedData, final long timeout, final TimeUnit unit)
-            throws InterruptedException, MetaClientException {
+    private SendResult send0(final Message message, final byte[] encodedData, final long timeout, final TimeUnit unit) throws InterruptedException, MetaClientException {
         try {
             final String topic = message.getTopic();
             Partition partition = null;
@@ -474,8 +474,7 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         }
     }
 
-    private SendResult genSendResult(final Message message, final Partition partition, final String serverUrl,
-            final BooleanCommand resp) {
+    private SendResult genSendResult(final Message message, final Partition partition, final String serverUrl, final BooleanCommand resp) {
         final String resultStr = resp.getErrorMsg();
 
         switch (resp.getCode()) {
@@ -501,9 +500,7 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         }
     }
 
-    protected BooleanCommand invokeToGroup(final String serverUrl, final Partition partition,
-            final PutCommand putCommand, final Message message, final long timeout, final TimeUnit unit)
-                    throws InterruptedException, TimeoutException, NotifyRemotingException {
+    protected BooleanCommand invokeToGroup(final String serverUrl, final Partition partition, final PutCommand putCommand, final Message message, final long timeout, final TimeUnit unit) throws InterruptedException, TimeoutException, NotifyRemotingException {
 
         return (BooleanCommand) this.remotingClient.invokeToGroup(serverUrl, putCommand, timeout, unit);
     }
@@ -529,15 +526,22 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         }
     }
 
+
+
+    // 主要方法
     @Override
     public void sendMessage(final Message message, final SendMessageCallback cb, final long time, final TimeUnit unit) {
         try {
             final String topic = message.getTopic();
+
+            // 选择消息发送的分区
             final Partition partition = this.selectPartition(message);
             if (partition == null) {
                 throw new MetaClientException("There is no aviable partition for topic " + topic
                     + ",maybe you don't publish it at first?");
             }
+
+            // 选择消息发送的broker
             final String serverUrl = this.producerZooKeeper.selectBroker(topic, partition);
             if (serverUrl == null) {
                 throw new MetaClientException("There is no aviable server right now for topic " + topic
@@ -546,46 +550,57 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
 
             final int flag = MessageFlagUtils.getFlag(message);
             final byte[] encodedData = MessageUtils.encodePayload(message);
-            final PutCommand putCommand =
-                    new PutCommand(topic, partition.getPartition(), encodedData, flag, CheckSum.crc32(encodedData),
-                        this.getTransactionId(), OpaqueGenerator.getNextOpaque());
+            final PutCommand putCommand = new PutCommand(
+                    topic,
+                    partition.getPartition(),
+                    encodedData,
+                    flag,
+                    CheckSum.crc32(encodedData),
+                    this.getTransactionId(),
+                    OpaqueGenerator.getNextOpaque()
+            );
+
             this.remotingClient.sendToGroup(serverUrl, putCommand, new SingleRequestCallBackListener() {
+
                 @Override
                 public void onResponse(final ResponseCommand responseCommand, final Connection conn) {
-                    final SendResult rt =
-                            SimpleMessageProducer.this.genSendResult(message, partition, serverUrl,
-                                (BooleanCommand) responseCommand);
+                    final SendResult rt = SimpleMessageProducer.this.genSendResult(
+                            message, partition, serverUrl, (BooleanCommand) responseCommand);
                     cb.onMessageSent(rt);
                 }
-
 
                 @Override
                 public void onException(final Exception e) {
                     cb.onException(e);
                 }
 
-
                 @Override
                 public ThreadPoolExecutor getExecutor() {
                     return null;
                 }
+
             }, time, unit);
 
-        }
-        catch (final Throwable e) {
+        } catch (final Throwable e) {
             cb.onException(e);
         }
 
     }
-
     @Override
     public void sendMessage(final Message message, final SendMessageCallback cb) {
         this.sendMessage(message, cb, DEFAULT_OP_TIMEOUT, TimeUnit.MILLISECONDS);
     }
-
     @Override
     public SendResult sendMessage(final Message message) throws MetaClientException, InterruptedException {
         return this.sendMessage(message, DEFAULT_OP_TIMEOUT, TimeUnit.MILLISECONDS);
+    }
+
+
+
+    @Override
+    @Deprecated
+    public boolean isOrdered() {
+        return false;
     }
 
     @Override

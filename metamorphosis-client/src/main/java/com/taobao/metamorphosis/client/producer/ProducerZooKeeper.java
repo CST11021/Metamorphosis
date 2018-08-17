@@ -58,10 +58,11 @@ import com.taobao.metamorphosis.utils.ZkUtils;
  */
 public class ProducerZooKeeper implements ZkClientChangedListener {
 
+    static final Log log = LogFactory.getLog(ProducerZooKeeper.class);
+
     private final RemotingClientWrapper remotingClient;
 
-    private final ConcurrentHashMap<String, FutureTask<BrokerConnectionListener>> topicConnectionListeners =
-            new ConcurrentHashMap<String, FutureTask<BrokerConnectionListener>>();
+    private final ConcurrentHashMap<String, FutureTask<BrokerConnectionListener>> topicConnectionListeners = new ConcurrentHashMap<String, FutureTask<BrokerConnectionListener>>();
 
     private final MetaClientConfig metaClientConfig;
 
@@ -73,8 +74,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
      * 默认topic，当查找分区没有找到可用分区的时候，发送到此topic下的broker
      */
     private String defaultTopic;
-
-    static final Log log = LogFactory.getLog(ProducerZooKeeper.class);
 
     public static class BrokersInfo {
         final Map<Integer/* broker id */, String/* server url */> oldBrokerStringMap;
@@ -91,6 +90,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
     }
 
     /**
+     * broker变更监听
      * When producer broker list is changed, it will notify the this listener.
      * 
      * @author apple
@@ -105,21 +105,17 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         public void brokersChanged(String topic);
     }
 
-    private final ConcurrentHashMap<String, CopyOnWriteArraySet<BrokerChangeListener>> brokerChangeListeners =
-            new ConcurrentHashMap<String, CopyOnWriteArraySet<BrokerChangeListener>>();
-
+    private final ConcurrentHashMap<String, CopyOnWriteArraySet<BrokerChangeListener>> brokerChangeListeners = new ConcurrentHashMap<String, CopyOnWriteArraySet<BrokerChangeListener>>();
 
     public void onBrokerChange(String topic, BrokerChangeListener listener) {
         CopyOnWriteArraySet<BrokerChangeListener> set = this.getListenerList(topic);
         set.add(listener);
     }
 
-
     public void deregisterBrokerChangeListener(String topic, BrokerChangeListener listener) {
         CopyOnWriteArraySet<BrokerChangeListener> set = this.getListenerList(topic);
         set.remove(listener);
     }
-
 
     public void notifyBrokersChange(String topic) {
         for (final BrokerChangeListener listener : this.getListenerList(topic)) {
@@ -131,7 +127,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
             }
         }
     }
-
 
     private CopyOnWriteArraySet<BrokerChangeListener> getListenerList(String topic) {
         CopyOnWriteArraySet<BrokerChangeListener> set = this.brokerChangeListeners.get(topic);
@@ -225,16 +220,13 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
     }
 
-
-    public ProducerZooKeeper(final MetaZookeeper metaZookeeper, final RemotingClientWrapper remotingClient,
-            final ZkClient zkClient, final MetaClientConfig metaClientConfig) {
+    public ProducerZooKeeper(final MetaZookeeper metaZookeeper, final RemotingClientWrapper remotingClient, final ZkClient zkClient, final MetaClientConfig metaClientConfig) {
         super();
         this.metaZookeeper = metaZookeeper;
         this.remotingClient = remotingClient;
         this.zkClient = zkClient;
         this.metaClientConfig = metaClientConfig;
     }
-
 
     public void publishTopic(final String topic, final Object ref) {
         if (this.topicConnectionListeners.get(topic) != null) {
@@ -264,14 +256,12 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
     }
 
-
     private void addRef(final String topic, final Object ref) {
         BrokerConnectionListener listener = this.getBrokerConnectionListener(topic);
         if (!listener.references.contains(ref)) {
             listener.references.add(ref);
         }
     }
-
 
     public void unPublishTopic(String topic, Object ref) {
         BrokerConnectionListener listener = this.getBrokerConnectionListener(topic);
@@ -289,16 +279,13 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
     }
 
-
-    private void publishTopicInternal(final String topic, final BrokerConnectionListener listener) throws Exception,
-    NotifyRemotingException, InterruptedException {
+    private void publishTopicInternal(final String topic, final BrokerConnectionListener listener) throws Exception, NotifyRemotingException, InterruptedException {
         final String partitionPath = this.metaZookeeper.brokerTopicsPubPath + "/" + topic;
         ZkUtils.makeSurePersistentPathExists(ProducerZooKeeper.this.zkClient, partitionPath);
         ProducerZooKeeper.this.zkClient.subscribeChildChanges(partitionPath, listener);
         // 第一次要同步等待就绪
         listener.syncedUpdateBrokersInfo();
     }
-
 
     BrokerConnectionListener getBrokerConnectionListener(final String topic) {
         final FutureTask<BrokerConnectionListener> task = this.topicConnectionListeners.get(topic);
@@ -315,7 +302,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
         return null;
     }
-
 
     /**
      * 根据topic查找服务器url列表
@@ -347,7 +333,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         return Collections.emptySet();
     }
 
-
     /**
      * 设置默认topic并发布
      * 
@@ -361,7 +346,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         this.publishTopic(topic, ref);
     }
 
-
     /**
      * 
      * 选择指定broker内的某个分区，用于事务内发送消息，此方法仅用于local transaction
@@ -369,8 +353,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
      * @param topic
      * @return
      */
-    Partition selectPartition(final String topic, final Message msg, final PartitionSelector selector,
-            final String serverUrl) throws MetaClientException {
+    Partition selectPartition(final String topic, final Message msg, final PartitionSelector selector, final String serverUrl) throws MetaClientException {
         boolean oldReadOnly = msg.isReadOnly();
         try {
             msg.setReadOnly(true);
@@ -398,12 +381,11 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
     }
 
-
     /**
      * 根据partition寻找broker url
      * 
      * @param topic
-     * @param message
+     * @param partition
      * @return 选中的broker的url
      */
     public String selectBroker(final String topic, final Partition partition) {
@@ -422,7 +404,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
         return null;
     }
-
 
     /**
      * 从defaultTopic中选择broker
@@ -445,7 +426,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
     }
 
-
     /**
      * 根据topic和message选择分区
      * 
@@ -453,8 +433,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
      * @param message
      * @return 选中的分区
      */
-    public Partition selectPartition(final String topic, final Message message,
-            final PartitionSelector partitionSelector) throws MetaClientException {
+    public Partition selectPartition(final String topic, final Message message, final PartitionSelector partitionSelector) throws MetaClientException {
         boolean oldReadOnly = message.isReadOnly();
         try {
             message.setReadOnly(true);
@@ -475,9 +454,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
     }
 
-
-    private Partition selectDefaultPartition(final String topic, final Message message,
-            final PartitionSelector partitionSelector, final String serverUrl) throws MetaClientException {
+    private Partition selectDefaultPartition(final String topic, final Message message, final PartitionSelector partitionSelector, final String serverUrl) throws MetaClientException {
         if (this.defaultTopic == null) {
             return null;
         }
@@ -506,7 +483,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
             return null;
         }
     }
-
 
     @Override
     public void onZkClientChanged(final ZkClient newClient) {

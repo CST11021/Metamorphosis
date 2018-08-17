@@ -55,7 +55,7 @@ public class OrderedProducer {
         // New session factory,强烈建议使用单例
         final OrderedMessageSessionFactory sessionFactory = new OrderedMetaMessageSessionFactory(metaClientConfig);
 
-        // create producer,强烈建议使用单例
+        // 这里使用自定义的分区选择器
         final MessageProducer producer = sessionFactory.createProducer(new CustomPartitionSelector());
 
         // publish topic
@@ -83,6 +83,9 @@ public class OrderedProducer {
         return reader.readLine();
     }
 
+    /**
+     * 自定义的分区选择器
+     */
     static class CustomPartitionSelector extends OrderedMessagePartitionSelector {
 
         @Override

@@ -28,6 +28,7 @@ import com.taobao.metamorphosis.utils.ZkUtils.ZKConfig;
  */
 
 public class Help {
+
     public static MetaClientConfig initMetaConfig() {
         final MetaClientConfig metaClientConfig = new MetaClientConfig();
         final ZKConfig zkConfig = new ZKConfig();
@@ -36,4 +37,5 @@ public class Help {
         metaClientConfig.setZkConfig(zkConfig);
         return metaClientConfig;
     }
+
 }

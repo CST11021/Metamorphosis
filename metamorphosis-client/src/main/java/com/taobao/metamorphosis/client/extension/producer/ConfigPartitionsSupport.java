@@ -33,14 +33,13 @@ import com.taobao.metamorphosis.cluster.Partition;
  */
 public abstract class ConfigPartitionsSupport implements PartitionSelector, ConfigPartitionsAware {
 
+    /** Map<topic, partitions> 用于保存topic和分区的对应关系*/
     private Map<String, List<Partition>> partitionsNumMap;
 
-
     @Override
-    synchronized public void setConfigPartitions(final Map<String/* topic */, List<Partition>> map) {
+    synchronized public void setConfigPartitions(final Map<String, List<Partition>> map) {
         this.partitionsNumMap = map;
     }
-
 
     @Override
     public synchronized List<Partition> getConfigPartitions(final String topic) {
