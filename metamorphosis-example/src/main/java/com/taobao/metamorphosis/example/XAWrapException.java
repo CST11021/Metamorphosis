@@ -27,24 +27,20 @@ package com.taobao.metamorphosis.example;
 public class XAWrapException extends RuntimeException {
     static final long serialVersionUID = -1L;
 
-
     public XAWrapException() {
         super();
 
     }
-
 
     public XAWrapException(final String message, final Throwable cause) {
         super(message, cause);
 
     }
 
-
     public XAWrapException(final String message) {
         super(message);
 
     }
-
 
     public XAWrapException(final Throwable cause) {
         super(cause);

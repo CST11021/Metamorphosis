@@ -34,13 +34,16 @@ import com.taobao.metamorphosis.transaction.TransactionId;
 
 
 /**
- * Put请求处理器
+ *
+ * 消息生产者使用{@link PutCommand}命令想服务端发送消息，而服务端这边使用{@link PutProcessor}处理Put请求处理器
+ * 这里的请求会根据不同的命令调用不同的{@link RequestProcessor}对象来处理请求，具体调用对应关系由Gecko框架来实现
  * 
  * @author boyan
  * @Date 2011-4-21
  * 
  */
 public class PutProcessor implements RequestProcessor<PutCommand> {
+
     static final Log log = LogFactory.getLog(PutProcessor.class);
 
     private final CommandProcessor processor;
@@ -53,17 +56,16 @@ public class PutProcessor implements RequestProcessor<PutCommand> {
         this.executor = executor;
     }
 
-
     @Override
     public ThreadPoolExecutor getExecutor() {
         return this.executor;
     }
 
-
     @Override
     public void handleRequest(final PutCommand request, final Connection conn) {
         final TransactionId xid = request.getTransactionId();
         final SessionContext context = SessionContextHolder.getOrCreateSessionContext(conn, xid);
+
         try {
             this.processor.processPutCommand(request, context, new PutCallback() {
                 @Override
@@ -71,8 +73,7 @@ public class PutProcessor implements RequestProcessor<PutCommand> {
                     RemotingUtils.response(context.getConnection(), resp);
                 }
             });
-            // RemotingUtils.response(context.getConnection(),
-            // PutProcessor.this.processor.processPutCommand(request, context));
+
         }
         catch (final Exception e) {
             RemotingUtils.response(context.getConnection(), new BooleanCommand(HttpStatus.InternalServerError,

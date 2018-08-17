@@ -19,6 +19,7 @@ import com.taobao.metamorphosis.storm.spout.MetaSpout;
 
 
 public class TestTopology {
+
     public static class FailEveryOther extends BaseRichBolt {
 
         OutputCollector _collector;
@@ -47,7 +48,6 @@ public class TestTopology {
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
         }
     }
-
 
     public static void main(String[] args) {
         TopologyBuilder builder = new TopologyBuilder();

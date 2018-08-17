@@ -15,49 +15,56 @@
  * Authors:
  *   wuhua <wq163@163.com> , boyan <killme2008@gmail.com>
  */
-package com.taobao.metamorphosis.example;
+package com.taobao.metamorphosis.example.consumer;
 
 import static com.taobao.metamorphosis.example.Help.initMetaConfig;
+
+import java.util.concurrent.Executor;
 
 import com.taobao.metamorphosis.Message;
 import com.taobao.metamorphosis.client.MessageSessionFactory;
 import com.taobao.metamorphosis.client.MetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.consumer.ConsumerConfig;
 import com.taobao.metamorphosis.client.consumer.MessageConsumer;
-import com.taobao.metamorphosis.cluster.Partition;
-import com.taobao.metamorphosis.consumer.MessageIterator;
+import com.taobao.metamorphosis.client.consumer.MessageListener;
 
 
 /**
- * We don't use synchronous consumer in production.
+ * 非auto ack模式下接收消息的例子
  * 
- * @Deprecated
- * @author apple
+ * @author boyan
  * 
  */
-@Deprecated
-public class SyncConsumer {
+public class TransactionalConsumer {
     public static void main(final String[] args) throws Exception {
-        // New session factory,强烈建议使用单例
         final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(initMetaConfig());
-        // subscribed topic
         final String topic = "meta-test";
-        // consumer group
         final String group = "meta-example";
-        // create consumer,强烈建议使用单例
         final MessageConsumer consumer = sessionFactory.createConsumer(new ConsumerConfig(group));
-        // start offset
-        long offset = 0;
-        MessageIterator it = null;
-        // fetch messages
-        while ((it = consumer.get(topic, new Partition("100-0"), offset, 1024 * 1024)) != null) {
-            while (it.hasNext()) {
-                final Message msg = it.next();
-                System.out.println("Receive message " + new String(msg.getData()));
+        consumer.subscribe(topic, 1024 * 1024, new MessageListener() {
+
+            private int count = 0;
+
+            @Override
+            public void recieveMessages(final Message message) {
+                System.out.println("Receive message " + new String(message.getData()));
+                // set auto ack to false
+                message.getPartition().setAutoAck(false);
+                // ack once per two messages
+                if (++this.count % 2 == 0) {
+                    message.getPartition().ack();
+                    System.out.println("ack message");
+                }
             }
-            // move offset forward
-            offset += it.getOffset();
-        }
+
+            @Override
+            public Executor getExecutor() {
+                // Thread pool to process messages,maybe null.
+                return null;
+            }
+        });
+        // complete subscribe
+        consumer.completeSubscribe();
 
     }
 }

@@ -30,6 +30,7 @@ import com.taobao.metamorphosis.transaction.TransactionId;
  * 
  */
 public class SessionContextHolder {
+
     private SessionContextHolder() {
 
     }
@@ -37,8 +38,15 @@ public class SessionContextHolder {
     public static final String GLOBAL_SESSION_KEY = "SessionContextGlobalKey" + System.currentTimeMillis();
 
 
+    /**
+     * 根据{@link Connection}和{@link TransactionId}获取事务上下
+     * @param conn
+     * @param xid
+     * @return
+     */
     public static SessionContext getOrCreateSessionContext(final Connection conn, final TransactionId xid) {
         SessionContext context = null;
+
         if (xid != null && xid.isLocalTransaction()) {
             // 本地事务带有session id，因此用sessionId做key存储
             final LocalTransactionId id = (LocalTransactionId) xid;
@@ -50,8 +58,7 @@ public class SessionContextHolder {
                     context = old;
                 }
             }
-        }
-        else {
+        } else {
             // XA事务没有session id，使用公共key，减少重复new
             context = (SessionContext) conn.getAttribute(GLOBAL_SESSION_KEY);
             if (context == null) {

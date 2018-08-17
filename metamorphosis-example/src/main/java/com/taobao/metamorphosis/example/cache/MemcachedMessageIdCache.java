@@ -26,11 +26,9 @@ public class MemcachedMessageIdCache implements MessageIdCache {
         this.expireInSeconds = expireInSeconds;
     }
 
-
     public int getExpireInSeconds() {
         return this.expireInSeconds;
     }
-
 
     @Override
     public void put(String key, Byte exists) {
@@ -48,7 +46,6 @@ public class MemcachedMessageIdCache implements MessageIdCache {
         }
 
     }
-
 
     @Override
     public Byte get(String key) {

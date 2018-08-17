@@ -447,7 +447,6 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
 
             final int flag = MessageFlagUtils.getFlag(message);
 
-            // TODO whz 20180805
             final PutCommand putCommand = new PutCommand(
                     topic,
                     partition.getPartition(),

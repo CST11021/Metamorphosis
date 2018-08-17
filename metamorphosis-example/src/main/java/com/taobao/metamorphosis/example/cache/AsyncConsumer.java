@@ -49,19 +49,14 @@ public class AsyncConsumer {
         MessageIdCache msgIdCache = new MemcachedMessageIdCache(mc);
         SimpleFetchManager.setMessageIdCache(msgIdCache);
 
-        // New session factory,强烈建议使用单例
         final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(initMetaConfig());
 
-        // subscribed topic
         final String topic = "meta-test";
-        // consumer group
         final String group = "meta-example";
-        // create consumer,强烈建议使用单例
         ConsumerConfig consumerConfig = new ConsumerConfig(group);
         // 默认最大获取延迟为5秒，这里设置成100毫秒，请根据实际应用要求做设置。
         consumerConfig.setMaxDelayFetchTimeInMills(100);
         final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
-        // subscribe topic
         consumer.subscribe(topic, 1024 * 1024, new MessageListener() {
 
             @Override
@@ -69,14 +64,12 @@ public class AsyncConsumer {
                 System.out.println("Receive message " + new String(message.getData()));
             }
 
-
             @Override
             public Executor getExecutor() {
                 // Thread pool to process messages,maybe null.
                 return null;
             }
         });
-        // complete subscribe
         consumer.completeSubscribe();
 
     }

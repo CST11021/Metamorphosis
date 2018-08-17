@@ -15,7 +15,7 @@
  * Authors:
  *   wuhua <wq163@163.com> , boyan <killme2008@gmail.com>
  */
-package com.taobao.metamorphosis.example;
+package com.taobao.metamorphosis.example.producer;
 
 import static com.taobao.metamorphosis.example.Help.initMetaConfig;
 
@@ -27,43 +27,57 @@ import com.taobao.metamorphosis.Message;
 import com.taobao.metamorphosis.client.MessageSessionFactory;
 import com.taobao.metamorphosis.client.MetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.producer.MessageProducer;
-import com.taobao.metamorphosis.client.producer.SendResult;
 
 
 /**
- * 消息发送者
+ * 发送者本地事务的简单例子
  * 
- * @author boyan
- * @Date 2011-5-17
+ * @author boyan(boyan@taobao.com)
+ * @date 2011-8-26
  * 
  */
-public class Producer {
-
+public class TransactionProducer {
     public static void main(final String[] args) throws Exception {
-        final String topic = "meta-test";
-
         // New session factory,强烈建议使用单例
         final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(initMetaConfig());
         // create producer,强烈建议使用单例
         final MessageProducer producer = sessionFactory.createProducer();
-        // 发布topic,将topic注册到zk
+        // publish topic
+        final String topic = "meta-test";
         producer.publish(topic);
 
-        // 发送消息
+        // 设置事务超时为10秒
+        producer.setTransactionTimeout(10);
+
         final BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         String line = null;
         while ((line = readLine(reader)) != null) {
-            final SendResult sendResult = producer.sendMessage(new Message(topic, line.getBytes()));
-            if (!sendResult.isSuccess()) {
-                System.err.println("Send message failed,error message:" + sendResult.getErrorMessage());
-            } else {
-                System.out.println("Send message successfully,sent to " + sendResult.getPartition());
+            try {
+                // 开始事务
+                producer.beginTransaction();
+                // 在事务内发送两条消息
+                if (!producer.sendMessage(new Message(topic, line.getBytes())).isSuccess()) {
+                    // 发送失败，立即回滚
+                    producer.rollback();
+                    continue;
+                }
+                if (!producer.sendMessage(new Message(topic, line.getBytes())).isSuccess()) {
+                    producer.rollback();
+                    continue;
+                }
+                // 提交
+                producer.commit();
+
+            }
+            catch (final Exception e) {
+                producer.rollback();
             }
         }
     }
 
+
     private static String readLine(final BufferedReader reader) throws IOException {
-        System.out.println("Type a message to send:");
+        System.out.println("Type message to send:");
         return reader.readLine();
     }
 }

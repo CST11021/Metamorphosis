@@ -678,8 +678,7 @@ public class MessageStore extends Thread implements Closeable {
      * @param cb
      * @throws IOException
      */
-    public void replayAppend(final long offset, final int length, final int checksum, final List<Long> msgIds,
-            final List<PutCommand> reqs, final AppendCallback cb) throws IOException {
+    public void replayAppend(final long offset, final int length, final int checksum, final List<Long> msgIds, final List<PutCommand> reqs, final AppendCallback cb) throws IOException {
         // 如果消息没有存储，则重新存储，写到最后一个Segment尾部
         final Segment segment = this.findSegment(this.segments.view(), offset);
         if (segment == null) {

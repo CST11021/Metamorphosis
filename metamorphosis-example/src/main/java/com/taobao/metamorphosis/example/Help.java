@@ -17,8 +17,17 @@
  */
 package com.taobao.metamorphosis.example;
 
+import com.taobao.metamorphosis.Message;
 import com.taobao.metamorphosis.client.MetaClientConfig;
+import com.taobao.metamorphosis.client.producer.MessageProducer;
+import com.taobao.metamorphosis.client.producer.SendMessageCallback;
+import com.taobao.metamorphosis.client.producer.SendResult;
+import com.taobao.metamorphosis.exception.MetaClientException;
 import com.taobao.metamorphosis.utils.ZkUtils.ZKConfig;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 
 /**
@@ -36,6 +45,32 @@ public class Help {
         zkConfig.zkRoot = "/meta";
         metaClientConfig.setZkConfig(zkConfig);
         return metaClientConfig;
+    }
+
+    public static void sendMessage(MessageProducer producer, String topic, SendMessageCallback callback) throws Exception {
+        final BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        String line = null;
+        while ((line = readLine(reader)) != null) {
+            producer.sendMessage(new Message(topic, line.getBytes()), callback);
+        }
+    }
+
+    public static void sendMessage(MessageProducer producer, String topic) throws Exception {
+        final BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        String line = null;
+        while ((line = readLine(reader)) != null) {
+            final SendResult sendResult = producer.sendMessage(new Message(topic, line.getBytes()));
+            if (!sendResult.isSuccess()) {
+                System.err.println("Send message failed,error message:" + sendResult.getErrorMessage());
+            } else {
+                System.out.println("Send message successfully,sent to " + sendResult.getPartition());
+            }
+        }
+    }
+
+    private static String readLine(final BufferedReader reader) throws IOException {
+        System.out.println("Type a message to send:");
+        return reader.readLine();
     }
 
 }

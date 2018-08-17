@@ -41,12 +41,14 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 public interface MessageSessionFactory extends Shutdownable {
 
     /**
-     * 关闭工厂
-     * 
-     * @throws MetaClientException
+     * 根据topic获取该topic下的所有分区
+     *
+     * @param topic
+     * @return partitions list
      */
-    @Override
-    public void shutdown() throws MetaClientException;
+    public List<Partition> getPartitionsForTopic(String topic);
+
+
 
     /**
      * 创建消息生产者
@@ -82,6 +84,8 @@ public interface MessageSessionFactory extends Shutdownable {
     @Deprecated
     public MessageProducer createProducer(PartitionSelector partitionSelector, boolean ordered);
 
+
+
     /**
      * 创建消息消费者，默认将offset存储在zk
      * 
@@ -98,6 +102,7 @@ public interface MessageSessionFactory extends Shutdownable {
      * @return
      */
     public MessageConsumer createConsumer(ConsumerConfig consumerConfig, OffsetStorage offsetStorage);
+
 
 
     /**
@@ -145,13 +150,7 @@ public interface MessageSessionFactory extends Shutdownable {
     public StatsResult getStats(InetSocketAddress target, String item) throws InterruptedException;
 
 
-    /**
-     * 根据topic获取该topic下的所有分区
-     * 
-     * @param topic
-     * @return partitions list
-     */
-    public List<Partition> getPartitionsForTopic(String topic);
+
 
     /**
      * Returns a topic browser to iterate all messages under the topic from all
@@ -181,5 +180,15 @@ public interface MessageSessionFactory extends Shutdownable {
      * @see #createTopicBrowser(String, int, long, TimeUnit)
      */
     public TopicBrowser createTopicBrowser(String topic);
+
+
+
+    /**
+     * 关闭工厂
+     *
+     * @throws MetaClientException
+     */
+    @Override
+    public void shutdown() throws MetaClientException;
 
 }

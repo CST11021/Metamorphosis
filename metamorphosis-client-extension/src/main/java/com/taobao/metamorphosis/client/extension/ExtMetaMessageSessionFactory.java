@@ -32,58 +32,28 @@ import com.taobao.metamorphosis.exception.MetaClientException;
  * @author ÎÞ»¨
  * @since 2011-11-7 ÏÂÎç4:09:56
  */
-
-public class ExtMetaMessageSessionFactory extends MetaBroadcastMessageSessionFactory implements
-        ExtMessageSessionFactory {
+public class ExtMetaMessageSessionFactory extends MetaBroadcastMessageSessionFactory implements ExtMessageSessionFactory {
 
     public ExtMetaMessageSessionFactory(MetaClientConfig metaClientConfig) throws MetaClientException {
         super(metaClientConfig);
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.metamorphosis.client.extension.ExtMessageSessionFactory#
-     * createConsumer(com.taobao.metamorphosis.client.consumer.ConsumerConfig,
-     * com.taobao.metamorphosis.client.extension.ConsumerRecoverType)
-     */
     @Override
     public MessageConsumer createConsumer(ConsumerConfig consumerConfig, ConsumerRecoverType recoverType) {
         return this.createConsumer(consumerConfig, null, recoverType);
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.metamorphosis.client.extension.ExtMessageSessionFactory#
-     * createConsumer(com.taobao.metamorphosis.client.consumer.ConsumerConfig,
-     * com.taobao.metamorphosis.client.consumer.storage.OffsetStorage,
-     * com.taobao.metamorphosis.client.extension.ConsumerRecoverType)
-     */
     @Override
-    public MessageConsumer createConsumer(ConsumerConfig consumerConfig, OffsetStorage offsetStorage,
-            ConsumerRecoverType recoverType) {
+    public MessageConsumer createConsumer(ConsumerConfig consumerConfig, OffsetStorage offsetStorage, ConsumerRecoverType recoverType) {
         return this.createConsumer(consumerConfig, offsetStorage, this.getRecoverManager(recoverType));
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.metamorphosis.client.extension.ExtMessageSessionFactory#
-     * createBroadcastConsumer
-     * (com.taobao.metamorphosis.client.consumer.ConsumerConfig,
-     * com.taobao.metamorphosis.client.extension.ConsumerRecoverType)
-     */
     @Override
     public MessageConsumer createBroadcastConsumer(ConsumerConfig consumerConfig, ConsumerRecoverType recoverType) {
         RecoverManager recoverManager = this.getRecoverManager(recoverType);
         this.addChild(recoverManager);
         return this.createBroadcastConsumer(consumerConfig, recoverManager);
     }
-
 
     private RecoverManager getRecoverManager(ConsumerRecoverType recoverType) {
         return recoverType != null ? recoverType.getRecoverManager(this) : null;

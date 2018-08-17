@@ -37,10 +37,10 @@ import com.taobao.metamorphosis.utils.PatternUtils;
  */
 public class XATransactionId extends TransactionId implements Xid, Comparable<XATransactionId>, Serializable {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 7130168769221529970L;
+
+    static final Pattern pattern = Pattern.compile(":");
+
     private int formatId;
     private byte[] branchQualifier;
     private byte[] globalTransactionId;
@@ -50,44 +50,16 @@ public class XATransactionId extends TransactionId implements Xid, Comparable<XA
     private String uniqueQualifier;
 
 
-    public String getUniqueQualifier() {
-        return this.uniqueQualifier;
-    }
-
-
-    public void setUniqueQualifier(String uniqueQualifier) {
-        this.uniqueQualifier = uniqueQualifier;
-    }
-
-
-    @Override
-    public boolean isNull() {
-        return false;
-    }
-
-
     public XATransactionId() {
     }
 
-
-    /**
-     * Just for test
-     * 
-     * @param formatId
-     * @param branchQualifier
-     * @param globalTransactionId
-     */
-    public XATransactionId(final int formatId, final byte[] branchQualifier, final byte[] globalTransactionId,
-            final String uniqueQualifier) {
+    public XATransactionId(final int formatId, final byte[] branchQualifier, final byte[] globalTransactionId, final String uniqueQualifier) {
         super();
         this.uniqueQualifier = uniqueQualifier;
         this.formatId = formatId;
         this.branchQualifier = branchQualifier;
         this.globalTransactionId = globalTransactionId;
     }
-
-    static final Pattern pattern = Pattern.compile(":");
-
 
     public XATransactionId(final String key) {
         final String[] tmps = PatternUtils.split(pattern, key);
@@ -101,7 +73,6 @@ public class XATransactionId extends TransactionId implements Xid, Comparable<XA
         this.uniqueQualifier = tmps[4];
     }
 
-
     public XATransactionId(final Xid xid, final String uniqueQualifier) {
         this.formatId = xid.getFormatId();
         this.globalTransactionId = xid.getGlobalTransactionId();
@@ -112,6 +83,10 @@ public class XATransactionId extends TransactionId implements Xid, Comparable<XA
         }
     }
 
+    @Override
+    public boolean isNull() {
+        return false;
+    }
 
     @Override
     public synchronized String getTransactionKey() {
@@ -123,24 +98,15 @@ public class XATransactionId extends TransactionId implements Xid, Comparable<XA
         return this.transactionKey;
     }
 
-
-    @Override
-    public String toString() {
-        return this.getTransactionKey();
-    }
-
-
     @Override
     public boolean isXATransaction() {
         return true;
     }
 
-
     @Override
     public boolean isLocalTransaction() {
         return false;
     }
-
 
     /**
      * @openwire:property version=1
@@ -150,6 +116,10 @@ public class XATransactionId extends TransactionId implements Xid, Comparable<XA
         return this.formatId;
     }
 
+    public void setFormatId(final int formatId) {
+        this.formatId = formatId;
+        this.hash = 0;
+    }
 
     /**
      * @openwire:property version=1
@@ -159,6 +129,10 @@ public class XATransactionId extends TransactionId implements Xid, Comparable<XA
         return this.globalTransactionId;
     }
 
+    public void setGlobalTransactionId(final byte[] globalTransactionId) {
+        this.globalTransactionId = globalTransactionId;
+        this.hash = 0;
+    }
 
     /**
      * @openwire:property version=1
@@ -168,23 +142,23 @@ public class XATransactionId extends TransactionId implements Xid, Comparable<XA
         return this.branchQualifier;
     }
 
-
     public void setBranchQualifier(final byte[] branchQualifier) {
         this.branchQualifier = branchQualifier;
         this.hash = 0;
     }
 
+    public String getUniqueQualifier() {
+        return this.uniqueQualifier;
+    }
 
-    public void setFormatId(final int formatId) {
-        this.formatId = formatId;
-        this.hash = 0;
+    public void setUniqueQualifier(String uniqueQualifier) {
+        this.uniqueQualifier = uniqueQualifier;
     }
 
 
-    public void setGlobalTransactionId(final byte[] globalTransactionId) {
-        this.globalTransactionId = globalTransactionId;
-        this.hash = 0;
-    }
+
+
+
 
 
     @Override
@@ -201,8 +175,6 @@ public class XATransactionId extends TransactionId implements Xid, Comparable<XA
         }
         return this.hash;
     }
-
-
     private static int hash(final byte[] bytes, int hash) {
         final int size = bytes.length;
         for (int i = 0; i < size; i++) {
@@ -210,8 +182,6 @@ public class XATransactionId extends TransactionId implements Xid, Comparable<XA
         }
         return hash;
     }
-
-
     @Override
     public boolean equals(final Object o) {
         if (o == null || !(o instanceof XATransactionId)) {
@@ -222,8 +192,6 @@ public class XATransactionId extends TransactionId implements Xid, Comparable<XA
                 && Arrays.equals(xid.branchQualifier, this.branchQualifier)
                 && this.uniqueQualifier.equals(xid.uniqueQualifier);
     }
-
-
     @Override
     public int compareTo(final XATransactionId o) {
         if (o == null || o.getClass() != XATransactionId.class) {
@@ -233,4 +201,8 @@ public class XATransactionId extends TransactionId implements Xid, Comparable<XA
         return this.getTransactionKey().compareTo(xid.getTransactionKey());
     }
 
+    @Override
+    public String toString() {
+        return this.getTransactionKey();
+    }
 }

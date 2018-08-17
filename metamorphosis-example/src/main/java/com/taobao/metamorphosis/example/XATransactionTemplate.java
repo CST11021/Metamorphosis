@@ -55,23 +55,10 @@ public class XATransactionTemplate {
     public XATransactionTemplate() {
         super();
     }
-
-
-    public XATransactionTemplate(final TransactionManager transactionManager, final XADataSource xaDataSource,
-            final XAMessageProducer xaMessageProducer) {
+    public XATransactionTemplate(final TransactionManager transactionManager, final XADataSource xaDataSource, final XAMessageProducer xaMessageProducer) {
         super();
         this.xaDataSource = xaDataSource;
         this.xaMessageProducer = xaMessageProducer;
-        this.transactionManager = transactionManager;
-    }
-
-
-    public TransactionManager getTransactionManager() {
-        return this.transactionManager;
-    }
-
-
-    public void setTransactionManager(final TransactionManager transactionManager) {
         this.transactionManager = transactionManager;
     }
 
@@ -88,20 +75,6 @@ public class XATransactionTemplate {
         }
         this.transactionManager.setTransactionTimeout(this.transactionTimeout);
     }
-
-    static interface WrapExecutor {
-        public Object run() throws Exception;
-    }
-
-
-    private XAConnection getXAConnection() throws SQLException {
-        final XADataSource xads = this.getXaDataSource();
-        if (xads == null) {
-            throw new IllegalArgumentException("Null xaDataSource");
-        }
-        return xads.getXAConnection();
-    }
-
 
     public Object executeCallback(final XACallback callback) {
         XAMessageProducer producer = null;
@@ -142,9 +115,15 @@ public class XATransactionTemplate {
 
     }
 
+    private XAConnection getXAConnection() throws SQLException {
+        final XADataSource xads = this.getXaDataSource();
+        if (xads == null) {
+            throw new IllegalArgumentException("Null xaDataSource");
+        }
+        return xads.getXAConnection();
+    }
 
-    private Transaction beginTx(final XAMessageProducer producer, final XAConnection conn) throws SystemException,
-    MetaClientException, SQLException, RollbackException, NotSupportedException {
+    private Transaction beginTx(final XAMessageProducer producer, final XAConnection conn) throws SystemException, MetaClientException, SQLException, RollbackException, NotSupportedException {
         this.transactionManager.begin();
         final Transaction tx = this.transactionManager.getTransaction();
         if (tx == null) {
@@ -157,9 +136,7 @@ public class XATransactionTemplate {
         return tx;
     }
 
-
-    private void commitOrRollbackTx(final XAMessageProducer producer, final XAConnection conn, final Transaction tx,
-            final boolean error) throws Exception {
+    private void commitOrRollbackTx(final XAMessageProducer producer, final XAConnection conn, final Transaction tx, final boolean error) throws Exception {
 
         if (tx == null) {
             return;
@@ -184,27 +161,34 @@ public class XATransactionTemplate {
     }
 
 
-    public int getTransactionTimeout() {
-        return this.transactionTimeout;
-    }
-
-
-    public void setTransactionTimeout(final int transactionTimeout) {
-        this.transactionTimeout = transactionTimeout;
-    }
-
+    // --------------------
+    // getter and setter...
+    // --------------------
 
     public XAMessageProducer getXAMessageProducer() {
         return this.xaMessageProducer;
     }
-
-
+    public TransactionManager getTransactionManager() {
+        return this.transactionManager;
+    }
+    public void setTransactionManager(final TransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
+    }
+    public int getTransactionTimeout() {
+        return this.transactionTimeout;
+    }
+    public void setTransactionTimeout(final int transactionTimeout) {
+        this.transactionTimeout = transactionTimeout;
+    }
     public XADataSource getXaDataSource() {
         return this.xaDataSource;
     }
-
-
     public void setXaDataSource(final XADataSource xaDataSource) {
         this.xaDataSource = xaDataSource;
     }
+
+    static interface WrapExecutor {
+        public Object run() throws Exception;
+    }
+
 }

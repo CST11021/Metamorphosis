@@ -33,23 +33,23 @@ import com.taobao.gecko.service.exception.NotifyRemotingException;
 
 
 public class RemotingUtils {
+
     static final Log log = LogFactory.getLog(RemotingUtils.class);
+
+    private static String localHost = null;
 
 
     public static void response(final Connection conn, final ResponseCommand response) {
         if (response == null || conn == null) {
             return;
         }
+
         try {
             conn.response(response);
-        }
-        catch (final NotifyRemotingException e) {
+        } catch (final NotifyRemotingException e) {
             log.error("发送响应失败", e);
         }
     }
-
-    private static String localHost = null;
-
 
     /**
      * Just for test.
@@ -60,7 +60,6 @@ public class RemotingUtils {
         localHost = host;
     }
 
-
     public static String getLocalHost() throws Exception {
         if (localHost != null) {
             return localHost;
@@ -68,7 +67,6 @@ public class RemotingUtils {
         localHost = findLocalHost();
         return localHost;
     }
-
 
     private static String findLocalHost() throws SocketException, UnknownHostException {
         // 遍历网卡，查找一个非回路ip地址并返回
@@ -99,7 +97,6 @@ public class RemotingUtils {
         final InetAddress localHost = InetAddress.getLocalHost();
         return normalizeHostAddress(localHost);
     }
-
 
     public static String normalizeHostAddress(final InetAddress localHost) {
         if (localHost instanceof Inet6Address) {

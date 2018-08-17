@@ -28,27 +28,11 @@ import javax.transaction.xa.XAException;
  */
 public class TransactionInfo {
 
-    private String uniqueQualifier;
-    private TransactionId transactionId;
-    private final String sessionId;
-    private final TransactionType type;
-    private int timeout = 0;
-
-
-    public void setUniqueQualifier(String uniqueQualifier) {
-        this.uniqueQualifier = uniqueQualifier;
-    }
-
-
-    public String getUniqueQualifier() {
-        return this.uniqueQualifier;
-    }
-
     /**
      * 事务状态
-     * 
+     *
      * @author boyan
-     * 
+     *
      */
     public static enum TransactionType {
         BEGIN,
@@ -61,12 +45,50 @@ public class TransactionInfo {
         END
     }
 
+    private String uniqueQualifier;
+    private TransactionId transactionId;
+    private final String sessionId;
+    private final TransactionType type;
+    private int timeout = 0;
+
+
+    public TransactionInfo(final TransactionId transactionId, final String sessionId, final TransactionType type) {
+        this(transactionId, sessionId, type, null, 0);
+    }
+    public TransactionInfo(final TransactionId transactionId, final String sessionId, final TransactionType type, final String uniqueQualifier) {
+        this(transactionId, sessionId, type, uniqueQualifier, 0);
+    }
+    public TransactionInfo(final TransactionId transactionId, final String sessionId, final TransactionType type, final String uniqueQualifier, final int timeout) {
+        super();
+        this.setTransactionId(transactionId);
+        this.sessionId = sessionId;
+        this.type = type;
+        this.uniqueQualifier = uniqueQualifier;
+        this.timeout = timeout;
+    }
+
+
+    // ---------------------
+    // getter and setter ...
+    // ---------------------
+
+    public String getSessionId() {
+        return this.sessionId;
+    }
+    public TransactionType getType() {
+        return this.type;
+    }
+
+    public void setUniqueQualifier(String uniqueQualifier) {
+        this.uniqueQualifier = uniqueQualifier;
+    }
+    public String getUniqueQualifier() {
+        return this.uniqueQualifier;
+    }
 
     public int getTimeout() {
         return this.timeout;
     }
-
-
     /**
      * 设置事务超时
      * 
@@ -80,29 +102,6 @@ public class TransactionInfo {
         this.timeout = timeout;
     }
 
-
-    public TransactionInfo(final TransactionId transactionId, final String sessionId, final TransactionType type) {
-        this(transactionId, sessionId, type, null, 0);
-    }
-
-
-    public TransactionInfo(final TransactionId transactionId, final String sessionId, final TransactionType type,
-            final String uniqueQualifier) {
-        this(transactionId, sessionId, type, uniqueQualifier, 0);
-    }
-
-
-    public TransactionInfo(final TransactionId transactionId, final String sessionId, final TransactionType type,
-            final String uniqueQualifier, final int timeout) {
-        super();
-        this.setTransactionId(transactionId);
-        this.sessionId = sessionId;
-        this.type = type;
-        this.uniqueQualifier = uniqueQualifier;
-        this.timeout = timeout;
-    }
-
-
     private void setTransactionId(final TransactionId transactionId) {
         if (transactionId == null) {
             this.transactionId = TransactionId.Null;
@@ -111,21 +110,10 @@ public class TransactionInfo {
             this.transactionId = transactionId;
         }
     }
-
-
     public TransactionId getTransactionId() {
         return this.transactionId;
     }
 
-
-    public String getSessionId() {
-        return this.sessionId;
-    }
-
-
-    public TransactionType getType() {
-        return this.type;
-    }
 
 
     @Override
@@ -139,8 +127,6 @@ public class TransactionInfo {
         result = prime * result + (this.uniqueQualifier == null ? 0 : this.uniqueQualifier.hashCode());
         return result;
     }
-
-
     @Override
     public boolean equals(final Object obj) {
         if (this == obj) {
@@ -185,8 +171,6 @@ public class TransactionInfo {
         }
         return true;
     }
-
-
     @Override
     public String toString() {
         return "TransactionInfo [transactionId=" + this.transactionId + ", sessionId=" + this.sessionId + ", type="

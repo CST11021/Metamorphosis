@@ -25,8 +25,10 @@ import com.taobao.metamorphosis.transaction.TransactionId;
 
 
 /**
- * 发送消息命令，协议格式： </br></br> put topic partition value-length flag checksum
- * [transactionkey] opaque\r\n data </br></br> data的结构如下：</br> </br>
+ * 发送消息命令，协议格式：
+ * put topic partition value-length flag checksum [transactionkey] opaque\r\n data
+ *
+ * data的结构如下：
  * attribute(0个或者1个，固定长度字符串，取决于flag字段) + binary data
  * 
  * @author boyan
@@ -42,13 +44,10 @@ public class PutCommand extends AbstractRequestCommand {
     // 23.
     private TransactionId transactionId;
 
-    public PutCommand(final String topic, final int partition, final byte[] data, final TransactionId transactionId,
-                      final int flag, final Integer opaque) {
+    public PutCommand(final String topic, final int partition, final byte[] data, final TransactionId transactionId, final int flag, final Integer opaque) {
         this(topic, partition, data, flag, -1, transactionId, opaque);
     }
-
-    public PutCommand(final String topic, final int partition, final byte[] data, final int flag,
-                      final int checkSum, final TransactionId transactionId, final Integer opaque) {
+    public PutCommand(final String topic, final int partition, final byte[] data, final int flag, final int checkSum, final TransactionId transactionId, final Integer opaque) {
         super(topic, opaque);
         this.partition = partition;
         this.data = data;
@@ -93,6 +92,39 @@ public class PutCommand extends AbstractRequestCommand {
         return buffer;
     }
 
+    // ---------------------
+    // getter and setter ...
+    // ---------------------
+
+    public int getFlag() {
+        return this.flag;
+    }
+    public TransactionId getTransactionId() {
+        return this.transactionId;
+    }
+    public void setTransactionId(final TransactionId transactionId) {
+        this.transactionId = transactionId;
+    }
+    public byte[] getData() {
+        return this.data;
+    }
+    public void setData(final byte[] data) {
+        this.data = data;
+    }
+    public int getCheckSum() {
+        return this.checkSum;
+    }
+    public void setCheckSum(int checkSum) {
+        this.checkSum = checkSum;
+    }
+    public void setPartition(final int partition) {
+        this.partition = partition;
+    }
+    public int getPartition() {
+        return this.partition;
+    }
+
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -104,7 +136,6 @@ public class PutCommand extends AbstractRequestCommand {
         result = prime * result + (this.transactionId == null ? 0 : this.transactionId.hashCode());
         return result;
     }
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -138,39 +169,6 @@ public class PutCommand extends AbstractRequestCommand {
             return false;
         }
         return true;
-    }
-
-
-    public TransactionId getTransactionId() {
-        return this.transactionId;
-    }
-    public void setTransactionId(final TransactionId transactionId) {
-        this.transactionId = transactionId;
-    }
-
-    public byte[] getData() {
-        return this.data;
-    }
-    public void setData(final byte[] data) {
-        this.data = data;
-    }
-
-    public int getCheckSum() {
-        return this.checkSum;
-    }
-    public void setCheckSum(int checkSum) {
-        this.checkSum = checkSum;
-    }
-
-    public int getFlag() {
-        return this.flag;
-    }
-
-    public void setPartition(final int partition) {
-        this.partition = partition;
-    }
-    public int getPartition() {
-        return this.partition;
     }
 
 }

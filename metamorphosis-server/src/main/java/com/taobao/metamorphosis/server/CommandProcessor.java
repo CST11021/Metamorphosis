@@ -47,6 +47,13 @@ public interface CommandProcessor extends Service {
     // 命令相关的处理方法
     // ---------------
 
+    /**
+     * 客户端向MQ服务器发送消息时，服务端会调用该方法来处理消息
+     * @param request
+     * @param sessionContext
+     * @param cb
+     * @throws Exception
+     */
     public void processPutCommand(final PutCommand request, final SessionContext sessionContext, final PutCallback cb) throws Exception;
 
     public ResponseCommand processGetCommand(GetCommand request, final SessionContext ctx);

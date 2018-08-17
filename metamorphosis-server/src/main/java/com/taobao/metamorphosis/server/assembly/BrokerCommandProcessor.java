@@ -195,6 +195,7 @@ public class BrokerCommandProcessor implements CommandProcessor {
     protected StatsManager statsManager;
     protected RemotingServer remotingServer;
     protected MetaConfig metaConfig;
+    /** 用于生产全局唯一的消息ID */
     protected IdWorker idWorker;
     protected BrokerZooKeeper brokerZooKeeper;
     protected ConsumerFilterManager consumerFilterManager;
@@ -205,10 +206,14 @@ public class BrokerCommandProcessor implements CommandProcessor {
     public BrokerCommandProcessor() {
         super();
     }
-    public BrokerCommandProcessor(final MessageStoreManager storeManager, final ExecutorsManager executorsManager,
-            final StatsManager statsManager, final RemotingServer remotingServer, final MetaConfig metaConfig,
-            final IdWorker idWorker, final BrokerZooKeeper brokerZooKeeper,
-            final ConsumerFilterManager consumerFilterManager) {
+    public BrokerCommandProcessor(final MessageStoreManager storeManager,
+                                  final ExecutorsManager executorsManager,
+                                  final StatsManager statsManager,
+                                  final RemotingServer remotingServer,
+                                  final MetaConfig metaConfig,
+                                  final IdWorker idWorker,
+                                  final BrokerZooKeeper brokerZooKeeper,
+                                  final ConsumerFilterManager consumerFilterManager) {
         super();
         this.storeManager = storeManager;
         this.executorsManager = executorsManager;
@@ -241,27 +246,34 @@ public class BrokerCommandProcessor implements CommandProcessor {
 
     @Override
     public void processPutCommand(final PutCommand request, final SessionContext sessionContext, final PutCallback cb) {
+
         final String partitionString = this.metaConfig.getBrokerId() + "-" + request.getPartition();
+
         this.statsManager.statsPut(request.getTopic(), partitionString, 1);
         this.statsManager.statsMessageSize(request.getTopic(), request.getData().length);
         int partition = -1;
+
         try {
             if (this.metaConfig.isClosedPartition(request.getTopic(), request.getPartition())) {
                 log.warn("Can not put message to partition " + request.getPartition() + " for topic="
                         + request.getTopic() + ",it was closed");
                 if (cb != null) {
-                    cb.putComplete(new BooleanCommand(HttpStatus.Forbidden, this.genErrorMessage(request.getTopic(),
-                        request.getPartition()) + "Detail:partition[" + partitionString + "] has been closed", request
-                        .getOpaque()));
+                    cb.putComplete(
+                            new BooleanCommand(
+                                    HttpStatus.Forbidden,
+                                    this.genErrorMessage(request.getTopic(),
+                                            request.getPartition()) + "Detail:partition[" + partitionString + "] has been closed",
+                                    request.getOpaque()));
                 }
                 return;
             }
+
 
             partition = this.getPartition(request);
             final MessageStore store = this.storeManager.getOrCreateMessageStore(request.getTopic(), partition);
             // 如果是动态添加的topic，需要注册到zk
             this.brokerZooKeeper.registerTopicInZk(request.getTopic(), false);
-            // 设置唯一id
+            // 设置唯一消息id
             final long messageId = this.idWorker.nextId();
             store.append(messageId, request,
                 new StoreAppendCallback(partition, partitionString, request, messageId, cb));

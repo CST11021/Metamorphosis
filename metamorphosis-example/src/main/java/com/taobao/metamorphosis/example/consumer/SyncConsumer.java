@@ -15,59 +15,45 @@
  * Authors:
  *   wuhua <wq163@163.com> , boyan <killme2008@gmail.com>
  */
-package com.taobao.metamorphosis.example;
+package com.taobao.metamorphosis.example.consumer;
 
 import static com.taobao.metamorphosis.example.Help.initMetaConfig;
-
-import java.util.concurrent.Executor;
 
 import com.taobao.metamorphosis.Message;
 import com.taobao.metamorphosis.client.MessageSessionFactory;
 import com.taobao.metamorphosis.client.MetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.consumer.ConsumerConfig;
 import com.taobao.metamorphosis.client.consumer.MessageConsumer;
-import com.taobao.metamorphosis.client.consumer.MessageListener;
+import com.taobao.metamorphosis.cluster.Partition;
+import com.taobao.metamorphosis.consumer.MessageIterator;
 
 
 /**
- * 异步消息消费者
+ * We don't use synchronous consumer in production.
  * 
- * @author boyan
- * @Date 2011-5-17
+ * @Deprecated
+ * @author apple
  * 
  */
-public class AsyncConsumer {
+@Deprecated
+public class SyncConsumer {
     public static void main(final String[] args) throws Exception {
-        // New session factory,强烈建议使用单例
         final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(initMetaConfig());
-
-        // subscribed topic
         final String topic = "meta-test";
-        // consumer group
         final String group = "meta-example";
         // create consumer,强烈建议使用单例
-        ConsumerConfig consumerConfig = new ConsumerConfig(group);
-        // 默认最大获取延迟为5秒，这里设置成100毫秒，请根据实际应用要求做设置。
-        consumerConfig.setMaxDelayFetchTimeInMills(100);
-        final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
-        // subscribe topic
-        consumer.subscribe(topic, 1024 * 1024, new MessageListener() {
+        final MessageConsumer consumer = sessionFactory.createConsumer(new ConsumerConfig(group));
 
-            @Override
-            public void recieveMessages(final Message message) {
-                System.out.println("Receive message " + new String(message.getData()));
+        long offset = 0;
+        MessageIterator it;
+        while ((it = consumer.get(topic, new Partition("100-0"), offset, 1024 * 1024)) != null) {
+            while (it.hasNext()) {
+                final Message msg = it.next();
+                System.out.println("Receive message " + new String(msg.getData()));
             }
-
-
-            @Override
-            public Executor getExecutor() {
-                // Thread pool to process messages,maybe null.
-                return null;
-            }
-        });
-        // complete subscribe
-        consumer.completeSubscribe();
+            // move offset forward
+            offset += it.getOffset();
+        }
 
     }
-
 }

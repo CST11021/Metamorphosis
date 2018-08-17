@@ -11,9 +11,6 @@ import java.io.Serializable;
  */
 public class Trade implements Serializable {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
 
     private long id;
@@ -21,11 +18,9 @@ public class Trade implements Serializable {
     private int money;
     private String address;
 
-
     public Trade() {
         super();
     }
-
 
     public Trade(long id, String name, int money, String address) {
         super();
@@ -35,46 +30,30 @@ public class Trade implements Serializable {
         this.address = address;
     }
 
-
     public long getId() {
         return this.id;
     }
-
-
     public void setId(long id) {
         this.id = id;
     }
-
-
     public String getName() {
         return this.name;
     }
-
-
     public void setName(String name) {
         this.name = name;
     }
-
-
     public int getMoney() {
         return this.money;
     }
-
-
     public void setMoney(int money) {
         this.money = money;
     }
-
-
     public String getAddress() {
         return this.address;
     }
-
-
     public void setAddress(String address) {
         this.address = address;
     }
-
 
     @Override
     public String toString() {

@@ -16,19 +16,21 @@ import com.taobao.metamorphosis.example.spring.messages.Trade;
 public class TradeSender {
     public static void main(final String[] args) throws Exception {
         ApplicationContext context = new ClassPathXmlApplicationContext("bean.xml");
-        // use template to send messages.
+
         final String topic = "test";
         MetaqTemplate template = (MetaqTemplate) context.getBean("metaqTemplate");
 
         final BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        String line = null;
+
         long tradeId = 0;
         int money = 1000;
+        String line;
         while ((line = readLine(reader)) != null) {
             // send message
-            final SendResult sendResult =
-                    template.send(MessageBuilder.withTopic(topic).withBody(new Trade(tradeId++, line, money++, line)));
-            // check result
+            final SendResult sendResult = template.send(
+                    MessageBuilder.withTopic(topic)
+                            .withBody(new Trade(tradeId++, line, money++, line)));
+
             if (!sendResult.isSuccess()) {
                 System.err.println("Send message failed,error message:" + sendResult.getErrorMessage());
             }

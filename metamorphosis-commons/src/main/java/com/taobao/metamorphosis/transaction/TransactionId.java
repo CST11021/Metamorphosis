@@ -28,24 +28,25 @@ import java.io.Serializable;
  */
 public abstract class TransactionId implements Serializable {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 2157471469471230263L;
+
     public static final NullTransactionId Null = new NullTransactionId();
 
-
+    /**
+     * 是否为分布式事务
+     * @return
+     */
     public abstract boolean isXATransaction();
 
-
+    /**
+     * 是否为本地事务
+     * @return
+     */
     public abstract boolean isLocalTransaction();
-
 
     public abstract String getTransactionKey();
 
-
     public abstract boolean isNull();
-
 
     public static TransactionId valueOf(final String key) {
         if (key.equals("null")) {

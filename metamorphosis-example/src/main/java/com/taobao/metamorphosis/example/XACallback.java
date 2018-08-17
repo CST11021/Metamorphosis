@@ -30,6 +30,7 @@ import com.taobao.metamorphosis.client.producer.XAMessageProducer;
  * 
  */
 public interface XACallback {
+
     class Status {
         boolean rollback;
 
@@ -37,7 +38,6 @@ public interface XACallback {
             this.rollback = true;
         }
     }
-
 
     public Object execute(Connection conn, XAMessageProducer producer, Status status) throws Exception;
 }

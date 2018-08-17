@@ -15,7 +15,7 @@
  * Authors:
  *   wuhua <wq163@163.com> , boyan <killme2008@gmail.com>
  */
-package com.taobao.metamorphosis.example;
+package com.taobao.metamorphosis.example.producer;
 
 import static com.taobao.metamorphosis.example.Help.initMetaConfig;
 
@@ -33,6 +33,8 @@ import com.taobao.metamorphosis.client.extension.producer.OrderedMessagePartitio
 import com.taobao.metamorphosis.client.producer.MessageProducer;
 import com.taobao.metamorphosis.client.producer.SendResult;
 import com.taobao.metamorphosis.cluster.Partition;
+import com.taobao.metamorphosis.example.Help;
+import com.taobao.metamorphosis.exception.MetaClientException;
 
 
 /**
@@ -58,30 +60,13 @@ public class OrderedProducer {
         // 这里使用自定义的分区选择器
         final MessageProducer producer = sessionFactory.createProducer(new CustomPartitionSelector());
 
-        // publish topic
         final String topic = "meta-test";
         producer.publish(topic);
 
-        final BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        String line = null;
-        while ((line = readLine(reader)) != null) {
-            // send message
-            final SendResult sendResult = producer.sendMessage(new Message(topic, line.getBytes()));
-            // check result
-            if (!sendResult.isSuccess()) {
-                System.err.println("Send message failed,error message:" + sendResult.getErrorMessage());
-            }
-            else {
-                System.out.println("Send message successfully,sent to " + sendResult.getPartition());
-            }
-        }
+        Help.sendMessage(producer, topic);
     }
 
 
-    private static String readLine(final BufferedReader reader) throws IOException {
-        System.out.println("Type a message to send:");
-        return reader.readLine();
-    }
 
     /**
      * 自定义的分区选择器

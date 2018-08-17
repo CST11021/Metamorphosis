@@ -15,7 +15,7 @@
  * Authors:
  *   wuhua <wq163@163.com> , boyan <killme2008@gmail.com>
  */
-package com.taobao.metamorphosis.example;
+package com.taobao.metamorphosis.example.producer;
 
 import static com.taobao.metamorphosis.example.Help.initMetaConfig;
 
@@ -35,6 +35,8 @@ import com.taobao.metamorphosis.Message;
 import com.taobao.metamorphosis.client.XAMessageSessionFactory;
 import com.taobao.metamorphosis.client.XAMetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.producer.XAMessageProducer;
+import com.taobao.metamorphosis.example.XACallback;
+import com.taobao.metamorphosis.example.XATransactionTemplate;
 
 
 /**
@@ -50,7 +52,6 @@ public class XATransactionProducer {
         return new XAMetaMessageSessionFactory(initMetaConfig());
     }
 
-
     private static XADataSource getXADataSource() throws SQLException {
         final MysqlXADataSource mysqlXADataSource = new MysqlXADataSource();
         mysqlXADataSource
@@ -60,7 +61,6 @@ public class XATransactionProducer {
         mysqlXADataSource.setPreparedStatementCacheSize(20);
         return mysqlXADataSource;
     }
-
 
     public static void main(final String[] args) throws Exception {
         // create transaction manager,reuse it.
@@ -111,7 +111,6 @@ public class XATransactionProducer {
             }
         }
     }
-
 
     private static String readLine(final BufferedReader reader) throws IOException {
         System.out.println("Type message to send:");
