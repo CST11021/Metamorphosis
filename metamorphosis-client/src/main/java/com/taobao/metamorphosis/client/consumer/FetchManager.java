@@ -18,21 +18,21 @@
 package com.taobao.metamorphosis.client.consumer;
 
 /**
+ *
  * Fetch请求管理器接口
+ *
+ * MetaQ的消费者是以pull模型来从服务端拉取数据并消费，该接口用于从MQ服务端抓取消息进行消费
  * 
  * @author boyan
  * @Date 2011-5-4
  * 
  */
 public interface FetchManager {
-    /**
-     * Returns current fetch requests count.
-     * 
-     * @since 1.4.4
-     * @return
-     */
-    public int getFetchRequestCount();
 
+    /**
+     * 启动管理器
+     */
+    public void startFetchRunner();
 
     /**
      * 停止fetch
@@ -41,18 +41,18 @@ public interface FetchManager {
      */
     public void stopFetchRunner() throws InterruptedException;
 
-
     /**
      * 重设状态，重设状态后可重用并start
      */
     public void resetFetchState();
 
-
     /**
-     * 启动管理器
+     * Returns current fetch requests count.
+     *
+     * @since 1.4.4
+     * @return
      */
-    public void startFetchRunner();
-
+    public int getFetchRequestCount();
 
     /**
      * 添加fetch请求
@@ -61,11 +61,11 @@ public interface FetchManager {
      */
     public void addFetchRequest(FetchRequest request);
 
-
     /**
      * 是否关闭
      * 
      * @return
      */
     public boolean isShutdown();
+
 }

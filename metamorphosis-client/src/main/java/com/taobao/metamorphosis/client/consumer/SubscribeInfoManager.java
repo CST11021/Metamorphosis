@@ -27,13 +27,12 @@ import com.taobao.metamorphosis.exception.MetaClientException;
  * 订阅信息管理器
  */
 public class SubscribeInfoManager {
-    private final ConcurrentHashMap<String/* group */, ConcurrentHashMap<String/* topic */, SubscriberInfo>> groupTopicSubcriberRegistry =
-            new ConcurrentHashMap<String/* group */, ConcurrentHashMap<String, SubscriberInfo>>();
+
+    /** Map<group, Map<topic, SubscriberInfo>> */
+    private final ConcurrentHashMap<String, ConcurrentHashMap<String, SubscriberInfo>> groupTopicSubcriberRegistry = new ConcurrentHashMap<String/* group */, ConcurrentHashMap<String, SubscriberInfo>>();
 
 
-    public void subscribe(final String topic, final String group, final int maxSize,
-            final MessageListener messageListener, final ConsumerMessageFilter consumerMessageFilter)
-                    throws MetaClientException {
+    public void subscribe(final String topic, final String group, final int maxSize, final MessageListener messageListener, final ConsumerMessageFilter consumerMessageFilter) throws MetaClientException {
         final ConcurrentHashMap<String, SubscriberInfo> topicSubsriberRegistry = this.getTopicSubscriberRegistry(group);
         SubscriberInfo info = topicSubsriberRegistry.get(topic);
         if (info == null) {
@@ -49,8 +48,7 @@ public class SubscribeInfoManager {
     }
 
 
-    private ConcurrentHashMap<String, SubscriberInfo> getTopicSubscriberRegistry(final String group)
-            throws MetaClientException {
+    private ConcurrentHashMap<String, SubscriberInfo> getTopicSubscriberRegistry(final String group) throws MetaClientException {
         ConcurrentHashMap<String/* topic */, SubscriberInfo> topicSubsriberRegistry =
                 this.groupTopicSubcriberRegistry.get(group);
         if (topicSubsriberRegistry == null) {
@@ -66,8 +64,7 @@ public class SubscribeInfoManager {
 
 
     public MessageListener getMessageListener(final String topic, final String group) throws MetaClientException {
-        final ConcurrentHashMap<String, SubscriberInfo> topicSubsriberRegistry =
-                this.groupTopicSubcriberRegistry.get(group);
+        final ConcurrentHashMap<String, SubscriberInfo> topicSubsriberRegistry = this.groupTopicSubcriberRegistry.get(group);
         if (topicSubsriberRegistry == null) {
             return null;
         }

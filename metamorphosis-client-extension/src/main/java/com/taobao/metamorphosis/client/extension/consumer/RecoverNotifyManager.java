@@ -39,39 +39,27 @@ import com.taobao.metamorphosis.exception.MetaClientException;
  */
 
 public class RecoverNotifyManager extends AbstractRecoverManager {
+
     private static final Log log = LogFactory.getLog(RecoverNotifyManager.class);
 
-
-    public RecoverNotifyManager(final MetaMessageSessionFactory factory, final String recoverNotifyTopic,
-            final RecoverManager next) {
+    public RecoverNotifyManager(final MetaMessageSessionFactory factory, final String recoverNotifyTopic, final RecoverManager next) {
         super();
     }
-
 
     @Override
     public boolean isStarted() {
         return false;
     }
 
-
     @Override
     public void start(final MetaClientConfig metaClientConfig) {
 
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.consumer.RecoverManager#append(java.lang
-     * .String, com.taobao.metamorphosis.Message)
-     */
     @Override
     public void append(final String group, final Message message) throws IOException {
 
     }
-
 
     @Override
     public void shutdown() throws MetaClientException {

@@ -37,8 +37,8 @@ import com.taobao.common.store.util.BytesKey;
  * @author ÎÞ»¨
  * @since 2011-8-12 ÉÏÎç10:30:56
  */
-
 public class MessageStore extends JournalStore {
+
     public MessageStore(String path, String name) throws IOException {
         super(path, name, new MessageIndexMap(), false, false, false);
     }
@@ -52,7 +52,6 @@ public class MessageStore extends JournalStore {
             this.map = new LinkedHashMap<BytesKey, OpItem>();
         }
 
-
         @Override
         public void put(BytesKey key, OpItem opItem) {
             this.lock.lock();
@@ -63,7 +62,6 @@ public class MessageStore extends JournalStore {
                 this.lock.unlock();
             }
         }
-
 
         @Override
         public void remove(BytesKey key) {
@@ -77,7 +75,6 @@ public class MessageStore extends JournalStore {
 
         }
 
-
         @Override
         public OpItem get(BytesKey key) {
             this.lock.lock();
@@ -88,7 +85,6 @@ public class MessageStore extends JournalStore {
                 this.lock.unlock();
             }
         }
-
 
         @Override
         public int size() {
@@ -101,7 +97,6 @@ public class MessageStore extends JournalStore {
             }
         }
 
-
         @Override
         public boolean containsKey(BytesKey key) {
             this.lock.lock();
@@ -112,7 +107,6 @@ public class MessageStore extends JournalStore {
                 this.lock.unlock();
             }
         }
-
 
         @Override
         public Iterator<BytesKey> keyIterator() {
@@ -125,7 +119,6 @@ public class MessageStore extends JournalStore {
             }
         }
 
-
         @Override
         public void putAll(Map<BytesKey, OpItem> map) {
             this.lock.lock();
@@ -136,7 +129,6 @@ public class MessageStore extends JournalStore {
                 this.lock.unlock();
             }
         }
-
 
         @Override
         public void close() throws IOException {

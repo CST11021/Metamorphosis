@@ -68,19 +68,24 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
 
     static final Log log = LogFactory.getLog(FetchRequestRunner.class);
 
+    /** 用于与MQ服务器通讯的客户端 */
     private final RemotingClientWrapper remotingClient;
 
+    /** 客户端配置信息 */
     private final ConsumerConfig consumerConfig;
 
+    /**  */
     private final ConsumerZooKeeper consumerZooKeeper;
 
+    private final ProducerZooKeeper producerZooKeeper;
+
+    /** 会话工厂 */
     private final MetaMessageSessionFactory messageSessionFactory;
 
     private final OffsetStorage offsetStorage;
 
+    /** 消费者的负载均衡策略，用于确认消费者要消费的分区消息 */
     private final LoadBalanceStrategy loadBalanceStrategy;
-
-    private final ProducerZooKeeper producerZooKeeper;
 
     private final ScheduledExecutorService scheduledExecutorService;
 
@@ -88,8 +93,8 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
 
     private final RecoverManager recoverStorageManager;
 
-    private final ConcurrentHashMap<String/* topic */, SubscriberInfo> topicSubcriberRegistry =
-            new ConcurrentHashMap<String, SubscriberInfo>();
+    /** Topic与订阅者的订阅关系，Map<Topic, 订阅者信息> */
+    private final ConcurrentHashMap<String, SubscriberInfo> topicSubcriberRegistry = new ConcurrentHashMap<String, SubscriberInfo>();
 
     private FetchManager fetchManager;
 
@@ -99,10 +104,14 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
 
 
     public SimpleMessageConsumer(final MetaMessageSessionFactory messageSessionFactory,
-            final RemotingClientWrapper remotingClient, final ConsumerConfig consumerConfig,
-            final ConsumerZooKeeper consumerZooKeeper, final ProducerZooKeeper producerZooKeeper,
-            final SubscribeInfoManager subscribeInfoManager, final RecoverManager recoverManager,
-            final OffsetStorage offsetStorage, final LoadBalanceStrategy loadBalanceStrategy) {
+                                 final RemotingClientWrapper remotingClient,
+                                 final ConsumerConfig consumerConfig,
+                                 final ConsumerZooKeeper consumerZooKeeper,
+                                 final ProducerZooKeeper producerZooKeeper,
+                                 final SubscribeInfoManager subscribeInfoManager,
+                                 final RecoverManager recoverManager,
+                                 final OffsetStorage offsetStorage,
+                                 final LoadBalanceStrategy loadBalanceStrategy) {
         super();
         this.messageSessionFactory = messageSessionFactory;
         this.remotingClient = remotingClient;
@@ -115,15 +124,24 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         this.fetchManager = new SimpleFetchManager(consumerConfig, this);
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         this.loadBalanceStrategy = loadBalanceStrategy;
-        // Use local recover policy by default.
+        // 默认使用本地恢复的策略
         this.rejectConsumptionHandler = new LocalRecoverPolicy(this.recoverStorageManager);
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                SimpleMessageConsumer.this.consumerZooKeeper.commitOffsets(SimpleMessageConsumer.this.fetchManager);
-            }
-        }, consumerConfig.getCommitOffsetPeriodInMills(), consumerConfig.getCommitOffsetPeriodInMills(),
-        TimeUnit.MILLISECONDS);
+        // scheduleAtFixedRate方法用于安排指定的任务进行重复的固定速率执行，在指定的延迟后开始。
+        // scheduleAtFixedRate(TimerTask task,long delay,long period)
+        // task：这是被调度的任务。
+        // delay：这是以毫秒为单位的延迟之前的任务执行。
+        // period：这是在连续执行任务之间的毫秒的时间。
+        this.scheduledExecutorService.scheduleAtFixedRate(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        SimpleMessageConsumer.this.consumerZooKeeper.commitOffsets(SimpleMessageConsumer.this.fetchManager);
+                    }
+                },
+                consumerConfig.getCommitOffsetPeriodInMills(),
+                consumerConfig.getCommitOffsetPeriodInMills(),
+                TimeUnit.MILLISECONDS
+        );
     }
 
 
@@ -131,27 +149,22 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         return this.messageSessionFactory;
     }
 
-
     public FetchManager getFetchManager() {
         return this.fetchManager;
     }
-
 
     void setFetchManager(final FetchManager fetchManager) {
         this.fetchManager = fetchManager;
     }
 
-
     ConcurrentHashMap<String, SubscriberInfo> getTopicSubcriberRegistry() {
         return this.topicSubcriberRegistry;
     }
-
 
     @Override
     public OffsetStorage getOffsetStorage() {
         return this.offsetStorage;
     }
-
 
     @Override
     public synchronized void shutdown() throws MetaClientException {
@@ -178,17 +191,13 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
 
     }
 
-
     @Override
-    public MessageConsumer subscribe(final String topic, final int maxSize, final MessageListener messageListener)
-            throws MetaClientException {
+    public MessageConsumer subscribe(final String topic, final int maxSize, final MessageListener messageListener) throws MetaClientException {
         return this.subscribe(topic, maxSize, messageListener, null);
     }
 
-
     @Override
-    public MessageConsumer subscribe(final String topic, final int maxSize, final MessageListener messageListener,
-            ConsumerMessageFilter filter) throws MetaClientException {
+    public MessageConsumer subscribe(final String topic, final int maxSize, final MessageListener messageListener, ConsumerMessageFilter filter) throws MetaClientException {
         this.checkState();
         if (StringUtils.isBlank(topic)) {
             throw new IllegalArgumentException("Blank topic");
@@ -213,7 +222,6 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         }
     }
 
-
     @Override
     public void appendCouldNotProcessMessage(final Message message) throws IOException {
         if (log.isInfoEnabled()) {
@@ -225,13 +233,11 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         }
     }
 
-
     private void checkState() {
         if (this.fetchManager.isShutdown()) {
             throw new IllegalStateException("Consumer has been shutdown");
         }
     }
-
 
     @Override
     public void completeSubscribe() throws MetaClientException {
@@ -245,7 +251,6 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         }
     }
 
-
     @Override
     public MessageListener getMessageListener(final String topic) {
         final SubscriberInfo info = this.topicSubcriberRegistry.get(topic);
@@ -255,7 +260,6 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         return info.getMessageListener();
     }
 
-
     @Override
     public ConsumerMessageFilter getMessageFilter(final String topic) {
         final SubscriberInfo info = this.topicSubcriberRegistry.get(topic);
@@ -264,7 +268,6 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         }
         return info.getConsumerMessageFilter();
     }
-
 
     @Override
     public long offset(final FetchRequest fetchRequest) throws MetaClientException {
@@ -309,10 +312,8 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         }
     }
 
-
     @Override
-    public MessageIterator fetch(final FetchRequest fetchRequest, long timeout, TimeUnit timeUnit)
-            throws MetaClientException, InterruptedException {
+    public MessageIterator fetch(final FetchRequest fetchRequest, long timeout, TimeUnit timeUnit) throws MetaClientException, InterruptedException {
         if (timeout <= 0 || timeUnit == null) {
             timeout = this.consumerConfig.getFetchTimeoutInMills();
             timeUnit = TimeUnit.MILLISECONDS;
@@ -393,7 +394,6 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         }
     }
 
-
     @Override
     public void setSubscriptions(final Collection<Subscription> subscriptions) throws MetaClientException {
         if (subscriptions == null) {
@@ -404,10 +404,8 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         }
     }
 
-
     @Override
-    public MessageIterator get(final String topic, final Partition partition, final long offset, final int maxSize,
-            final long timeout, final TimeUnit timeUnit) throws MetaClientException, InterruptedException {
+    public MessageIterator get(final String topic, final Partition partition, final long offset, final int maxSize, final long timeout, final TimeUnit timeUnit) throws MetaClientException, InterruptedException {
         if (!this.publishedTopics.contains(topic)) {
             this.producerZooKeeper.publishTopic(topic, this);
             this.publishedTopics.add(topic);
@@ -418,12 +416,10 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         return this.fetch(new FetchRequest(broker, 0, topicPartitionRegInfo, maxSize), timeout, timeUnit);
     }
 
-
     @Override
     public RejectConsumptionHandler getRejectConsumptionHandler() {
         return this.rejectConsumptionHandler;
     }
-
 
     @Override
     public void setRejectConsumptionHandler(RejectConsumptionHandler rejectConsumptionHandler) {
@@ -433,43 +429,45 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         this.rejectConsumptionHandler = rejectConsumptionHandler;
     }
 
-
     @Override
     public ConsumerConfig getConsumerConfig() {
         return this.consumerConfig;
     }
 
-
     @Override
-    public MessageIterator get(final String topic, final Partition partition, final long offset, final int maxSize)
-            throws MetaClientException, InterruptedException {
+    public MessageIterator get(final String topic, final Partition partition, final long offset, final int maxSize) throws MetaClientException, InterruptedException {
         return this.get(topic, partition, offset, maxSize, DEFAULT_OP_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
     /**
-     * Created with IntelliJ IDEA. User: dennis (xzhuang@avos.com) Date: 13-2-5
+     * Created with IntelliJ IDEA. User: dennis (xzhuang@avos.com)
+     * Date: 13-2-5
      * Time: 上午11:29
      */
     public static class DropPolicy implements RejectConsumptionHandler {
+
         @Override
         public void rejectConsumption(Message message, MessageConsumer messageConsumer) {
             // Drop the message.
         }
+
     }
 
     /**
-     * Created with IntelliJ IDEA. User: dennis (xzhuang@avos.com) Date: 13-2-5
+     *
+     * Created with IntelliJ IDEA. User: dennis (xzhuang@avos.com)
+     * Date: 13-2-5
      * Time: 上午11:25
      */
     public static class LocalRecoverPolicy implements RejectConsumptionHandler {
-        private final RecoverManager recoverManager;
+
         static final Log log = LogFactory.getLog(LocalRecoverPolicy.class);
 
+        private final RecoverManager recoverManager;
 
         public LocalRecoverPolicy(RecoverManager recoverManager) {
             this.recoverManager = recoverManager;
         }
-
 
         @Override
         public void rejectConsumption(Message message, MessageConsumer messageConsumer) {

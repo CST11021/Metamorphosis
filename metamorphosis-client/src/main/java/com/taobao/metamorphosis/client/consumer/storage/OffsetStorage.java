@@ -47,7 +47,7 @@ public interface OffsetStorage {
      * 
      * @param topic
      * @param group
-     * @param partiton
+     * @param partition
      * @return
      */
     public TopicPartitionRegInfo load(String topic, String group, Partition partition);

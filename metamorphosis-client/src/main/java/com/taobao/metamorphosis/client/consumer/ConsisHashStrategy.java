@@ -27,22 +27,22 @@ import java.util.TreeMap;
 
 
 /**
- * 基于一致性哈希的负载均衡策略：</br>
- * <ul>
+ * 基于一致性哈希的负载均衡策略：
+ *
  * <li>将所有consumer组织成一个环</li>
  * <li>将所有分区根据hash值插入到环上</li>
  * <li>获取指定consumer前面，前一个consumer之后的分区列表作为结果</li>
- * </ul>
  * 
  * @author boyan(boyan@taobao.com)
  * @date 2011-11-29
  * 
  */
 public class ConsisHashStrategy implements LoadBalanceStrategy {
+
     // 虚拟节点数目
     static final int NUM_REPS = 160;
-    HashAlgorithm alg = HashAlgorithm.KETAMA_HASH;
 
+    HashAlgorithm alg = HashAlgorithm.KETAMA_HASH;
 
     /**
      * Get the md5 of the given key.
@@ -60,10 +60,8 @@ public class ConsisHashStrategy implements LoadBalanceStrategy {
         return md5.digest();
     }
 
-
     @Override
-    public List<String> getPartitions(final String topic, final String consumerId, final List<String> curConsumers,
-            final List<String> curPartitions) {
+    public List<String> getPartitions(final String topic, final String consumerId, final List<String> curConsumers, final List<String> curPartitions) {
 
         final TreeMap<Long, String> consumerMap = this.buildConsumerMap(curConsumers);
 
@@ -78,7 +76,6 @@ public class ConsisHashStrategy implements LoadBalanceStrategy {
         }
         return new ArrayList<String>(rt);
     }
-
 
     private String findConsumerByPartition(final TreeMap<Long, String> consumerMap, final String partition) {
         final Long hash = this.alg.hash(partition);
@@ -102,7 +99,6 @@ public class ConsisHashStrategy implements LoadBalanceStrategy {
         final String targetConsumer = consumerMap.get(target);
         return targetConsumer;
     }
-
 
     private TreeMap<Long, String> buildConsumerMap(final List<String> curConsumers) {
         final TreeMap<Long/* hash */, String/* consumerId */> consumerMap = new TreeMap<Long, String>();

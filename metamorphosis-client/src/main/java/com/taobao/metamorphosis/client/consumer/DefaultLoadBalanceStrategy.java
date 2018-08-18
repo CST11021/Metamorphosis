@@ -38,24 +38,29 @@ public class DefaultLoadBalanceStrategy implements LoadBalanceStrategy {
 
 
     @Override
-    public List<String> getPartitions(final String topic, final String consumerId, final List<String> curConsumers,
-            final List<String> curPartitions) {
+    public List<String> getPartitions(final String topic, final String consumerId,
+                                      final List<String> curConsumers, final List<String> curPartitions) {
+
         // 每个订阅者平均挂载的partition数目
         final int nPartsPerConsumer = curPartitions.size() / curConsumers.size();
+
         // 挂载到额外partition的consumer数目
         final int nConsumersWithExtraPart = curPartitions.size() % curConsumers.size();
 
-        log.info("Consumer " + consumerId + " rebalancing the following partitions: " + curPartitions + " for topic "
-                + topic + " with consumers: " + curConsumers);
+        log.info("Consumer " + consumerId + " rebalancing the following partitions: " + curPartitions + " for topic " + topic + " with consumers: " + curConsumers);
+
+        // 做下校验
         final int myConsumerPosition = curConsumers.indexOf(consumerId);
         if (myConsumerPosition < 0) {
             log.warn("No broker partions consumed by consumer " + consumerId + " for topic " + topic);
             return Collections.emptyList();
         }
         assert myConsumerPosition >= 0;
-        // 计算起点
-        final int startPart =
-                nPartsPerConsumer * myConsumerPosition + Math.min(myConsumerPosition, nConsumersWithExtraPart);
+
+        // 计算当前consumer挂载的分区起点
+        final int startPart = nPartsPerConsumer * myConsumerPosition + Math.min(myConsumerPosition, nConsumersWithExtraPart);
+
+        //计算当前consumer共挂载的分区数=每个consumer的挂载数+额外承担的分区数
         final int nParts = nPartsPerConsumer + (myConsumerPosition + 1 > nConsumersWithExtraPart ? 0 : 1);
 
         if (nParts <= 0) {

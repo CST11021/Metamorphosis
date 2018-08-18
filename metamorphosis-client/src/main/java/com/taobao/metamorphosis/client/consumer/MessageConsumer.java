@@ -37,45 +37,51 @@ import com.taobao.metamorphosis.exception.MetaClientException;
  */
 public interface MessageConsumer extends Shutdownable {
 
+    // --------------
+    // 获取消息迭代器
+    // --------------
+
     /**
      * 获取指定topic和分区下面的消息，默认超时10秒
      * 
      * @param topic
      * @param partition
+     * @param offset
+     * @param maxSize
      * @return 消息迭代器，可能为null
      */
-    public MessageIterator get(String topic, Partition partition, long offset, int maxSize) throws MetaClientException,
-    InterruptedException;
-
+    public MessageIterator get(String topic, Partition partition, long offset, int maxSize) throws MetaClientException, InterruptedException;
 
     /**
      * 获取指定topic和分区下面的消息，在指定时间内没有返回则抛出异常
      * 
      * @param topic
      * @param partition
+     * @param offset
+     * @param maxSize
      * @param timeout
      * @param timeUnit
      * @return 消息迭代器，可能为null
-     * @throws TimeoutException
+     * @throws
      */
-    public MessageIterator get(String topic, Partition partition, long offset, int maxSize, long timeout,
-            TimeUnit timeUnit) throws MetaClientException, InterruptedException;
+    public MessageIterator get(String topic, Partition partition, long offset, int maxSize, long timeout, TimeUnit timeUnit) throws MetaClientException, InterruptedException;
 
+
+
+
+    // --------------
+    // 订阅topic
+    // --------------
 
     /**
      * 订阅指定的消息，传入MessageListener，当有消息达到的时候主动通知MessageListener，请注意，
      * 调用此方法并不会使订阅关系立即生效， 只有在调用complete方法后才生效，此方法可做链式调用
      * 
-     * @param topic
-     *            订阅的topic
-     * @param maxSize
-     *            订阅每次接收的最大数据大小
-     * @param messageListener
-     *            消息监听器
+     * @param topic             订阅的topic
+     * @param maxSize           订阅每次接收的最大数据大小
+     * @param messageListener   消息监听器
      */
-    public MessageConsumer subscribe(String topic, int maxSize, MessageListener messageListener)
-            throws MetaClientException;
-
+    public MessageConsumer subscribe(String topic, int maxSize, MessageListener messageListener) throws MetaClientException;
 
     /**
      * 订阅指定的消息，传入MessageListener和ConsumerMessageFilter，
@@ -83,17 +89,12 @@ public interface MessageConsumer extends Shutdownable {
      * #accept返回true的时候,主动通知MessageListener该条消息，请注意， 调用此方法并不会使订阅关系立即生效，
      * 只有在调用complete方法后才生效，此方法可做链式调用
      * 
-     * @param topic
-     *            订阅的topic
-     * @param maxSize
-     *            订阅每次接收的最大数据大小
+     * @param topic                 订阅的topic
+     * @param maxSize               订阅每次接收的最大数据大小
      * @param messageListener
-     * @param ConsumerMessageFilter
-     *            message filter 消息监听器
+     * @param consumerMessageFilter message filter 消息监听器
      */
-    public MessageConsumer subscribe(String topic, int maxSize, MessageListener messageListener,
-            ConsumerMessageFilter consumerMessageFilter) throws MetaClientException;
-
+    public MessageConsumer subscribe(String topic, int maxSize, MessageListener messageListener, ConsumerMessageFilter consumerMessageFilter) throws MetaClientException;
 
     /**
      * 批量订阅消息,请注意，调用此方法并不会使订阅关系立即生效，只有在调用complete方法后才生效。
@@ -102,11 +103,13 @@ public interface MessageConsumer extends Shutdownable {
      */
     public void setSubscriptions(Collection<Subscription> subscriptions) throws MetaClientException;
 
-
     /**
      * 使得已经订阅的topic生效,此方法仅能调用一次,再次调用无效并将抛出异常
      */
     public void completeSubscribe() throws MetaClientException;
+
+
+
 
 
     /**
@@ -116,14 +119,6 @@ public interface MessageConsumer extends Shutdownable {
      */
     public OffsetStorage getOffsetStorage();
 
-
-    /**
-     * 停止消费者
-     */
-    @Override
-    public void shutdown() throws MetaClientException;
-
-
     /**
      * 返回消费者配置
      * 
@@ -132,6 +127,7 @@ public interface MessageConsumer extends Shutdownable {
     public ConsumerConfig getConsumerConfig();
 
     /**
+     * 获取拒绝消费的处理器
      * Returns current RejectConsumptionHandler
      *
      * @return
@@ -139,9 +135,17 @@ public interface MessageConsumer extends Shutdownable {
     public RejectConsumptionHandler getRejectConsumptionHandler();
 
     /**
+     * 设置拒绝消费的处理器
      * Sets RejectConsumptionHandler for this consumer.
      *
      * @param rejectConsumptionHandler
      */
     public void setRejectConsumptionHandler(RejectConsumptionHandler rejectConsumptionHandler);
+
+    /**
+     * 停止消费者
+     */
+    @Override
+    public void shutdown() throws MetaClientException;
+
 }

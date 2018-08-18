@@ -42,28 +42,60 @@ public class TopicPartitionRegInfo implements Serializable {
 
     private boolean modified;
 
+    public TopicPartitionRegInfo(final String topic, final Partition partition, final long offset) {
+        super();
+        this.topic = topic;
+        this.partition = partition;
+        this.offset = new AtomicLong(offset);
+    }
+
+    public TopicPartitionRegInfo(final String topic, final Partition partition, final long offset, final long messageId) {
+        super();
+        this.topic = topic;
+        this.partition = partition;
+        this.offset = new AtomicLong(offset);
+        this.messageId = messageId;
+    }
+
 
     public TopicPartitionRegInfo clone(MessageIterator it) {
         return new TopicPartitionRegInfo(this.topic, this.partition, this.offset.get() + it.getOffset(), this.messageId);
     }
 
+    public synchronized AtomicLong getOffset() {
+        return this.offset;
+    }
+
+
+
+    // ----------------------
+    // getter and setter ...
+    // ----------------------
+
+
     public synchronized boolean isModified() {
         return this.modified;
     }
-
-
     public synchronized void setModified(final boolean modified) {
         this.modified = modified;
     }
-
-
     public synchronized long getMessageId() {
         return this.messageId;
     }
-
-
     public synchronized void setMessageId(final long messageId) {
         this.messageId = messageId;
+    }
+    public String getTopic() {
+        return this.topic;
+    }
+    public void setTopic(final String topic) {
+        this.topic = topic;
+    }
+    public Partition getPartition() {
+        return this.partition;
+    }
+    public void setPartition(final Partition partition) {
+        this.partition = partition;
     }
 
 
@@ -78,7 +110,6 @@ public class TopicPartitionRegInfo implements Serializable {
         result = prime * result + (this.topic == null ? 0 : this.topic.hashCode());
         return result;
     }
-
 
     @Override
     public boolean equals(final Object obj) {
@@ -120,48 +151,6 @@ public class TopicPartitionRegInfo implements Serializable {
             return false;
         }
         return true;
-    }
-
-
-    public TopicPartitionRegInfo(final String topic, final Partition partition, final long offset) {
-        super();
-        this.topic = topic;
-        this.partition = partition;
-        this.offset = new AtomicLong(offset);
-    }
-
-
-    public TopicPartitionRegInfo(final String topic, final Partition partition, final long offset, final long messageId) {
-        super();
-        this.topic = topic;
-        this.partition = partition;
-        this.offset = new AtomicLong(offset);
-        this.messageId = messageId;
-    }
-
-
-    public String getTopic() {
-        return this.topic;
-    }
-
-
-    public void setTopic(final String topic) {
-        this.topic = topic;
-    }
-
-
-    public Partition getPartition() {
-        return this.partition;
-    }
-
-
-    public void setPartition(final Partition partition) {
-        this.partition = partition;
-    }
-
-
-    public synchronized AtomicLong getOffset() {
-        return this.offset;
     }
 
 }

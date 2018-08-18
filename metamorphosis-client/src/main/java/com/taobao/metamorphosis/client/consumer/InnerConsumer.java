@@ -45,9 +45,7 @@ public interface InnerConsumer {
      * @throws MetaClientException
      * @throws InterruptedException
      */
-    MessageIterator fetch(final FetchRequest fetchRequest, long timeout, TimeUnit timeUnit) throws MetaClientException,
-    InterruptedException;
-
+    MessageIterator fetch(final FetchRequest fetchRequest, long timeout, TimeUnit timeUnit) throws MetaClientException, InterruptedException;
 
     /**
      * 返回topic对应的消息监听器
@@ -57,12 +55,9 @@ public interface InnerConsumer {
      */
     MessageListener getMessageListener(final String topic);
 
-
     public ConsumerMessageFilter getMessageFilter(final String topic);
 
-
     public ConsumerConfig getConsumerConfig();
-
 
     /**
      * 处理无法被客户端消费的消息
@@ -71,7 +66,6 @@ public interface InnerConsumer {
      * @throws IOException
      */
     void appendCouldNotProcessMessage(final Message message) throws IOException;
-
 
     /**
      * 查询offset

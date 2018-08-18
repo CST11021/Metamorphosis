@@ -53,12 +53,16 @@ import com.taobao.metamorphosis.utils.NamedThreadFactory;
  * 
  */
 public class RecoverStorageManager extends AbstractRecoverManager {
-    private static final String SPLIT = "@";
-    private final ConcurrentHashMap<String/* topic */, FutureTask<Store>> topicStoreMap =
-            new ConcurrentHashMap<String, FutureTask<Store>>();
+
     static final Log log = LogFactory.getLog(RecoverStorageManager.class);
-    public static final String META_RECOVER_STORE_PATH = System.getProperty("meta.recover.path",
-        System.getProperty("user.home") + File.separator + ".meta_recover");
+
+    private static final String SPLIT = "@";
+
+    /** Map<topic, FutureTask<Store>>*/
+    private final ConcurrentHashMap<String, FutureTask<Store>> topicStoreMap = new ConcurrentHashMap<String, FutureTask<Store>>();
+
+    public static final String META_RECOVER_STORE_PATH = System.getProperty(
+            "meta.recover.path", System.getProperty("user.home") + File.separator + ".meta_recover");
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
@@ -70,9 +74,12 @@ public class RecoverStorageManager extends AbstractRecoverManager {
 
     private boolean started;
 
+    boolean wasFirst = true;
 
-    public RecoverStorageManager(final MetaClientConfig metaClientConfig,
-            final SubscribeInfoManager subscribeInfoManager) {
+    private final ConcurrentHashSet<Thread> executorThreads = new ConcurrentHashSet<Thread>();
+
+
+    public RecoverStorageManager(final MetaClientConfig metaClientConfig, final SubscribeInfoManager subscribeInfoManager) {
         super();
 
         // 强制使用caller run策略
@@ -86,12 +93,10 @@ public class RecoverStorageManager extends AbstractRecoverManager {
         this.loadStores();
     }
 
-
     @Override
     public synchronized boolean isStarted() {
         return this.started;
     }
-
 
     @Override
     public synchronized void start(final MetaClientConfig metaClientConfig) {
@@ -108,6 +113,56 @@ public class RecoverStorageManager extends AbstractRecoverManager {
         this.started = true;
     }
 
+    @Override
+    public void shutdown() {
+        for (final Map.Entry<String, FutureTask<Store>> entry : this.topicStoreMap.entrySet()) {
+            final String name = entry.getKey();
+            final String[] tmps = name.split(SPLIT);
+            final String topic = tmps[0];
+            final FutureTask<Store> task = entry.getValue();
+            final Store store = this.getStore(topic, task);
+            try {
+                store.close();
+            }
+            catch (final IOException e) {
+                // ignore
+            }
+        }
+        this.threadPoolExecutor.shutdown();
+        for (Thread thread : this.executorThreads) {
+            thread.interrupt();
+        }
+        this.scheduledExecutorService.shutdown();
+    }
+
+    @Override
+    public void append(final String group, final Message message) throws IOException {
+        final Store store = this.getOrCreateStore(message.getTopic(), group);
+        long key = message.getId();
+        IOException error = null;
+        for (int i = 0; i < 5; i++) {
+            try {
+                final ByteBuffer buf = ByteBuffer.allocate(16);
+                buf.putLong(key);
+                store.add(buf.array(), this.serializer.encodeObject(message));
+                return;
+            } catch (final IOException e) {
+                final String msg = e.getMessage();
+                // key重复
+                if (msg.contains("重复")) {
+                    error = e;
+                    log.warn("写入recover store出错,key=" + key + "," + e.getMessage() + ",retry...");
+                    key += this.count.incrementAndGet();
+                } else {
+                    throw e;
+                }
+            }
+        }
+
+        if (error != null) {
+            throw error;
+        }
+    }
 
     private void loadStores() {
         final File dataPath = new File(META_RECOVER_STORE_PATH);
@@ -126,14 +181,12 @@ public class RecoverStorageManager extends AbstractRecoverManager {
         }
     }
 
-
     private void makeDataDir() {
         final File file = new File(META_RECOVER_STORE_PATH);
         if (!file.exists()) {
             file.mkdir();
         }
     }
-
 
     private void recover() {
         for (final Map.Entry<String, FutureTask<Store>> entry : this.topicStoreMap.entrySet()) {
@@ -186,13 +239,7 @@ public class RecoverStorageManager extends AbstractRecoverManager {
         }
     }
 
-    boolean wasFirst = true;
-
-    private final ConcurrentHashSet<Thread> executorThreads = new ConcurrentHashSet<Thread>();
-
-
-    private void receiveMessage(final Store store, final byte[] key, final Message msg,
-            final MessageListener messageListener) throws InterruptedException {
+    private void receiveMessage(final Store store, final byte[] key, final Message msg, final MessageListener messageListener) throws InterruptedException {
         if (messageListener == null) {
             // throw new
             // IllegalStateException("messageListener为null,可能是消费者还未创建,如果是第一次报错，后续没报错了请忽略");
@@ -234,9 +281,7 @@ public class RecoverStorageManager extends AbstractRecoverManager {
         }
     }
 
-
-    private void notifyListener(final Store store, final byte[] key, final Message msg,
-            final MessageListener messageListener) throws InterruptedException {
+    private void notifyListener(final Store store, final byte[] key, final Message msg, final MessageListener messageListener) throws InterruptedException {
         messageListener.recieveMessages(msg);
         try {
             store.remove(key);
@@ -245,63 +290,6 @@ public class RecoverStorageManager extends AbstractRecoverManager {
             log.error("Remove message failed", e);
         }
     }
-
-
-    @Override
-    public void shutdown() {
-        for (final Map.Entry<String, FutureTask<Store>> entry : this.topicStoreMap.entrySet()) {
-            final String name = entry.getKey();
-            final String[] tmps = name.split(SPLIT);
-            final String topic = tmps[0];
-            final FutureTask<Store> task = entry.getValue();
-            final Store store = this.getStore(topic, task);
-            try {
-                store.close();
-            }
-            catch (final IOException e) {
-                // ignore
-            }
-        }
-        this.threadPoolExecutor.shutdown();
-        for (Thread thread : this.executorThreads) {
-            thread.interrupt();
-        }
-        this.scheduledExecutorService.shutdown();
-    }
-
-
-    @Override
-    public void append(final String group, final Message message) throws IOException {
-        final Store store = this.getOrCreateStore(message.getTopic(), group);
-        long key = message.getId();
-        IOException error = null;
-        for (int i = 0; i < 5; i++) {
-            try {
-                final ByteBuffer buf = ByteBuffer.allocate(16);
-                buf.putLong(key);
-                store.add(buf.array(), this.serializer.encodeObject(message));
-                return;
-            }
-            catch (final IOException e) {
-                final String msg = e.getMessage();
-                // key重复
-                if (msg.contains("重复")) {
-                    error = e;
-                    log.warn("写入recover store出错,key=" + key + "," + e.getMessage() + ",retry...");
-                    key += this.count.incrementAndGet();
-                }
-                else {
-                    throw e;
-                }
-            }
-        }
-
-        if (error != null) {
-            throw error;
-        }
-
-    }
-
 
     public Store getOrCreateStore(final String topic, final String group) {
         final String name = this.generateKey(topic, group);
@@ -322,6 +310,10 @@ public class RecoverStorageManager extends AbstractRecoverManager {
                 }
 
             });
+
+            // putIfAbsent方法主要是在向ConcurrentHashMap中添加键—值对的时候，它会先判断该键值对是否已经存在:
+            // 1、如果不存在（新的entry），那么会向map中添加该键值对，并返回null;
+            // 2、如果已经存在，那么不会覆盖已有的值，直接返回已经存在的值
             FutureTask<Store> existsTask = this.topicStoreMap.putIfAbsent(name, task);
             if (existsTask == null) {
                 task.run();
@@ -332,11 +324,15 @@ public class RecoverStorageManager extends AbstractRecoverManager {
 
     }
 
-
+    /**
+     * 根据topic和group生成一个key
+     * @param topic
+     * @param group
+     * @return
+     */
     private String generateKey(final String topic, final String group) {
         return topic + SPLIT + group;
     }
-
 
     private Store getStore(final String name, final FutureTask<Store> task) {
         try {

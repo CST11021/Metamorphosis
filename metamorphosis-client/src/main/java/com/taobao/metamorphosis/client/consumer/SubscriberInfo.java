@@ -21,36 +21,35 @@ import com.taobao.metamorphosis.consumer.ConsumerMessageFilter;
 
 
 /**
- * 订阅者信息
+ * Topic的订阅者信息
  * 
  * @author boyan
  * @Date 2011-4-26
  * 
  */
 public class SubscriberInfo {
+    /** 消息监听器，用于消费消息 */
     private final MessageListener messageListener;
+    /** 自定义的消息过滤器 */
     private final ConsumerMessageFilter consumerMessageFilter;
+    /** 订阅每次接收的最大数据大小 */
     private final int maxSize;
 
 
-    public SubscriberInfo(final MessageListener messageListener, final ConsumerMessageFilter consumerMessageFilter,
-            final int maxSize) {
+    public SubscriberInfo(final MessageListener messageListener, final ConsumerMessageFilter consumerMessageFilter, final int maxSize) {
         super();
         this.messageListener = messageListener;
         this.maxSize = maxSize;
         this.consumerMessageFilter = consumerMessageFilter;
     }
 
-
     public ConsumerMessageFilter getConsumerMessageFilter() {
         return this.consumerMessageFilter;
     }
 
-
     public MessageListener getMessageListener() {
         return this.messageListener;
     }
-
 
     @Override
     public int hashCode() {
@@ -61,7 +60,6 @@ public class SubscriberInfo {
         result = prime * result + (this.messageListener == null ? 0 : this.messageListener.hashCode());
         return result;
     }
-
 
     @Override
     public boolean equals(Object obj) {
@@ -96,7 +94,6 @@ public class SubscriberInfo {
         }
         return true;
     }
-
 
     public int getMaxSize() {
         return this.maxSize;

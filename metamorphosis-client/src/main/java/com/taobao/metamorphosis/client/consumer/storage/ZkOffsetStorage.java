@@ -39,15 +39,12 @@ import com.taobao.metamorphosis.utils.ZkUtils;
  * 
  */
 public class ZkOffsetStorage implements OffsetStorage, ZkClientChangedListener {
+
+    static final Log log = LogFactory.getLog(ZkOffsetStorage.class);
+
     private volatile ZkClient zkClient;
+
     private final MetaZookeeper metaZookeeper;
-
-
-    @Override
-    public void onZkClientChanged(final ZkClient newClient) {
-        log.info("Update ZkOffsetStorage's zkClient...");
-        this.zkClient = newClient;
-    }
 
 
     public ZkOffsetStorage(final MetaZookeeper metaZookeeper, final ZkClient zkClient) {
@@ -56,8 +53,11 @@ public class ZkOffsetStorage implements OffsetStorage, ZkClientChangedListener {
         this.zkClient = zkClient;
     }
 
-    static final Log log = LogFactory.getLog(ZkOffsetStorage.class);
-
+    @Override
+    public void onZkClientChanged(final ZkClient newClient) {
+        log.info("Update ZkOffsetStorage's zkClient...");
+        this.zkClient = newClient;
+    }
 
     @Override
     public void commitOffset(final String group, final Collection<TopicPartitionRegInfo> infoList) {
@@ -96,7 +96,6 @@ public class ZkOffsetStorage implements OffsetStorage, ZkClientChangedListener {
         }
     }
 
-
     @Override
     public TopicPartitionRegInfo load(final String topic, final String group, final Partition partition) {
         final ZKGroupTopicDirs topicDirs = this.metaZookeeper.new ZKGroupTopicDirs(topic, group);
@@ -122,12 +121,10 @@ public class ZkOffsetStorage implements OffsetStorage, ZkClientChangedListener {
         }
     }
 
-
     @Override
     public void close() {
         // do nothing
     }
-
 
     @Override
     public void initOffset(final String topic, final String group, final Partition partition, final long offset) {

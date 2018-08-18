@@ -49,22 +49,23 @@ import com.taobao.common.store.util.Util;
 
 
 /**
- * <b>一个通过日志文件实现的key/value对的存储</b>
+ * 一个通过日志文件实现的key/value对的存储
  * 
- * key必须是16字节 <br />
- * 1、数据文件和日志文件在一起，不记录索引文件<br />
- * name.1 name.1.log<br />
- * 2、data为真正的数据，顺序存放，使用引用计数<br />
- * 3、log为操作+key+偏移量<br />
- * 4、添加数据时，先添加name.1，获得offset和length，然后记录日志，增加引用计数，然后加入或更新内存索引<br />
- * 5、删除数据时，记录日志，删除内存索引，减少文件计数，判断大小是否满足大小了，并且无引用了，就删除数据文件和日志文件<br />
- * 6、获取数据时，直接从内存索引获得数据偏移量<br />
- * 7、更新数据时，调用添加<br />
- * 8、启动时，遍历每一个log文件，通过日志的操作恢复内存索引<br />
+ * key必须是16字节
+ * 1、数据文件和日志文件在一起，不记录索引文件
+ *    name.1 name.1.log
+ * 2、data为真正的数据，顺序存放，使用引用计数
+ * 3、log为操作+key+偏移量
+ * 4、添加数据时，先添加name.1，获得offset和length，然后记录日志，增加引用计数，然后加入或更新内存索引
+ * 5、删除数据时，记录日志，删除内存索引，减少文件计数，判断大小是否满足大小了，并且无引用了，就删除数据文件和日志文件
+ * 6、获取数据时，直接从内存索引获得数据偏移量
+ * 7、更新数据时，调用添加
+ * 8、启动时，遍历每一个log文件，通过日志的操作恢复内存索引
  * 
  * @author dogun (yuexuqiang at gmail.com)
  */
 public class JournalStore implements Store, JournalStoreMBean {
+
     private final Log log = LogFactory.getLog(JournalStore.class);
 
     public static final int FILE_SIZE = 1024 * 1024 * 64; // 20M
@@ -114,11 +115,9 @@ public class JournalStore implements Store, JournalStoreMBean {
      * @param force
      * @throws IOException
      */
-    public JournalStore(final String path, final String name, final boolean force, final boolean enabledIndexLRU)
-            throws IOException {
+    public JournalStore(final String path, final String name, final boolean force, final boolean enabledIndexLRU) throws IOException {
         this(path, name, null, force, enabledIndexLRU, false);
     }
-
 
     /**
      * 自己实现 索引维护组件
@@ -130,11 +129,9 @@ public class JournalStore implements Store, JournalStoreMBean {
      * @param enabledIndexLRU
      * @throws IOException
      */
-    public JournalStore(final String path, final String name, final IndexMap indices, final boolean force,
-            final boolean enabledIndexLRU) throws IOException {
+    public JournalStore(final String path, final String name, final IndexMap indices, final boolean force, final boolean enabledIndexLRU) throws IOException {
         this(path, name, indices, force, enabledIndexLRU, false);
     }
-
 
     /**
      * 
@@ -145,11 +142,9 @@ public class JournalStore implements Store, JournalStoreMBean {
      * @param enabledDataFileCheck
      * @throws IOException
      */
-    public JournalStore(final String path, final String name, final boolean force, final boolean enableIndexLRU,
-            final boolean enabledDataFileCheck) throws IOException {
+    public JournalStore(final String path, final String name, final boolean force, final boolean enableIndexLRU, final boolean enabledDataFileCheck) throws IOException {
         this(path, name, null, force, enableIndexLRU, false);
     }
-
 
     /**
      * 启用数据文件整理的构造函数
@@ -159,8 +154,7 @@ public class JournalStore implements Store, JournalStoreMBean {
      * @param force
      * @throws IOException
      */
-    public JournalStore(final String path, final String name, final IndexMap indices, final boolean force,
-            final boolean enableIndexLRU, final boolean enabledDataFileCheck) throws IOException {
+    public JournalStore(final String path, final String name, final IndexMap indices, final boolean force, final boolean enableIndexLRU, final boolean enabledDataFileCheck) throws IOException {
         Util.registMBean(this, name);
         this.path = path;
         this.name = name;
@@ -211,7 +205,6 @@ public class JournalStore implements Store, JournalStoreMBean {
         });
     }
 
-
     /**
      * 默认构造函数，会在path下使用name作为名字生成数据文件
      * 
@@ -223,17 +216,10 @@ public class JournalStore implements Store, JournalStoreMBean {
         this(path, name, false, false);
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#add(byte[], byte[])
-     */
     @Override
     public void add(final byte[] key, final byte[] data) throws IOException {
         this.add(key, data, false);
     }
-
 
     @Override
     public void add(final byte[] key, final byte[] data, final boolean force) throws IOException {
@@ -243,12 +229,10 @@ public class JournalStore implements Store, JournalStoreMBean {
 
     }
 
-
     @Override
     public boolean remove(final byte[] key, final boolean force) throws IOException {
         return this.innerRemove(key, force);
     }
-
 
     /**
      * 用于整体数据文件，能够将数据文件瘦身.
@@ -263,7 +247,6 @@ public class JournalStore implements Store, JournalStoreMBean {
             this.innerAdd(key, value, oldLastTime, sync);
         }
     }
-
 
     /**
      * 计算下个执行周期的delay时间.
@@ -294,7 +277,6 @@ public class JournalStore implements Store, JournalStoreMBean {
         return delay;
     }
 
-
     /**
      * 内部添加数据
      * 
@@ -302,8 +284,7 @@ public class JournalStore implements Store, JournalStoreMBean {
      * @param data
      * @throws IOException
      */
-    private OpItem innerAdd(final byte[] key, final byte[] data, final long oldLastTime, final boolean sync)
-            throws IOException {
+    private OpItem innerAdd(final byte[] key, final byte[] data, final long oldLastTime, final boolean sync) throws IOException {
         final BytesKey k = new BytesKey(key);
         final OpItem op = new OpItem();
         op.op = OpItem.OP_ADD;
@@ -318,12 +299,6 @@ public class JournalStore implements Store, JournalStoreMBean {
         return op;
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#get(byte[])
-     */
     @Override
     public byte[] get(final byte[] key) throws IOException {
         byte[] data = null;
@@ -351,12 +326,6 @@ public class JournalStore implements Store, JournalStoreMBean {
         return data;
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#iterator()
-     */
     @Override
     public Iterator<byte[]> iterator() throws IOException {
         final Iterator<BytesKey> it = this.indices.keyIterator();
@@ -384,17 +353,10 @@ public class JournalStore implements Store, JournalStoreMBean {
         };
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#remove(byte[])
-     */
     @Override
     public boolean remove(final byte[] key) throws IOException {
         return this.remove(key, false);
     }
-
 
     /**
      * 获得记录在那个文件，记录日志，删除内存索引，减少文件计数，判断大小是否满足大小了，并且无引用了，就删除数据文件和日志文件
@@ -416,7 +378,6 @@ public class JournalStore implements Store, JournalStoreMBean {
         }
         return ret;
     }
-
 
     /**
      * 根据OpItem对象，在日志文件中记录删除的操作日志，并且修改对应数据文件的引用计数.
@@ -441,7 +402,6 @@ public class JournalStore implements Store, JournalStoreMBean {
         return false;
     }
 
-
     /**
      * 检查参数是否合法
      * 
@@ -456,7 +416,6 @@ public class JournalStore implements Store, JournalStoreMBean {
             throw new IllegalArgumentException("key.length must be 16");
         }
     }
-
 
     /**
      * 生成一个新的数据文件
@@ -476,7 +435,6 @@ public class JournalStore implements Store, JournalStoreMBean {
         return this.dataFile;
     }
 
-
     /**
      * Create the parent directory if it doesn't exist.
      */
@@ -485,7 +443,6 @@ public class JournalStore implements Store, JournalStoreMBean {
             throw new IllegalStateException("Can't make dir " + this.path);
         }
     }
-
 
     /**
      * 类初始化的时候，需要遍历所有的日志文件，恢复内存的索引
@@ -617,23 +574,11 @@ public class JournalStore implements Store, JournalStoreMBean {
         log.warn("恢复数据：" + this.size());
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#size()
-     */
     @Override
     public int size() {
         return this.indices.size();
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#update(byte[], byte[])
-     */
     @Override
     public boolean update(final byte[] key, final byte[] data) throws IOException {
         // 对于Update的消息，我们写入OpCode为Update的日志。
@@ -656,100 +601,46 @@ public class JournalStore implements Store, JournalStoreMBean {
         return false;
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.journal.JournalStoreMBean#getDataFilesInfo()
-     */
     @Override
     public String getDataFilesInfo() {
         return this.dataFiles.toString();
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.journal.JournalStoreMBean#getLogFilesInfo()
-     */
     @Override
     public String getLogFilesInfo() {
         return this.logFiles.toString();
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.journal.JournalStoreMBean#getNumber()
-     */
     @Override
     public int getNumber() {
         return this.number.get();
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.journal.JournalStoreMBean#getPath()
-     */
     @Override
     public String getPath() {
         return this.path;
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.journal.JournalStoreMBean#getName()
-     */
     @Override
     public String getName() {
         return this.name;
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.journal.JournalStoreMBean#getDataFileInfo()
-     */
     @Override
     public String getDataFileInfo() {
         return this.dataFile.toString();
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.journal.JournalStoreMBean#getLogFileInfo()
-     */
     @Override
     public String getLogFileInfo() {
         return this.logFile.toString();
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.journal.JournalStoreMBean#viewIndexMap()
-     */
     @Override
     public String viewIndexMap() {
         return this.indices.toString();
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#close()
-     */
     @Override
     public void close() throws IOException {
         this.sync();
@@ -777,58 +668,44 @@ public class JournalStore implements Store, JournalStoreMBean {
         this.logFile = null;
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.journal.JournalStoreMBean#getSize()
-     */
     @Override
     public long getSize() throws IOException {
         return this.size();
     }
-
 
     @Override
     public long getIntervalForCompact() {
         return this.intervalForCompact;
     }
 
-
     @Override
     public void setIntervalForCompact(final long intervalForCompact) {
         this.intervalForCompact = intervalForCompact;
     }
-
 
     @Override
     public long getIntervalForRemove() {
         return this.intervalForRemove;
     }
 
-
     @Override
     public void setIntervalForRemove(final long intervalForRemove) {
         this.intervalForRemove = intervalForRemove;
     }
-
 
     @Override
     public long getMaxFileCount() {
         return this.maxFileCount;
     }
 
-
     @Override
     public void setMaxFileCount(final long maxFileCount) {
         this.maxFileCount = maxFileCount;
     }
 
-
     public void sync() {
         this.dataFileAppender.sync();
     }
-
 
     /**
      * 对数据文件进行检查，并作出相应的处理：

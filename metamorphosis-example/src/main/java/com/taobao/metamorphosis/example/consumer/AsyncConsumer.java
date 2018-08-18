@@ -43,7 +43,7 @@ public class AsyncConsumer {
         final String topic = "meta-test";
         final String group = "meta-example";
         ConsumerConfig consumerConfig = new ConsumerConfig(group);
-        // 默认最大获取延迟为5秒，这里设置成100毫秒，请根据实际应用要求做设置。
+        // 默认最大获取延迟为5秒，这里设置成100毫秒，请根据实际应用要求做设置
         consumerConfig.setMaxDelayFetchTimeInMills(100);
         final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
 

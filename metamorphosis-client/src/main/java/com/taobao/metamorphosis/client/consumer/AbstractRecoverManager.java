@@ -34,8 +34,11 @@ import com.taobao.metamorphosis.utils.codec.impl.JavaSerializer;
 
 public abstract class AbstractRecoverManager implements RecoverManager {
 
+    /** 序列化方式，支持java序列化和hessian */
     private final String META_RECOVER_CODEC_TYPE = System.getProperty("meta.recover.codec", "java");
+
     protected final Serializer serializer;
+
     protected final Deserializer deserializer;
 
 

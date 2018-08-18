@@ -28,8 +28,9 @@ import org.I0Itec.zkclient.ZkClient;
  * 
  */
 public interface ZkClientChangedListener {
+
     /**
-     * 当新的zkClient建立的时候
+     * 当新的zkClient建立的时候,调用该方法
      * 
      * @param newClient
      */

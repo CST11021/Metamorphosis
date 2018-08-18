@@ -33,6 +33,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * 
  */
 class FetchRequestQueue {
+
     private final LinkedList<FetchRequest> queue = new LinkedList<FetchRequest>();
     private final Lock lock = new ReentrantLock();
     private final Condition available = this.lock.newCondition();

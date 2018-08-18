@@ -39,14 +39,12 @@ public interface RecoverManager extends Shutdownable {
      */
     public boolean isStarted();
 
-
     /**
      * 启动recover
      * 
      * @param metaClientConfig
      */
     public void start(MetaClientConfig metaClientConfig);
-
 
     /**
      * 存入一个消息

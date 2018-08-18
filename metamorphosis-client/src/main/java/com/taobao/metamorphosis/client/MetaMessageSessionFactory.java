@@ -162,6 +162,7 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
     /** Meta与zookeeper交互的辅助类 */
     protected MetaZookeeper metaZookeeper;
 
+    /** 当新的zkClient建立的时候,调用该监听器方法 */
     private final CopyOnWriteArrayList<ZkClientChangedListener> zkClientChangedListeners = new CopyOnWriteArrayList<ZkClientChangedListener>();
 
 
@@ -261,8 +262,27 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
             this.zkClientChangedListeners.add((ZkOffsetStorage) offsetStorageCopy);
         }
 
-        return this.createConsumer0(consumerConfig, offsetStorageCopy, recoverManager0 != null ? recoverManager0
-                : this.recoverManager);
+        return this.createConsumer0(consumerConfig, offsetStorageCopy,
+                recoverManager0 != null ? recoverManager0 : this.recoverManager);
+    }
+    private synchronized MessageConsumer createConsumer0(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage, final RecoverManager recoverManager0) {
+        if (consumerConfig.getServerUrl() == null) {
+            consumerConfig.setServerUrl(this.metaClientConfig.getServerUrl());
+        }
+
+        if (offsetStorage == null) {
+            throw new InvalidOffsetStorageException("Null offset storage");
+        }
+
+        // 必要时启动recover
+        if (!recoverManager0.isStarted()) {
+            recoverManager0.start(this.metaClientConfig);
+        }
+
+        this.checkConsumerConfig(consumerConfig);
+        return this.addChild(new SimpleMessageConsumer(this, this.remotingClient, consumerConfig,
+                this.consumerZooKeeper, this.producerZooKeeper, this.subscribeInfoManager, recoverManager0, offsetStorage,
+                this.createLoadBalanceStrategy(consumerConfig)));
     }
     @Override
     public MessageConsumer createConsumer(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage) {
@@ -272,22 +292,7 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
     public MessageConsumer createConsumer(final ConsumerConfig consumerConfig) {
         return this.createConsumer(consumerConfig, null, null);
     }
-    private synchronized MessageConsumer createConsumer0(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage, final RecoverManager recoverManager0) {
-        if (consumerConfig.getServerUrl() == null) {
-            consumerConfig.setServerUrl(this.metaClientConfig.getServerUrl());
-        }
-        if (offsetStorage == null) {
-            throw new InvalidOffsetStorageException("Null offset storage");
-        }
-        // 必要时启动recover
-        if (!recoverManager0.isStarted()) {
-            recoverManager0.start(this.metaClientConfig);
-        }
-        this.checkConsumerConfig(consumerConfig);
-        return this.addChild(new SimpleMessageConsumer(this, this.remotingClient, consumerConfig,
-                this.consumerZooKeeper, this.producerZooKeeper, this.subscribeInfoManager, recoverManager0, offsetStorage,
-                this.createLoadBalanceStrategy(consumerConfig)));
-    }
+
 
 
 
