@@ -25,7 +25,7 @@ import com.taobao.metamorphosis.client.Shutdownable;
 
 
 /**
- * 消费端的Recover管理器
+ * 消费端的Recover管理器：当消息被过滤器拦截后会调用拒绝策略处理消息，此时会调用{@link #append(String, Message)}将消息保存到 RecoverManager 管理器
  * 
  * @author 无花
  * @since 2011-10-31 下午3:40:04

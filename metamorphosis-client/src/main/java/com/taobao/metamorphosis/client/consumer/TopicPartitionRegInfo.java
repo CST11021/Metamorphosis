@@ -48,7 +48,6 @@ public class TopicPartitionRegInfo implements Serializable {
         this.partition = partition;
         this.offset = new AtomicLong(offset);
     }
-
     public TopicPartitionRegInfo(final String topic, final Partition partition, final long offset, final long messageId) {
         super();
         this.topic = topic;

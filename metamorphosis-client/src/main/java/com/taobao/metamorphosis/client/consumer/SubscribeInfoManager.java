@@ -24,14 +24,22 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 
 
 /**
- * 订阅信息管理器
+ * 订阅信息管理器：用于维护哪个topic被哪个监听器监听，{@link MessageListener}监听器用于消费消费
  */
 public class SubscribeInfoManager {
 
-    /** Map<group, Map<topic, SubscriberInfo>> */
+    /** Map<group, Map<topic, SubscriberInfo>> 用于维护哪个topic被哪个监听器监听，{@link MessageListener}监听器用于消费消费*/
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, SubscriberInfo>> groupTopicSubcriberRegistry = new ConcurrentHashMap<String/* group */, ConcurrentHashMap<String, SubscriberInfo>>();
 
-
+    /**
+     * 订阅topic
+     * @param topic                 表示被消费端订阅的topic
+     * @param group                 消费端的group分组
+     * @param maxSize               消费端单次接收消费的最大数据量
+     * @param messageListener       消息监听器，用于处理从服务端获取的消息
+     * @param consumerMessageFilter 自定义消息过滤器，被拦截的消息将调用拒绝策略进行处理
+     * @throws MetaClientException
+     */
     public void subscribe(final String topic, final String group, final int maxSize, final MessageListener messageListener, final ConsumerMessageFilter consumerMessageFilter) throws MetaClientException {
         final ConcurrentHashMap<String, SubscriberInfo> topicSubsriberRegistry = this.getTopicSubscriberRegistry(group);
         SubscriberInfo info = topicSubsriberRegistry.get(topic);
@@ -47,10 +55,15 @@ public class SubscribeInfoManager {
         }
     }
 
-
+    /**
+     * 获取group下的订阅信息
+     * @param group
+     * @return
+     * @throws MetaClientException
+     */
     private ConcurrentHashMap<String, SubscriberInfo> getTopicSubscriberRegistry(final String group) throws MetaClientException {
-        ConcurrentHashMap<String/* topic */, SubscriberInfo> topicSubsriberRegistry =
-                this.groupTopicSubcriberRegistry.get(group);
+        // Map<Topic, SubscriberInfo>
+        ConcurrentHashMap<String, SubscriberInfo> topicSubsriberRegistry = this.groupTopicSubcriberRegistry.get(group);
         if (topicSubsriberRegistry == null) {
             topicSubsriberRegistry = new ConcurrentHashMap<String, SubscriberInfo>();
             final ConcurrentHashMap<String/* topic */, SubscriberInfo> old =
@@ -62,7 +75,13 @@ public class SubscribeInfoManager {
         return topicSubsriberRegistry;
     }
 
-
+    /**
+     * 获取topic对应的消息监听器
+     * @param topic
+     * @param group
+     * @return
+     * @throws MetaClientException
+     */
     public MessageListener getMessageListener(final String topic, final String group) throws MetaClientException {
         final ConcurrentHashMap<String, SubscriberInfo> topicSubsriberRegistry = this.groupTopicSubcriberRegistry.get(group);
         if (topicSubsriberRegistry == null) {
@@ -75,12 +94,18 @@ public class SubscribeInfoManager {
         return info.getMessageListener();
     }
 
-
+    /**
+     * 移除group分组的订阅信息
+     * @param group
+     */
     public void removeGroup(final String group) {
         this.groupTopicSubcriberRegistry.remove(group);
     }
 
-
+    /**
+     * 获取所有的订阅信息
+     * @return
+     */
     ConcurrentHashMap<String, ConcurrentHashMap<String, SubscriberInfo>> getGroupTopicSubcriberRegistry() {
         return this.groupTopicSubcriberRegistry;
     }

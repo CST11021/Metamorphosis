@@ -107,9 +107,12 @@ import com.taobao.metamorphosis.client.MetaClientConfig;
  * 
  */
 public class ConsumerConfig extends MetaClientConfig {
+
     static final long serialVersionUID = -1L;
+
     /** MetaQ的消费者是以pull模型来从服务端拉取数据并消费，这个参数设置并行拉取的线程数，默认是CPU个数 */
     private int fetchRunnerCount = Runtime.getRuntime().availableProcessors();
+    /** 当上一次没有抓取到的消息，抓取线程sleep的最大时间，默认5秒，单位毫秒 */
     private long maxDelayFetchTimeInMills = 5000;
     @Deprecated
     private long maxDelayFetchTimeWhenExceptionInMills = 10000;
@@ -118,6 +121,7 @@ public class ConsumerConfig extends MetaClientConfig {
 
     /** 单个消费者的id，必须全局唯一，通常用于标识分组内的单个消费者，可不设置，系统会根据IP和时间戳自动生成 */
     private String consumerId;
+    /** 表示消费端的消费分区，仅在直接连接服务器的时候有效 */
     private String partition;
     /** 第一次消费开始位置的offset，默认都是从服务端的最早数据开始消费 */
     private long offset = 0;
@@ -130,12 +134,12 @@ public class ConsumerConfig extends MetaClientConfig {
     private long commitOffsetPeriodInMills = 5000L;
     /** 同一条消息在处理失败情况下最大重试消费次数，默认5次，超过就跳过这条消息并调用RejectConsumptionHandler处理 */
     private int maxFetchRetries = 5;
+    /** 设置每次订阅是否从最新位置开始消费,如果为true，表示每次启动都从最新位置开始消费,通常在测试的时候可以设置为true。*/
     private boolean alwaysConsumeFromMaxOffset = false;
+    /** 消费端的负载均衡策略，这里使用默认的负载均衡策略，尽量使得负载在所有consumer之间平均分配，consumer之间分配的分区数差距不大于1 */
     private LoadBalanceStrategy.Type loadBalanceStrategyType = LoadBalanceStrategy.Type.DEFAULT;
 
-    // 把消息处理失败重试跟拉取数据不足重试分开,
-    // 因为有时不需要处理失败重试(maxFetchRetries设为maxIntValue),
-    // 但需要自增长拉取的数据量
+    /** 把消息处理失败重试跟拉取数据失败重试分开,因为有时不需要处理失败重试(maxFetchRetries设为maxIntValue),但需要自增长拉取的数据量 */
     private int maxIncreaseFetchDataRetries = 5;
 
 
@@ -229,8 +233,7 @@ public class ConsumerConfig extends MetaClientConfig {
      * 设置每次订阅是否从最新位置开始消费。
      * 
      * @since 1.4.5
-     * @param always
-     *            如果为true，表示每次启动都从最新位置开始消费。通常在测试的时候可以设置为true。
+     * @param always 如果为true，表示每次启动都从最新位置开始消费。通常在测试的时候可以设置为true。
      */
     public void setConsumeFromMaxOffset(boolean always) {
         this.alwaysConsumeFromMaxOffset = always;
@@ -259,7 +262,7 @@ public class ConsumerConfig extends MetaClientConfig {
     }
 
     /**
-     * 分区，仅在直接连接服务器的时候有效
+     * 获取分区，仅在直接连接服务器的时候有效
      * 
      * @return
      */

@@ -74,7 +74,6 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
     /** 客户端配置信息 */
     private final ConsumerConfig consumerConfig;
 
-    /**  */
     private final ConsumerZooKeeper consumerZooKeeper;
 
     private final ProducerZooKeeper producerZooKeeper;
@@ -82,6 +81,7 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
     /** 会话工厂 */
     private final MetaMessageSessionFactory messageSessionFactory;
 
+    /** MetaQ的消费模型是一种拉取的模型，消费者根据上次消费数据的绝对偏移量(offset)从服务端的数据文件中拉取后面的数据继续消费 */
     private final OffsetStorage offsetStorage;
 
     /** 消费者的负载均衡策略，用于确认消费者要消费的分区消息 */
@@ -89,6 +89,7 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
 
     private final ScheduledExecutorService scheduledExecutorService;
 
+    /** 订阅信息管理器,通过该对象管理topic和对应的消息监听器的对应关系 */
     private final SubscribeInfoManager subscribeInfoManager;
 
     private final RecoverManager recoverStorageManager;

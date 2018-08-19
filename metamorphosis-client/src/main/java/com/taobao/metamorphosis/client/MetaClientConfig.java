@@ -32,8 +32,15 @@ public class MetaClientConfig implements Serializable {
 
     static final long serialVersionUID = -1L;
 
+    /** zk配置 */
     protected ZKConfig zkConfig;
 
+    /**
+     * 设置topic的分布情况.
+     * 对于使用严格顺序发送消息有效(OrderedMessageProducer),目前版本没有diamond所以从这里设置和获取。
+     * partitionsInfo.put("topic.num.exampleTopic1","brokerId1:分区个数;brokerId2:分区个数...")
+     * partitionsInfo.put("topic.num.exampleTopic2","brokerId1:分区个数;brokerId2:分区个数...")
+     */
     Properties partitionsInfo;
 
     /** MQ服务器的连接信息，如果有设置，则使用设置的url并连接指定的MQ服务器，否则使用zk发现服务器 */
@@ -43,11 +50,12 @@ public class MetaClientConfig implements Serializable {
     private final String diamondPartitionsDataId = DiamondUtils.DEFAULT_PARTITIONS_DATAID;
 
     /** 从diamond获取partitions配置的group，默认为DEFAULT_GROUP */
-    private final String diamondPartitionsGroup = "DEFAULT_GROUP";// Constants.DEFAULT_GROUP;
+    private final String diamondPartitionsGroup = "DEFAULT_GROUP";
 
     /** recover本地消息的时间间隔 */
     private long recoverMessageIntervalInMills = 5 * 60 * 1000L;
 
+    /** recover的线程数量，默认是CPU个数 */
     private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
 
     // ------------------
@@ -126,16 +134,6 @@ public class MetaClientConfig implements Serializable {
     public String getDiamondPartitionsGroup() {
         return this.diamondPartitionsGroup;
     }
-    /**
-     * 设置topic的分布情况.
-     * 对于使用严格顺序发送消息有效(OrderedMessageProducer),目前版本没有diamond所以从这里设置和获取。 <br>
-     * partitionsInfo
-     * .put("topic.num.exampleTopic1","brokerId1:分区个数;brokerId2:分区个数...")<br>
-     * partitionsInfo
-     * .put("topic.num.exampleTopic2","brokerId1:分区个数;brokerId2:分区个数...")
-     * 
-     * @param partitionsInfo
-     */
     public void setPartitionsInfo(final Properties partitionsInfo) {
         this.partitionsInfo = partitionsInfo;
     }

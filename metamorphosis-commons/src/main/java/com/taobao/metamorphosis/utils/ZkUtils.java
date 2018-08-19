@@ -44,6 +44,10 @@ public class ZkUtils {
 
     /**
      * make sure a persiste.nt path exists in ZK. Create the path if not exist.
+     * 创建一个持久的节点到zk
+     * @param client    zk客户端
+     * @param path      节点路径
+     * @throws Exception
      */
     public static void makeSurePersistentPathExists(final ZkClient client, final String path) throws Exception {
         if (!client.exists(path)) {
@@ -87,8 +91,8 @@ public class ZkUtils {
     }
 
     /**
-     * Create an ephemeral node with the given path and data. Throw
-     * NodeExistException if node already exists.
+     * Create an ephemeral node with the given path and data.
+     * Throw NodeExistException if node already exists.
      */
     public static void createEphemeralPathExpectConflict(final ZkClient client, final String path, final String data) throws Exception {
         try {
@@ -141,10 +145,22 @@ public class ZkUtils {
         }
     }
 
+    /**
+     * 读取节点数据
+     * @param client    zk客户端
+     * @param path      节点路径
+     * @return
+     */
     public static String readData(final ZkClient client, final String path) {
         return client.readData(path);
     }
 
+    /**
+     * 读取节点数据
+     * @param client    zk客户端
+     * @param path      节点路径
+     * @return
+     */
     public static String readDataMaybeNull(final ZkClient client, final String path) {
         return client.readData(path, true);
     }
@@ -168,6 +184,12 @@ public class ZkUtils {
         }
     }
 
+    /**
+     * 删除节点
+     * @param client
+     * @param path
+     * @throws Exception
+     */
     public static void deletePath(final ZkClient client, final String path) throws Exception {
         try {
             client.delete(path);
@@ -193,10 +215,22 @@ public class ZkUtils {
         }
     }
 
+    /**
+     * 获取孩子节点
+     * @param client    zk客户端
+     * @param path      节点路径
+     * @return
+     */
     public static List<String> getChildren(final ZkClient client, final String path) {
         return client.getChildren(path);
     }
 
+    /**
+     * 获取孩子节点
+     * @param client    zk客户端
+     * @param path      节点路径
+     * @return
+     */
     public static List<String> getChildrenMaybeNull(final ZkClient client, final String path) {
         try {
             return client.getChildren(path);
@@ -207,7 +241,10 @@ public class ZkUtils {
     }
 
     /**
-     * Check if the given path exists
+     * 判断节点是否存在
+     * @param client
+     * @param path
+     * @return
      */
     public static boolean pathExists(final ZkClient client, final String path) {
         return client.exists(path);
@@ -251,6 +288,7 @@ public class ZkUtils {
 
     }
 
+    /** zk配置 */
     public static class ZKConfig extends Config implements Serializable {
         static final long serialVersionUID = -1L;
 
@@ -263,7 +301,7 @@ public class ZkUtils {
         /** 表示连接zk的信息，例如：127.0.0.1:2181 */
         @Key(name = "zk.zkConnect")
         public String zkConnect;
-        /** zookeeper session timeout */
+        /** zk会话超时时间 */
         @Key(name = "zk.zkSessionTimeoutMs")
         public int zkSessionTimeoutMs = 30000;
         /** the max time that the client waits to establish a connection to zookeeper */

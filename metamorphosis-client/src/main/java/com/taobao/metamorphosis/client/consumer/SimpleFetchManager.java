@@ -53,6 +53,7 @@ public class SimpleFetchManager implements FetchManager {
     /** 表示抓取消息的线程，线程数取决于{@link ConsumerConfig#fetchRunnerCount}配置，默认cpu个数 */
     private Thread[] fetchThreads;
 
+    /** 表示从MQ服务器拉取消息进行消费的线程列表 */
     private FetchRequestRunner[] requestRunners;
 
     /** 统计抓取请求的次数 */
@@ -60,6 +61,7 @@ public class SimpleFetchManager implements FetchManager {
 
     private FetchRequestQueue requestQueue;
 
+    /** 消费端配置 */
     private final ConsumerConfig consumerConfig;
 
     private final InnerConsumer consumer;
@@ -84,14 +86,13 @@ public class SimpleFetchManager implements FetchManager {
 
     @Override
     public void startFetchRunner() {
-        // 保存请求数目，在停止的时候要检查
+        // 保存当前从服务端拉取消息请求的数目，在停止的时候要检查
         this.fetchRequestCount = this.requestQueue.size();
         this.shutdown = false;
-        // 启动抓取消息的线程，从MQ服务器抓取消息
+        // 启动抓取消息的线程，从MQ服务器抓取消息，并进行消费
         for (final Thread thread : this.fetchThreads) {
             thread.start();
         }
-
     }
 
     @Override
@@ -200,16 +201,22 @@ public class SimpleFetchManager implements FetchManager {
         return currentTopicRegInfo.get();
     }
 
+    /**
+     * 该线程用于从MQ服务器拉取消息，并进行消费
+     */
     class FetchRequestRunner implements Runnable {
 
         private static final int DELAY_NPARTS = 10;
 
         private volatile boolean stopped = false;
 
+        private long lastLogNoConnectionTime;
+
+        private final ConcurrentHashSet<Thread> executorThreads = new ConcurrentHashSet<Thread>();
+
         void shutdown() {
             this.stopped = true;
         }
-
 
         @Override
         public void run() {
@@ -225,6 +232,10 @@ public class SimpleFetchManager implements FetchManager {
             }
         }
 
+        /**
+         * 处理拉取消息的请求
+         * @param request
+         */
         void processRequest(final FetchRequest request) {
             try {
                 final MessageIterator iterator = SimpleFetchManager.this.consumer.fetch(request, -1, null);
@@ -247,8 +258,6 @@ public class SimpleFetchManager implements FetchManager {
                 this.LogAddRequest(request, e);
             }
         }
-
-        private long lastLogNoConnectionTime;
 
         private void LogAddRequest(final FetchRequest request, final Throwable e) {
             if (e instanceof MetaClientException && e.getCause() instanceof NotifyRemotingException
@@ -290,8 +299,14 @@ public class SimpleFetchManager implements FetchManager {
             }
         }
 
-        private final ConcurrentHashSet<Thread> executorThreads = new ConcurrentHashSet<Thread>();
-
+        /**
+         * 通知对应的消息监听器处理从服务端拉取的消息
+         * @param request   表示从MQ服务器拉取消息的请求
+         * @param it
+         * @param listener  消息监听器，用于处理消息
+         * @param filter    消息过滤器
+         * @param group
+         */
         private void notifyListener(final FetchRequest request, final MessageIterator it, final MessageListener listener, final ConsumerMessageFilter filter, final String group) {
             if (listener != null) {
                 if (listener.getExecutor() != null) {
@@ -443,8 +458,7 @@ public class SimpleFetchManager implements FetchManager {
                 catch (InterruptedException e) {
                     // Receive messages thread is interrupted
                     it.setOffset(prevOffset);
-                    log.error("Process messages thread was interrupted,topic=" + request.getTopic() + ",partition="
-                            + request.getPartition(), e);
+                    log.error("Process messages thread was interrupted,topic=" + request.getTopic() + ",partition=" + request.getPartition(), e);
                     break;
                 }
                 catch (final InvalidMessageException e) {
@@ -456,9 +470,7 @@ public class SimpleFetchManager implements FetchManager {
                 catch (final Throwable e) {
                     // 将指针移到上一条消息
                     it.setOffset(prevOffset);
-                    log.error(
-                            "Process messages failed,topic=" + request.getTopic() + ",partition=" + request.getPartition(),
-                            e);
+                    log.error("Process messages failed,topic=" + request.getTopic() + ",partition=" + request.getPartition(), e);
                     // 跳出循环，处理消息异常，到此为止
                     break;
                 }
