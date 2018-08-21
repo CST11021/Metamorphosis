@@ -21,6 +21,8 @@ import com.taobao.metamorphosis.exception.InvalidSystemClock;
 
 
 /**
+ * 用于生产唯一的消息ID
+ *
  * 来自于twitter项目snowflake的id产生方案，全局唯一，时间有序
  * 
  * @see <a href="https://github.com/twitter/snowflake">snowflake</a>
@@ -29,6 +31,7 @@ import com.taobao.metamorphosis.exception.InvalidSystemClock;
  * 
  */
 public class IdWorker {
+    /** 表示这个IdWorker类的ID，一般用broker的id */
     private final long workerId;
     private final static long twepoch = 1303895660503L;
     private long sequence = 0L;

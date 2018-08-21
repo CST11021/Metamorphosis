@@ -46,7 +46,10 @@ import static org.quartz.JobBuilder.newJob;
 import static org.quartz.TriggerBuilder.newTrigger;
 
 /**
- * 消息存储管理器
+ * 消息存储管理器，MQ的消息是保存到磁盘的，该管理器用于与磁盘的IO交互：
+ * 1、当消息生产者向MQ发送消息时，通过该管理器保存到磁盘；
+ * 2、当消息消费者从MQ拉取消息进行消费时，通过该管理器从磁盘获取消息，在发送给消费者
+ *
  * 
  * @author boyan
  * @Date 2011-4-21
@@ -57,6 +60,9 @@ public class MessageStoreManager implements Service {
 
     static final Log log = LogFactory.getLog(MessageStoreManager.class);
 
+    /**
+     * 将消息保存到磁盘的任务线程
+     */
     private final class FlushRunner implements Runnable {
         int unflushInterval;
 
@@ -85,14 +91,14 @@ public class MessageStoreManager implements Service {
 
     /** Map<topic, Map<partition, MessageStore>> 用于存储消息 */
     private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>> stores = new ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>>();
+    /** MQ相关配置 */
     private final MetaConfig metaConfig;
     private ScheduledThreadPoolExecutor scheduledExecutorService;
-    // Executors.newScheduledThreadPool(2);
 
-    /** 文件的删除策略 */
+    /** 消息文件的删除策略，当消息在MQ服务端保存太久一直没有被消费时，通过该策略从MQ中移除 */
     private final DeletePolicy deletePolicy;
 
-    /** topic文件删除策略选择器 */
+    /** 用于决定指定的topic的消息文件删除策略的选择器 */
     private DeletePolicySelector deletePolicySelector;
 
     public static final int HALF_DAY = 1000 * 60 * 60 * 12;
@@ -101,6 +107,7 @@ public class MessageStoreManager implements Service {
 
     private final ConcurrentHashMap<Integer, ScheduledFuture<?>> unflushIntervalMap = new ConcurrentHashMap<Integer, ScheduledFuture<?>>();
 
+    /** 表示用于定时删除消息文件的任务执行器 */
     private Scheduler scheduler;
 
     public MessageStoreManager(final MetaConfig metaConfig, final DeletePolicy deletePolicy) {
@@ -109,7 +116,7 @@ public class MessageStoreManager implements Service {
         this.deletePolicy = deletePolicy;
         this.newDeletePolicySelector();
 
-        // 给topics参数添加监听，当topics参数改变时触发监听器
+        // 给topics参数添加监听，当topics参数改变时触发监听器：这会重新初始化策略删除选择器、定时删除消息文件的任务执行器
         this.metaConfig.addPropertyChangeListener("topics", new PropertyChangeListener() {
 
             @Override
@@ -121,10 +128,11 @@ public class MessageStoreManager implements Service {
 
         });
 
-        // 给unflushInterval参数添加监听，当topics参数改变时触发监听器
+        // 给unflushInterval参数（多长时间做一次消息同步，）添加监听，当topics参数改变时触发监听器
         this.metaConfig.addPropertyChangeListener("unflushInterval", new PropertyChangeListener() {
             @Override
             public void propertyChange(final PropertyChangeEvent evt) {
+                // 开始将消息保存到磁盘的任务
                 MessageStoreManager.this.scheduleFlushTask();
             }
         });
@@ -132,12 +140,14 @@ public class MessageStoreManager implements Service {
         this.makeTopicsPatSet();
         // 初始化定时线程池
         this.initScheduler();
-        // 定时flush
+        // 开始执行将消息保存到磁盘的定时任务
         this.scheduleFlushTask();
 
     }
 
-    /** 根据flush时间间隔分类，分别提交定时任务 */
+    /**
+     * 根据flush时间间隔分类，分别提交定时任务（将消息保存到磁盘的任务）
+     */
     private void scheduleFlushTask() {
         log.info("Begin schedule flush task...");
         final Set<Integer> newUnflushIntervals = new HashSet<Integer>();
@@ -199,7 +209,7 @@ public class MessageStoreManager implements Service {
     }
 
     /**
-     * 创建文件删除策略的对象
+     * 根据配置信息，创建消息文件删除策略的选择器对象
      */
     private void newDeletePolicySelector() {
         this.deletePolicySelector = new DeletePolicySelector(this.metaConfig);
@@ -527,7 +537,9 @@ public class MessageStoreManager implements Service {
         this.startScheduleDeleteJobs();
     }
 
-    //add by jenwang
+    /**
+     * 启动定时删除消息文件的任务执行器
+     */
     private void rescheduleDeleteJobs() {
         if (this.scheduler != null) {
             try {
@@ -543,7 +555,7 @@ public class MessageStoreManager implements Service {
     }
 
     /**
-     * 启动定时删除消息的任务执行器
+     * 启动定时删除消息文件的任务执行器
      */
     private void startScheduleDeleteJobs() {
         // 表示：什么时间执行什么任务

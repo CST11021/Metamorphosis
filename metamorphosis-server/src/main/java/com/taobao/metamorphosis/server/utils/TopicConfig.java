@@ -32,6 +32,7 @@ import com.taobao.metamorphosis.utils.Config;
 // TODO 将其他针对某个topic的特殊配置项移到这里
 public class TopicConfig extends Config {
 
+    /** topic的名称 */
     private String topic;
     /** 每隔多少秒做一次磁盘sync，覆盖系统配置，可选 */
     private int unflushThreshold;
@@ -51,6 +52,7 @@ public class TopicConfig extends Config {
     private boolean acceptSubscribe = true;
     /** 是否启用实时统计，启用则会在服务端对该topic的请求做实时统计，可以通过stats topic-name协议观察到该topic运行状况，可选 */
     private boolean stat;
+    /** 将 "group." 开头的配置项保存到这里 */
     private Map<String/* group name */, String/* class name */> filterClassNames = new HashMap<String, String>();
 
 

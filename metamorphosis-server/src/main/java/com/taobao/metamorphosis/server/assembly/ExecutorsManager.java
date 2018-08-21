@@ -27,7 +27,10 @@ import com.taobao.metamorphosis.utils.NamedThreadFactory;
 
 public class ExecutorsManager implements Service {
 
+    /** 用于处理get请求（就是消费者从MQ拉取消息的请求）的线程池 */
     ThreadPoolExecutor getExecutor;
+
+    /** 用于处理无序的put请求（就是生产者向MQ发送消息的请求）的线程池 */
     ThreadPoolExecutor unOrderedPutExecutor;
 
 

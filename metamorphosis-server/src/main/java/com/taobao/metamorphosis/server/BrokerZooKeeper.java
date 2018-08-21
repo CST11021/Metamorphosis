@@ -56,17 +56,25 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     static final Log log = LogFactory.getLog(BrokerZooKeeper.class);
 
-    private final MetaConfig config;
-    private ZKConfig zkConfig;
-    private ZkClient zkClient;
+    /** 表示当前的MQ服务器 */
+    private Broker broker = null;
     /** 服务器集群中唯一的id，必须为整型0-1024之间。对服务器集群的定义是使用同一个zookeeper并且在zookeeper上的root path相同，具体参见zookeeper配置 */
     private String brokerIdPath;
+    /** MQ服务端配置 */
+    private final MetaConfig config;
+    /** zk配置 */
+    private ZKConfig zkConfig;
+    /** zk客户端 */
+    private ZkClient zkClient;
+
     /** 当前broker在zk上的 master_config_checksum 节点路径，参见{@link MetaZookeeper#masterConfigChecksum(int)}方法*/
     private final String masterConfigChecksumPath;
+    /** 表示此broker上发布的topic */
     private final Set<String> topics = new ConcurrentHashSet<String>();
+    /** 此broker上的topic及对应topic配置 */
     private final ConcurrentHashMap<String, TopicConfig> cloneTopicConfigs = new ConcurrentHashMap<String, TopicConfig>();
     // private DiamondManager diamondManager;
-    // 表示broker注册到zk上时是否失败
+    /** 表示broker注册到zk上时是否失败 */
     private volatile boolean registerBrokerInZkFail = false;
     /** Meta与zookeeper交互的辅助类 */
     private MetaZookeeper metaZookeeper;
@@ -233,8 +241,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
-    // cache it.
-    private Broker broker = null;
+
 
     /**
      * 根据配置创建一个{@link Broker}对象
@@ -473,6 +480,10 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         log.info("End registering broker topic " + brokerTopicPath);
     }
 
+    /**
+     * 是否从zk注销该broker
+     * @param unregister
+     */
     public void close(boolean unregister) {
         try {
             if (unregister && this.zkConfig.zkEnable) {

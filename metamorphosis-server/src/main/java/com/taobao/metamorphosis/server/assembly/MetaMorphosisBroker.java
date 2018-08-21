@@ -115,11 +115,11 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         Runtime.getRuntime().addShutdownHook(this.shutdownHook);
 
         this.metaConfig = metaConfig;
-        // 创建MQ服务对象
+        // 创建一个用于通讯的RemotingServer对象，这里通讯框架用的阿里的gecko框架
         this.remotingServer = newRemotingServer(metaConfig);
-        // 线程池服务管理
+        // 线程池服务管理器（生产者向MQ发送消息的请求和消费者从MQ拉取消息的请求都是通过该管理器提供的线程进行处理的）
         this.executorsManager = new ExecutorsManager(metaConfig);
-        // id产生方案，全局唯一，时间有序
+        // 用于生产唯一的消息ID，全局唯一，时间有序
         this.idWorker = new IdWorker(metaConfig.getBrokerId());
         // 消息存储管理器
         this.storeManager = new MessageStoreManager(metaConfig, this.newDeletePolicy(metaConfig));
@@ -208,6 +208,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
 
         log.info("Stopping metamorphosis server...");
         this.shutdown = true;
+        // 将该broker从zk上注销
         this.brokerZooKeeper.close(this.registerZkSuccess);
         try {
             // Waiting for zookeeper to notify clients.
@@ -226,6 +227,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
             log.error("Shutdown remoting server failed", e);
         }
 
+        // 钩子方法执行完成后要从JVM移除
         if (!this.runShutdownHook && this.shutdownHook != null) {
             try {
                 Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
@@ -236,7 +238,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         }
 
         this.brokerProcessor.dispose();
-
+        // 停止内嵌zk server
         EmbedZookeeperServer.getInstance().stop();
 
         log.info("Stop metamorphosis server successfully");

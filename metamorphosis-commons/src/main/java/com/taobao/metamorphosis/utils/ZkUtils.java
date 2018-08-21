@@ -307,7 +307,7 @@ public class ZkUtils {
         /** the max time that the client waits to establish a connection to zookeeper */
         @Key(name = "zk.zkConnectionTimeoutMs")
         public int zkConnectionTimeoutMs = 30000;
-        /** how far a ZK follower can be behind a ZK leader */
+        /** 表示zk主从节点的数据同步时间，比如一个zk机器节点发生变化，则需要同步到其他节点，这里参数表示默认需要多长时间才能同步到其他节点 */
         @Key(name = "zk.zkSyncTimeMs")
         public int zkSyncTimeMs = 5000;
 

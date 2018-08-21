@@ -26,7 +26,13 @@ package com.taobao.metamorphosis.server;
  */
 public interface Service {
 
+    /**
+     * 服务初始化
+     */
     public void init();
 
+    /**
+     * 服务注销
+     */
     public void dispose();
 }
