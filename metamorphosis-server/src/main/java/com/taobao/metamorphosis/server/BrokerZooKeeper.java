@@ -44,7 +44,7 @@ import com.taobao.metamorphosis.utils.ZkUtils.ZKConfig;
 
 
 /**
- * Broker与ZK交互，注册broker和topic等
+ * Broker与ZK交互，注册（或注销）broker和topic等信息到zk
  * 
  * @author boyan
  * @Date 2011-4-25
@@ -66,14 +66,12 @@ public class BrokerZooKeeper implements PropertyChangeListener {
     private ZKConfig zkConfig;
     /** zk客户端 */
     private ZkClient zkClient;
-
-    /** 当前broker在zk上的 master_config_checksum 节点路径，参见{@link MetaZookeeper#masterConfigChecksum(int)}方法*/
+    /** 当前broker在zk上的 master_config_checksum 节点（该节点应该是用于判断broker节点的配置有没有发生变化吧）路径，参见{@link MetaZookeeper#masterConfigChecksum(int)}方法*/
     private final String masterConfigChecksumPath;
     /** 表示此broker上发布的topic */
     private final Set<String> topics = new ConcurrentHashSet<String>();
     /** 此broker上的topic及对应topic配置 */
     private final ConcurrentHashMap<String, TopicConfig> cloneTopicConfigs = new ConcurrentHashMap<String, TopicConfig>();
-    // private DiamondManager diamondManager;
     /** 表示broker注册到zk上时是否失败 */
     private volatile boolean registerBrokerInZkFail = false;
     /** Meta与zookeeper交互的辅助类 */
@@ -96,6 +94,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         // 重新计算brokerIdPath
         this.resetBrokerIdPath();
         this.masterConfigChecksumPath = this.metaZookeeper.masterConfigChecksum(this.config.getBrokerId());
+        // 监听configFileChecksum属性有没有发送变化
         this.config.addPropertyChangeListener("configFileChecksum", this);
     }
 
@@ -241,8 +240,6 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
-
-
     /**
      * 根据配置创建一个{@link Broker}对象
      * @return
@@ -309,6 +306,10 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
+    /**
+     * 将broker从zk上注销
+     * @throws Exception
+     */
     private void unregisterBrokerInZk() throws Exception {
         if (this.registerBrokerInZkFail) {
             log.warn("上次注册broker未成功,不需要unregister");
@@ -333,12 +334,19 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
     }
 
+    /**
+     * 将topic从zk上注销
+     * @throws Exception
+     */
     private void unregisterTopics() throws Exception {
         for (final String topic : BrokerZooKeeper.this.topics) {
             this.unregisterTopic(topic);
         }
     }
 
+    /**
+     * 将broker和topics从zk上注销
+     */
     public void unregisterEveryThing() {
         try {
             this.unregisterBrokerInZk();
@@ -381,7 +389,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
      * 
      * @param topic
      * @param force
-     *            TODO
+     *
      * @throws Exception
      */
     public void registerTopicInZk(final String topic, boolean force) throws Exception {
@@ -429,6 +437,10 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         return c1.equals(c2);
     }
 
+    /**
+     * 将broker和topic发布（注册）到zk
+     * @throws Exception
+     */
     public void reRegisterEveryThing() throws Exception {
         log.info("re-registering broker info in ZK for broker " + BrokerZooKeeper.this.config.getBrokerId());
         BrokerZooKeeper.this.registerBrokerInZk();
@@ -440,6 +452,11 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         log.info("done re-registering broker");
     }
 
+    /**
+     * 发布topic到zk
+     * @param topic
+     * @throws Exception
+     */
     private void registerTopicInZkInternal(final String topic) throws Exception {
         if (!this.zkConfig.zkEnable) {
             log.warn("zkEnable is false,so we don't talk to zookeeper.");
@@ -510,7 +527,6 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         @Override
         public void handleNewSession() throws Exception {
             BrokerZooKeeper.this.reRegisterEveryThing();
-
         }
 
         @Override
@@ -520,23 +536,18 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     }
 
-
     MetaConfig getConfig() {
         return this.config;
     }
-
     public ZKConfig getZkConfig() {
         return this.zkConfig;
     }
-
     public Set<String> getTopics() {
         return this.topics;
     }
-
     public ZkClient getZkClient() {
         return this.zkClient;
     }
-
     public MetaZookeeper getMetaZookeeper() {
         return this.metaZookeeper;
     }

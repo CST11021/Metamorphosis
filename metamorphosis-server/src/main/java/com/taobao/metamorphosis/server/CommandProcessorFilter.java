@@ -41,120 +41,97 @@ import com.taobao.metamorphosis.transaction.XATransactionId;
  * 
  */
 public class CommandProcessorFilter implements CommandProcessor {
-    private final CommandProcessor next;
 
+    private final CommandProcessor next;
 
     public CommandProcessorFilter(final CommandProcessor next) {
         super();
         this.next = next;
     }
 
-
     public CommandProcessor getNext() {
         return this.next;
     }
-
 
     @Override
     public void init() {
         this.next.init();
     }
 
-
     @Override
     public void dispose() {
         this.next.dispose();
     }
 
-
     @Override
-    public void processPutCommand(final PutCommand request, final SessionContext sessionContext, final PutCallback cb)
-            throws Exception {
+    public void processPutCommand(final PutCommand request, final SessionContext sessionContext, final PutCallback cb) throws Exception {
         this.next.processPutCommand(request, sessionContext, cb);
     }
-
 
     @Override
     public ResponseCommand processGetCommand(final GetCommand request, final SessionContext ctx) {
         return this.next.processGetCommand(request, ctx);
     }
 
-
     @Override
     public ResponseCommand processOffsetCommand(final OffsetCommand request, final SessionContext ctx) {
         return this.next.processOffsetCommand(request, ctx);
     }
-
 
     @Override
     public void processQuitCommand(final QuitCommand request, final SessionContext ctx) {
         this.next.processQuitCommand(request, ctx);
     }
 
-
     @Override
     public ResponseCommand processVesionCommand(final VersionCommand request, final SessionContext ctx) {
         return this.next.processVesionCommand(request, ctx);
     }
-
 
     @Override
     public ResponseCommand processStatCommand(final StatsCommand request, final SessionContext ctx) {
         return this.next.processStatCommand(request, ctx);
     }
 
-
     @Override
     public void removeTransaction(final XATransactionId xid) {
         this.next.removeTransaction(xid);
     }
 
-
     @Override
-    public Transaction getTransaction(final SessionContext context, final TransactionId xid)
-            throws MetamorphosisException, XAException {
+    public Transaction getTransaction(final SessionContext context, final TransactionId xid) throws MetamorphosisException, XAException {
         return this.next.getTransaction(context, xid);
     }
-
 
     @Override
     public void forgetTransaction(final SessionContext context, final TransactionId xid) throws Exception {
         this.next.forgetTransaction(context, xid);
     }
 
-
     @Override
     public void rollbackTransaction(final SessionContext context, final TransactionId xid) throws Exception {
         this.next.rollbackTransaction(context, xid);
     }
 
-
     @Override
-    public void commitTransaction(final SessionContext context, final TransactionId xid, final boolean onePhase)
-            throws Exception {
+    public void commitTransaction(final SessionContext context, final TransactionId xid, final boolean onePhase) throws Exception {
         this.next.commitTransaction(context, xid, onePhase);
     }
-
 
     @Override
     public int prepareTransaction(final SessionContext context, final TransactionId xid) throws Exception {
         return this.next.prepareTransaction(context, xid);
     }
 
-
     @Override
-    public void beginTransaction(final SessionContext context, final TransactionId xid, final int seconds)
-            throws Exception {
+    public void beginTransaction(final SessionContext context, final TransactionId xid, final int seconds) throws Exception {
         this.next.beginTransaction(context, xid, seconds);
     }
 
-
     @Override
-    public TransactionId[] getPreparedTransactions(final SessionContext context, final String uniqueQualifier)
-            throws Exception {
+    public TransactionId[] getPreparedTransactions(final SessionContext context, final String uniqueQualifier) throws Exception {
         return this.next.getPreparedTransactions(context, uniqueQualifier);
     }
-
 
     @Override
     public ResponseCommand processGetCommand(final GetCommand request, final SessionContext ctx, final boolean zeroCopy) {

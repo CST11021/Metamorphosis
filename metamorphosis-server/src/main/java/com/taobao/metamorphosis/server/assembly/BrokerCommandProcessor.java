@@ -190,6 +190,7 @@ public class BrokerCommandProcessor implements CommandProcessor {
         }
     }
 
+    /** 消息存储管理器 */
     protected MessageStoreManager storeManager;
     protected ExecutorsManager executorsManager;
     protected StatsManager statsManager;
@@ -254,6 +255,7 @@ public class BrokerCommandProcessor implements CommandProcessor {
         int partition = -1;
 
         try {
+            // 如果分区被关闭则直接返回
             if (this.metaConfig.isClosedPartition(request.getTopic(), request.getPartition())) {
                 log.warn("Can not put message to partition " + request.getPartition() + " for topic="
                         + request.getTopic() + ",it was closed");
@@ -262,18 +264,19 @@ public class BrokerCommandProcessor implements CommandProcessor {
                             new BooleanCommand(
                                     HttpStatus.Forbidden,
                                     this.genErrorMessage(request.getTopic(),
-                                            request.getPartition()) + "Detail:partition[" + partitionString + "] has been closed",
-                                    request.getOpaque()));
+                                    request.getPartition()) + "Detail:partition[" + partitionString + "] has been closed",
+                                    request.getOpaque()
+                            )
+                    );
                 }
                 return;
             }
-
 
             partition = this.getPartition(request);
             final MessageStore store = this.storeManager.getOrCreateMessageStore(request.getTopic(), partition);
             // 如果是动态添加的topic，需要注册到zk
             this.brokerZooKeeper.registerTopicInZk(request.getTopic(), false);
-            // 设置唯一消息id
+            // 设置唯一的消息id
             final long messageId = this.idWorker.nextId();
             store.append(messageId, request,
                 new StoreAppendCallback(partition, partitionString, request, messageId, cb));
@@ -541,7 +544,6 @@ public class BrokerCommandProcessor implements CommandProcessor {
         }
         return null;
     }
-
 
     @Override
     public void removeTransaction(final XATransactionId xid) {

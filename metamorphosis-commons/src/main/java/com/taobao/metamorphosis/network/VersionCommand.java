@@ -29,13 +29,12 @@ import com.taobao.gecko.core.command.kernel.HeartBeatRequestCommand;
  * 
  */
 public class VersionCommand extends AbstractRequestCommand implements HeartBeatRequestCommand {
-    static final long serialVersionUID = -1L;
 
+    static final long serialVersionUID = -1L;
 
     public VersionCommand(final Integer opaque) {
         super(null, opaque);
     }
-
 
     @Override
     public IoBuffer encode() {

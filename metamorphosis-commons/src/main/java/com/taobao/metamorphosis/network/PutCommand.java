@@ -21,6 +21,7 @@ import java.util.Arrays;
 
 import com.taobao.gecko.core.buffer.IoBuffer;
 import com.taobao.gecko.core.command.CommandHeader;
+import com.taobao.metamorphosis.Message;
 import com.taobao.metamorphosis.transaction.TransactionId;
 
 
@@ -37,11 +38,15 @@ import com.taobao.metamorphosis.transaction.TransactionId;
  */
 public class PutCommand extends AbstractRequestCommand {
     static final long serialVersionUID = -1L;
+
+    /** 表示消息内容 */
     protected byte[] data;
+    /** 表示要发送到的消息分区 */
     protected int partition;
+    /** 用于标识消息对象是否带有attribute属性，1：有，0：没有，具体参照{@link com.taobao.metamorphosis.utils.MessageFlagUtils#getFlag(Message)}*/
     protected final int flag;
     protected int checkSum = -1; // added by dennis<killme2008@gmail.com>,issue
-    // 23.
+    /** 事务ID */
     private TransactionId transactionId;
 
     public PutCommand(final String topic, final int partition, final byte[] data, final TransactionId transactionId, final int flag, final Integer opaque) {

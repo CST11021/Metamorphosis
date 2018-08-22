@@ -103,6 +103,7 @@ public class MessageStoreManager implements Service {
 
     public static final int HALF_DAY = 1000 * 60 * 60 * 12;
 
+    /** topic的正则校验，只有匹配了集合中的正则表达式才是合法的topic */
     private final Set<Pattern> topicsPatSet = new HashSet<Pattern>();
 
     private final ConcurrentHashMap<Integer, ScheduledFuture<?>> unflushIntervalMap = new ConcurrentHashMap<Integer, ScheduledFuture<?>>();
@@ -215,6 +216,9 @@ public class MessageStoreManager implements Service {
         this.deletePolicySelector = new DeletePolicySelector(this.metaConfig);
     }
 
+    /**
+     * 创建校验topic合法性的正则表达式
+     */
     private void makeTopicsPatSet() {
         for (String topic : this.metaConfig.getTopics()) {
             topic = topic.replaceAll("\\*", ".*");
@@ -598,10 +602,13 @@ public class MessageStoreManager implements Service {
         }
     }
 
+    /**
+     * 用于封装删除消息文件的任务信息
+     */
     private static class JobInfo {
+
         public final JobDetail job;
         public final Trigger trigger;
-
 
         public JobInfo(final JobDetail job, final Trigger trigger) {
             super();
@@ -624,6 +631,12 @@ public class MessageStoreManager implements Service {
         return rt;
     }
 
+    /**
+     * 根据topic和partition获取一个分区实例，如果没有则返回null
+     * @param topic
+     * @param partition
+     * @return
+     */
     public MessageStore getMessageStore(final String topic, final int partition) {
         final ConcurrentHashMap<Integer/* partition */, MessageStore> map = this.stores.get(topic);
         if (map == null) {
@@ -632,6 +645,11 @@ public class MessageStoreManager implements Service {
         return map.get(partition);
     }
 
+    /**
+     * 获取topic下所有分区实例
+     * @param topic
+     * @return
+     */
     Collection<MessageStore> getMessageStoresByTopic(final String topic) {
         final ConcurrentHashMap<Integer/* partition */, MessageStore> map = this.stores.get(topic);
         if (map == null) {
@@ -640,23 +658,49 @@ public class MessageStoreManager implements Service {
         return map.values();
     }
 
+    /**
+     * 根据topic和partition获取或创建一个保存消息的分区实例
+     * @param topic
+     * @param partition
+     * @return
+     * @throws IOException
+     */
     public MessageStore getOrCreateMessageStore(final String topic, final int partition) throws IOException {
         return this.getOrCreateMessageStoreInner(topic, partition, 0);
     }
 
+    /**
+     * 根据topic和partition获取或创建一个保存消息的分区实例
+     * @param topic             topic
+     * @param partition         分区
+     * @param offsetIfCreate    表示当前分区下消息的偏移量，只对新创建的分区有效
+     * @return
+     * @throws IOException
+     */
     public MessageStore getOrCreateMessageStore(final String topic, final int partition, final long offsetIfCreate) throws IOException {
         return this.getOrCreateMessageStoreInner(topic, partition, offsetIfCreate);
     }
 
+    /**
+     * 获取或创建一个topic下的指定分区对应的分区实例
+     * @param topic             topic
+     * @param partition         分区
+     * @param offsetIfCreate    表示当前分区下消息的偏移量，只对新创建的分区有效
+     * @return
+     * @throws IOException
+     */
     private MessageStore getOrCreateMessageStoreInner(final String topic, final int partition, final long offsetIfCreate) throws IOException {
+        // 判断是不是合法的topic
         if (!this.isLegalTopic(topic)) {
             throw new IllegalTopicException("The server do not accept topic " + topic);
         }
+
         if (partition < 0 || partition >= this.getNumPartitions(topic)) {
-            log.warn("Wrong partition " + partition + ",valid partitions (0," + (this.getNumPartitions(topic) - 1)
-                + ")");
+            log.warn("Wrong partition " + partition + ",valid partitions (0," + (this.getNumPartitions(topic) - 1) + ")");
             throw new WrongPartitionException("wrong partition " + partition);
         }
+
+        // 获取topic下分区对应的分区实例，
         ConcurrentHashMap<Integer/* partition */, MessageStore> map = this.stores.get(topic);
         if (map == null) {
             map = new ConcurrentHashMap<Integer, MessageStore>();
@@ -678,17 +722,20 @@ public class MessageStoreManager implements Service {
                 if (messageStore != null) {
                     return messageStore;
                 }
-                messageStore =
-                        new MessageStore(topic, partition, this.metaConfig, this.deletePolicySelector.select(topic,
-                            this.deletePolicy), offsetIfCreate);
+                messageStore = new MessageStore(topic, partition, this.metaConfig,
+                        this.deletePolicySelector.select(topic, this.deletePolicy), offsetIfCreate);
                 log.info("Created a new message storage for topic=" + topic + ",partition=" + partition);
                 map.put(partition, messageStore);
-
             }
         }
         return messageStore;
     }
 
+    /**
+     * 判断是不是合法的topic
+     * @param topic
+     * @return
+     */
     boolean isLegalTopic(final String topic) {
         for (final Pattern pat : this.topicsPatSet) {
             if (pat.matcher(topic).matches()) {

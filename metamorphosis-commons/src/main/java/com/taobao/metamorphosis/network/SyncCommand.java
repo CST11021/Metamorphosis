@@ -23,8 +23,8 @@ import com.taobao.gecko.core.buffer.IoBuffer;
 
 
 /**
- * 同步复制，master/slave复制消息的协议,协议格式如下：</br> sync topic partition value-length flag
- * msgId checksum opaque\r\ndata
+ * 同步复制，master/slave复制消息的协议,协议格式如下：</br>
+ * sync topic partition value-length flag msgId checksum opaque\r\ndata
  * 
  * @author boyan(boyan@taobao.com)
  * @date 2011-12-14
@@ -33,18 +33,14 @@ import com.taobao.gecko.core.buffer.IoBuffer;
 public class SyncCommand extends PutCommand {
     private final long msgId;
 
-
-    public SyncCommand(final String topic, final int partition, final byte[] data, final int flag, final long msgId,
-            int checksum, final Integer opaque) {
+    public SyncCommand(final String topic, final int partition, final byte[] data, final int flag, final long msgId, int checksum, final Integer opaque) {
         super(topic, partition, data, flag, checksum, null, opaque);
         this.msgId = msgId;
     }
 
-
     public long getMsgId() {
         return this.msgId;
     }
-
 
     @Override
     public IoBuffer encode() {
@@ -74,7 +70,6 @@ public class SyncCommand extends PutCommand {
         return result;
     }
 
-
     @Override
     public boolean equals(final Object obj) {
         if (this == obj) {
@@ -92,7 +87,6 @@ public class SyncCommand extends PutCommand {
         }
         return true;
     }
-
 
     @Override
     public String toString() {

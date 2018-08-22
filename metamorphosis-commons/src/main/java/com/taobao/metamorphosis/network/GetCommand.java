@@ -22,18 +22,28 @@ import com.taobao.gecko.core.buffer.IoBuffer;
 
 /**
  * 获取消息协议，协议格式如下： get topic group partition offset maxSize opaque\r\n
+ *
+ * 消费者拉取消息协议:
+ * topic为拉取的消息主题;
+ * group为消费者分组名称;
+ * partition为拉取的目的分区;
+ * offset为拉取的起始偏移量，
+ * maxSize为本次拉取的最大数据量大小
  * 
  * @author boyan
  * @Date 2011-4-19
  * 
  */
 public class GetCommand extends AbstractRequestCommand {
-    private final long offset;
-    private final int maxSize;
-    private final int partition;
-    private final String group;
     static final long serialVersionUID = -1L;
-
+    /** 拉取的起始偏移量 */
+    private final long offset;
+    /** 本次拉取的最大数据量大小 */
+    private final int maxSize;
+    /** 拉取的目的分区 */
+    private final int partition;
+    /** 消费者分组名称 */
+    private final String group;
 
     public GetCommand(final String topic,
                       final String group,

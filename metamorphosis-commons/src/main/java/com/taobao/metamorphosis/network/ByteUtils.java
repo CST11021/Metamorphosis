@@ -33,12 +33,45 @@ import com.taobao.gecko.core.buffer.IoBuffer;
 public final class ByteUtils {
 
     public static final String DEFAULT_CHARSET_NAME = "utf-8";
+
     public static final Charset DEFAULT_CHARSET = Charset.forName(DEFAULT_CHARSET_NAME);
 
+    final static int[] byte_len_array = new int[256];
+
+    static {
+        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; ++i) {
+            final int size = i < 0 ? stringSize(-i) + 1 : stringSize(i);
+            byte_len_array[i & 0xFF] = size;
+        }
+    }
+
+    /**
+     * All possible chars for representing a number as a String
+     */
+    final static byte[] digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g',
+            'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
+            'y', 'z' };
+
+    final static byte[] DigitTens = { '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '1', '1', '1', '1',
+            '1', '1', '1', '1', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '3', '3',
+            '3', '3', '3', '3', '3', '3', '3', '3', '4', '4', '4', '4', '4', '4', '4', '4',
+            '4', '4', '5', '5', '5', '5', '5', '5', '5', '5', '5', '5', '6', '6', '6', '6',
+            '6', '6', '6', '6', '6', '6', '7', '7', '7', '7', '7', '7', '7', '7', '7', '7',
+            '8', '8', '8', '8', '8', '8', '8', '8', '8', '8', '9', '9', '9', '9', '9', '9',
+            '9', '9', '9', '9', };
+
+    final static byte[] DigitOnes = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5',
+            '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1',
+            '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7',
+            '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3',
+            '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5',
+            '6', '7', '8', '9', };
+
+    final static int[] sizeTable = { 9, 99, 999, 9999, 99999, 999999, 9999999, 99999999, 999999999, Integer.MAX_VALUE };
 
     private ByteUtils() {
     }
-
 
     public static final byte[] getBytes(final String k) {
         if (k == null || k.length() == 0) {
@@ -51,7 +84,6 @@ public final class ByteUtils {
             throw new RuntimeException(e);
         }
     }
-
 
     public static final void setArguments(final IoBuffer bb, final Object... args) {
         boolean wasFirst = true;
@@ -74,7 +106,6 @@ public final class ByteUtils {
         }
         bb.put(MetaEncodeCommand.CRLF);
     }
-
 
     public static final int setArguments(final byte[] bb, final int index, final Object... args) {
         boolean wasFirst = true;
@@ -112,7 +143,6 @@ public final class ByteUtils {
         s += 2;
         return s;
     }
-
 
     public static final int normalizeCapacity(final int requestedCapacity) {
         switch (requestedCapacity) {
@@ -161,7 +191,6 @@ public final class ByteUtils {
         return newCapacity;
     }
 
-
     public static final boolean stepBuffer(final ByteBuffer buffer, final int remaining) {
         if (buffer.remaining() >= remaining) {
             buffer.position(buffer.position() + remaining);
@@ -172,7 +201,6 @@ public final class ByteUtils {
         }
     }
 
-
     public static String getString(final byte[] bytes) {
         try {
             return new String(bytes, DEFAULT_CHARSET_NAME);
@@ -182,7 +210,6 @@ public final class ByteUtils {
         }
     }
 
-
     public static void byte2hex(final byte b, final StringBuffer buf) {
         final char[] hexChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
         final int high = (b & 0xf0) >> 4;
@@ -191,16 +218,13 @@ public final class ByteUtils {
         buf.append(hexChars[low]);
     }
 
-
     public static void int2hex(final int a, final StringBuffer str) {
         str.append(Integer.toHexString(a));
     }
 
-
     public static void short2hex(final int a, final StringBuffer str) {
         str.append(Integer.toHexString(a));
     }
-
 
     public static void getBytes(long i, final int index, final byte[] buf) {
         long q;
@@ -251,7 +275,6 @@ public final class ByteUtils {
         }
     }
 
-
     /**
      * Places characters representing the integer i into the character array
      * buf. The characters are placed into the buffer backwards starting with
@@ -296,32 +319,6 @@ public final class ByteUtils {
         }
     }
 
-    /**
-     * All possible chars for representing a number as a String
-     */
-    final static byte[] digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g',
-                                  'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
-                                  'y', 'z' };
-
-    final static byte[] DigitTens = { '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '1', '1', '1', '1',
-                                     '1', '1', '1', '1', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '3', '3',
-                                     '3', '3', '3', '3', '3', '3', '3', '3', '4', '4', '4', '4', '4', '4', '4', '4',
-                                     '4', '4', '5', '5', '5', '5', '5', '5', '5', '5', '5', '5', '6', '6', '6', '6',
-                                     '6', '6', '6', '6', '6', '6', '7', '7', '7', '7', '7', '7', '7', '7', '7', '7',
-                                     '8', '8', '8', '8', '8', '8', '8', '8', '8', '8', '9', '9', '9', '9', '9', '9',
-                                     '9', '9', '9', '9', };
-
-    final static byte[] DigitOnes = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5',
-                                     '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1',
-                                     '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7',
-                                     '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3',
-                                     '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-                                     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5',
-                                     '6', '7', '8', '9', };
-
-    final static int[] sizeTable = { 9, 99, 999, 9999, 99999, 999999, 9999999, 99999999, 999999999, Integer.MAX_VALUE };
-
-
     // Requires positive x
     public static final int stringPositiveSize(final int x) {
         for (int i = 0;; i++) {
@@ -331,12 +328,10 @@ public final class ByteUtils {
         }
     }
 
-
     public static void main(final String[] args) {
         System.out.println(String.valueOf(Integer.MAX_VALUE).length());
         System.out.println(String.valueOf(Integer.MIN_VALUE).length());
     }
-
 
     public static final int stringSize(final int x) {
         if (x == Integer.MAX_VALUE) {
@@ -353,7 +348,6 @@ public final class ByteUtils {
         }
     }
 
-
     public static final int stringSize(final long x) {
         if (x >= 0) {
             return stringPositiveSize(x);
@@ -362,7 +356,6 @@ public final class ByteUtils {
             return 1 + stringPositiveSize(0L - x);
         }
     }
-
 
     // Requires positive x
     public static final int stringPositiveSize(final long x) {
@@ -375,15 +368,6 @@ public final class ByteUtils {
         }
         return 19;
     }
-
-    final static int[] byte_len_array = new int[256];
-    static {
-        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; ++i) {
-            final int size = i < 0 ? stringSize(-i) + 1 : stringSize(i);
-            byte_len_array[i & 0xFF] = size;
-        }
-    }
-
 
     public static String toHexString(final byte[] bytes) {
         final StringBuffer sb = new StringBuffer();

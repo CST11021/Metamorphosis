@@ -424,6 +424,7 @@ public class MetaZookeeper {
 
     /**
      * Master config file checksum path
+     * 返回broker的在zk上 master_config_checksum 节点的路径
      * 
      * @param brokerId
      * @return

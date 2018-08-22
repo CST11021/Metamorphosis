@@ -32,6 +32,7 @@ public abstract class AbstractRequestCommand implements RequestCommand, MetaEnco
     static final long serialVersionUID = -1L;
 
     private Integer opaque;
+    /** 表示此次请求相关的topic */
     private String topic;
 
     public AbstractRequestCommand(final String topic, final Integer opaque) {
@@ -49,15 +50,12 @@ public abstract class AbstractRequestCommand implements RequestCommand, MetaEnco
     public Integer getOpaque() {
         return this.opaque;
     }
-
     public void setOpaque(final Integer opaque) {
         this.opaque = opaque;
     }
-
     public String getTopic() {
         return this.topic;
     }
-
     public void setTopic(final String topic) {
         this.topic = topic;
     }

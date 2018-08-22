@@ -33,6 +33,11 @@ import com.taobao.metamorphosis.Message;
  */
 public class MessageFlagUtils {
 
+    /**
+     * 如果消息对象{@link Message}有设置 attribute 属性，则返回1，否则返回0
+     * @param message
+     * @return
+     */
     public static int getFlag(final Message message) {
         int flag = 0;
         if (message != null && message.getAttribute() != null) {
@@ -46,5 +51,4 @@ public class MessageFlagUtils {
     public static boolean hasAttribute(final int flag) {
         return (flag & 0x1) == 1;
     }
-
 }

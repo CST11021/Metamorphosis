@@ -48,14 +48,20 @@ public interface CommandProcessor extends Service {
     // ---------------
 
     /**
-     * 客户端向MQ服务器发送消息时，服务端会调用该方法来处理消息
-     * @param request
-     * @param sessionContext
-     * @param cb
+     * 客户端向MQ服务器发送消息时，服务端会调用该方法来处理put类型的请求
+     * @param request           put请求
+     * @param sessionContext    session上下文
+     * @param cb                回调接口
      * @throws Exception
      */
     public void processPutCommand(final PutCommand request, final SessionContext sessionContext, final PutCallback cb) throws Exception;
 
+    /**
+     * 客户端从MQ服务器拉取消息时，服务端会调用该方法来处理get类型的请求
+     * @param request           get请求
+     * @param ctx               session上下文
+     * @return
+     */
     public ResponseCommand processGetCommand(GetCommand request, final SessionContext ctx);
 
     /** Under conditions that cannot use notify-remoting directly. */
