@@ -30,7 +30,7 @@ import org.apache.commons.logging.LogFactory;
 
 
 /**
- * 归档策略
+ * 消息归档策略
  * 
  * @author boyan
  * @Date 2011-5-9
@@ -38,21 +38,21 @@ import org.apache.commons.logging.LogFactory;
  */
 public class ArchiveDeletePolicy extends DiscardDeletePolicy {
 
-    public static final String NAME = "archive";
-    private boolean compress = false;
     static final Log log = LogFactory.getLog(ArchiveDeletePolicy.class);
 
+    /** 策略名 */
+    public static final String NAME = "archive";
+
+    private boolean compress = false;
 
     @Override
     public String name() {
         return NAME;
     }
 
-
     boolean isCompress() {
         return this.compress;
     }
-
 
     @Override
     public void init(String... values) {
@@ -61,7 +61,6 @@ public class ArchiveDeletePolicy extends DiscardDeletePolicy {
             this.compress = Boolean.valueOf(values[1]);
         }
     }
-
 
     /**
      * 归档数据文件
@@ -106,7 +105,6 @@ public class ArchiveDeletePolicy extends DiscardDeletePolicy {
             file.renameTo(newFile);
         }
     }
-
 
     private void close(Closeable out) {
         if (out != null) {

@@ -25,6 +25,9 @@ import com.taobao.metamorphosis.server.Service;
 import com.taobao.metamorphosis.server.utils.MetaConfig;
 import com.taobao.metamorphosis.utils.NamedThreadFactory;
 
+/**
+ * 用于管理处理get和put请求的线程池
+ */
 public class ExecutorsManager implements Service {
 
     /** 用于处理get请求（就是消费者从MQ拉取消息的请求）的线程池 */

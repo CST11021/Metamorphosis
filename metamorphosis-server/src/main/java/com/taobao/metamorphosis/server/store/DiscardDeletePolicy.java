@@ -28,8 +28,11 @@ import java.io.File;
  * 
  */
 public class DiscardDeletePolicy implements DeletePolicy {
+
+    /** 策略名 */
     public static final String NAME = "delete";
-    // 最长保存时间，单位毫秒
+
+    /** 最长保存时间，单位毫秒 */
     protected long maxReservedTime;
 
 
@@ -37,11 +40,9 @@ public class DiscardDeletePolicy implements DeletePolicy {
         this.maxReservedTime = maxReservedTime;
     }
 
-
     long getMaxReservedTime() {
         return this.maxReservedTime;
     }
-
 
     /**
      * 删除文件
@@ -51,42 +52,38 @@ public class DiscardDeletePolicy implements DeletePolicy {
         file.delete();
     }
 
-
     @Override
     public boolean canDelete(final File file, final long checkTimestamp) {
         return checkTimestamp - file.lastModified() > this.maxReservedTime;
     }
 
-
     @Override
     public void init(final String... values) {
         if (values[0].endsWith("m")) {
-            // minutes
+            // minutes：多少分钟后删除
             final int minutes = this.getValue(values[0]);
             this.maxReservedTime = minutes * 60L * 1000L;
         }
         else if (values[0].endsWith("s")) {
-            // seconds
+            // seconds：多少秒后删除
             final int seconds = this.getValue(values[0]);
             this.maxReservedTime = seconds * 1000L;
         }
         else if (values[0].endsWith("h")) {
-            // hours
+            // hours：多少小时后删除
             final int hours = this.getValue(values[0]);
             this.maxReservedTime = hours * 3600L * 1000L;
         }
         else {
-            // default is hours
+            // default is hours：默认单位是小时，多少小时后删除
             final int hours = Integer.parseInt(values[0]);
             this.maxReservedTime = hours * 3600L * 1000L;
         }
     }
 
-
     private int getValue(final String v) {
         return Integer.valueOf(v.substring(0, v.length() - 1));
     }
-
 
     @Override
     public String name() {

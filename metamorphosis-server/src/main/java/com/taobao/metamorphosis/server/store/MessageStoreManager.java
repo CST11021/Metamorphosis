@@ -117,7 +117,7 @@ public class MessageStoreManager implements Service {
         this.deletePolicy = deletePolicy;
         this.newDeletePolicySelector();
 
-        // 给topics参数添加监听，当topics参数改变时触发监听器：这会重新初始化策略删除选择器、定时删除消息文件的任务执行器
+        // 给topics参数添加监听，当topics参数改变时触发监听器：这会重新初始化topic有效性的校验规则、策略删除选择器和定时删除消息文件的任务执行器
         this.metaConfig.addPropertyChangeListener("topics", new PropertyChangeListener() {
 
             @Override
@@ -129,7 +129,7 @@ public class MessageStoreManager implements Service {
 
         });
 
-        // 给unflushInterval参数（多长时间做一次消息同步，）添加监听，当topics参数改变时触发监听器
+        // 给unflushInterval参数（多长时间做一次消息同步，就是将消息保存到磁盘）添加监听
         this.metaConfig.addPropertyChangeListener("unflushInterval", new PropertyChangeListener() {
             @Override
             public void propertyChange(final PropertyChangeEvent evt) {
@@ -138,6 +138,7 @@ public class MessageStoreManager implements Service {
             }
         });
 
+        // 创建校验topic合法性的正则表达式
         this.makeTopicsPatSet();
         // 初始化定时线程池
         this.initScheduler();

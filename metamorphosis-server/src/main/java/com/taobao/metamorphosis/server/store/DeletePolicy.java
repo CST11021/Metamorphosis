@@ -31,8 +31,8 @@ public interface DeletePolicy {
     /**
      * 判断文件是否可以删除
      * 
-     * @param file
-     * @param checkTimestamp
+     * @param file              消息文件
+     * @param checkTimestamp    执行策略操作时的时间戳
      * @return
      */
     public boolean canDelete(File file, long checkTimestamp);
@@ -40,7 +40,7 @@ public interface DeletePolicy {
     /**
      * 处理过期文件
      * 
-     * @param file
+     * @param file  消息文件
      */
     public void process(File file);
 

@@ -83,14 +83,13 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
     private final ShutdownHook shutdownHook;
     /** 用于标识是否运行了停止服务的钩子方法 */
     private volatile boolean runShutdownHook = false;
-
     /** MQ的消息存储管理器 */
     private final MessageStoreManager storeManager;
-
+    /** 用于管理处理get和put请求的线程池 */
     private final ExecutorsManager executorsManager;
     /** 统计管理器 */
     private final StatsManager statsManager;
-    /** 标签当前的MQ服务 */
+    /** 用于通讯的MQ服务 */
     private final RemotingServer remotingServer;
     /** MQ相关的参数配置 */
     private final MetaConfig metaConfig;
@@ -244,6 +243,11 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         log.info("Stop metamorphosis server successfully");
     }
 
+    /**
+     * 根据配置创建一个删除消息文件的策略实例
+     * @param metaConfig
+     * @return
+     */
     private DeletePolicy newDeletePolicy(final MetaConfig metaConfig) {
         final String deletePolicy = metaConfig.getDeletePolicy();
         if (deletePolicy != null) {
@@ -269,17 +273,13 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
      * 注册命令处理器
      */
     private void registerProcessors() {
-        this.remotingServer.registerProcessor(GetCommand.class,
-                new GetProcessor(this.brokerProcessor, this.executorsManager.getGetExecutor()));
-        this.remotingServer.registerProcessor(PutCommand.class,
-                new PutProcessor(this.brokerProcessor, this.executorsManager.getUnOrderedPutExecutor()));
-        this.remotingServer.registerProcessor(OffsetCommand.class,
-                new OffsetProcessor(this.brokerProcessor, this.executorsManager.getGetExecutor()));
+        this.remotingServer.registerProcessor(GetCommand.class, new GetProcessor(this.brokerProcessor, this.executorsManager.getGetExecutor()));
+        this.remotingServer.registerProcessor(PutCommand.class, new PutProcessor(this.brokerProcessor, this.executorsManager.getUnOrderedPutExecutor()));
+        this.remotingServer.registerProcessor(OffsetCommand.class, new OffsetProcessor(this.brokerProcessor, this.executorsManager.getGetExecutor()));
         this.remotingServer.registerProcessor(HeartBeatRequestCommand.class, new VersionProcessor(this.brokerProcessor));
         this.remotingServer.registerProcessor(QuitCommand.class, new QuitProcessor(this.brokerProcessor));
         this.remotingServer.registerProcessor(StatsCommand.class, new StatsProcessor(this.brokerProcessor));
-        this.remotingServer.registerProcessor(TransactionCommand.class,
-                new TransactionProcessor(this.brokerProcessor, this.executorsManager.getUnOrderedPutExecutor()));
+        this.remotingServer.registerProcessor(TransactionCommand.class, new TransactionProcessor(this.brokerProcessor, this.executorsManager.getUnOrderedPutExecutor()));
     }
 
     /**
