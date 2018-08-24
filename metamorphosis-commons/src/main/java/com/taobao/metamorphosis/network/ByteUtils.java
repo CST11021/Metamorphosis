@@ -38,13 +38,6 @@ public final class ByteUtils {
 
     final static int[] byte_len_array = new int[256];
 
-    static {
-        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; ++i) {
-            final int size = i < 0 ? stringSize(-i) + 1 : stringSize(i);
-            byte_len_array[i & 0xFF] = size;
-        }
-    }
-
     /**
      * All possible chars for representing a number as a String
      */
@@ -69,6 +62,13 @@ public final class ByteUtils {
             '6', '7', '8', '9', };
 
     final static int[] sizeTable = { 9, 99, 999, 9999, 99999, 999999, 9999999, 99999999, 999999999, Integer.MAX_VALUE };
+
+    static {
+        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; ++i) {
+            final int size = i < 0 ? stringSize(-i) + 1 : stringSize(i);
+            byte_len_array[i & 0xFF] = size;
+        }
+    }
 
     private ByteUtils() {
     }
