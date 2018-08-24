@@ -132,8 +132,8 @@ public class ConsumerConfig extends MetaClientConfig {
      * 可能给存储造成压力
      */
     private long commitOffsetPeriodInMills = 5000L;
-    /** 同一条消息在处理失败情况下最大重试消费次数，默认5次，超过就跳过这条消息并调用RejectConsumptionHandler处理 */
-    private int maxFetchRetries = 5;
+    /** 同一条消息在处理失败情况下最大重试消费次数，默认5次，{@link #maxIncreaseFetchDataRetries}超过就跳过这条消息并调用RejectConsumptionHandler处理 */
+    private int maxFetchRetries = 3;
     /** 设置每次订阅是否从最新位置开始消费,如果为true，表示每次启动都从最新位置开始消费,通常在测试的时候可以设置为true。*/
     private boolean alwaysConsumeFromMaxOffset = false;
     /** 消费端的负载均衡策略，这里使用默认的负载均衡策略，尽量使得负载在所有consumer之间平均分配，consumer之间分配的分区数差距不大于1 */
