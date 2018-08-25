@@ -11,6 +11,7 @@ import com.taobao.metamorphosis.Message;
 public interface RejectConsumptionHandler {
     /**
      * Method that may be invoked by a MessageConsumer when receiveMessages cannot process a message when retry too many times.
+     * 当消费者尝试多次都无法消费消息时，会调用该方法
      *
      * @param message
      * @param messageConsumer
