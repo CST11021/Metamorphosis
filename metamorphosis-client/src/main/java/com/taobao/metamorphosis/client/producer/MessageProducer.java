@@ -49,19 +49,8 @@ public interface MessageProducer extends Shutdownable {
     public void setDefaultTopic(String topic);
 
     /**
-     * 发送消息
-     * 
-     * @param message 消息对象
-     * 
-     * @return 发送结果
-     * @throws MetaClientException  客户端异常
-     * @throws InterruptedException 响应中断
-     */
-    public SendResult sendMessage(Message message) throws MetaClientException, InterruptedException;
-
-    /**
      * 异步发送消息，在指定时间内回调callback,此模式下无法使用事务
-     * 
+     *
      * @param message
      * @param cb
      * @param time
@@ -72,12 +61,23 @@ public interface MessageProducer extends Shutdownable {
 
     /**
      * 异步发送消息，在默认时间内（3秒）回调callback，此模式下无法使用事务
-     * 
+     *
      * @param message
      * @param cb
      * @since 1.4
      */
     public void sendMessage(Message message, SendMessageCallback cb);
+
+    /**
+     * 发送消息，默认的超时时间是3秒
+     * 
+     * @param message 消息对象
+     * 
+     * @return 发送结果
+     * @throws MetaClientException  客户端异常
+     * @throws InterruptedException 响应中断
+     */
+    public SendResult sendMessage(Message message) throws MetaClientException, InterruptedException;
 
     /**
      * 发送消息,如果超出指定的时间内没有返回，则抛出异常

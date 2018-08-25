@@ -254,7 +254,13 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
     }
 
 
-
+    /**
+     * 创建消费者
+     * @param consumerConfig    客户端配置
+     * @param offsetStorage     消息偏移量
+     * @param recoverManager0
+     * @return
+     */
     protected MessageConsumer createConsumer(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage, final RecoverManager recoverManager0) {
         OffsetStorage offsetStorageCopy = offsetStorage;
         if (offsetStorageCopy == null) {
@@ -280,9 +286,19 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
 
         this.checkConsumerConfig(consumerConfig);
-        return this.addChild(new SimpleMessageConsumer(this, this.remotingClient, consumerConfig,
-                this.consumerZooKeeper, this.producerZooKeeper, this.subscribeInfoManager, recoverManager0, offsetStorage,
-                this.createLoadBalanceStrategy(consumerConfig)));
+        return this.addChild(
+                new SimpleMessageConsumer(
+                        this,
+                        this.remotingClient,
+                        consumerConfig,
+                        this.consumerZooKeeper,
+                        this.producerZooKeeper,
+                        this.subscribeInfoManager,
+                        recoverManager0,
+                        offsetStorage,
+                        this.createLoadBalanceStrategy(consumerConfig)
+                )
+        );
     }
     @Override
     public MessageConsumer createConsumer(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage) {

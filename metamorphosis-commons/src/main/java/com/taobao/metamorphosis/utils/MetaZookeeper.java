@@ -468,6 +468,9 @@ public class MetaZookeeper {
         this.zkClient = zkClient;
     }
 
+    /**
+     * 封装了消息消费者在zk上group目录和ids目录
+     */
     public class ZKGroupDirs {
         public ZKGroupDirs(final String group) {
             this.consumerGroupDir = this.consumerDir + "/" + group;
@@ -479,6 +482,9 @@ public class MetaZookeeper {
         public String consumerRegistryDir;
     }
 
+    /**
+     * 封装了消息消费者在zk上相关目录
+     */
     public class ZKGroupTopicDirs extends ZKGroupDirs {
         public ZKGroupTopicDirs(final String topic, final String group) {
             super(group);

@@ -176,17 +176,22 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         return this.sendMessageToServer(message, timeout, unit);
     }
 
-    /** 正常的消息发送到服务器 */
+    /**
+     * 将消息发送到服务器
+     *
+     * 异常信息处理的原则：
+     * 客户端错误信息都以异常的形式抛出，全部转化为MetaClientException的check异常
+     * 服务器返回失败的异常信息，作为SendResult的结果返回给客户端，不作为异常抛出
+     *
+     * @param message   消息对象
+     * @param timeout   发送的超时时间
+     * @param unit      超时时间单位
+     * @return
+     * @throws MetaClientException
+     * @throws InterruptedException
+     * @throws MetaOpeartionTimeoutException
+     */
     protected SendResult sendMessageToServer(final Message message, final long timeout, final TimeUnit unit) throws MetaClientException, InterruptedException, MetaOpeartionTimeoutException {
-        /**
-         * 异常信息处理的原则：
-         * <ul>
-         * <li>客户端错误信息都以异常的形式抛出，全部转化为MetaClientException的check异常</li>
-         * <li>服务器返回失败的异常信息，作为SendResult的结果返回给客户端，不作为异常抛出</li>
-         * </ul>
-         */
-        // this.checkState();
-        // this.checkMessage(message);
         SendResult result = null;
         final long start = System.currentTimeMillis();
         int retry = 0;
@@ -201,6 +206,7 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
                     break;
                 }
                 if (System.currentTimeMillis() - start >= timeoutInMills) {
+                    // 这里消息发送超时就不重试了？add by whz
                     throw new MetaOpeartionTimeoutException("Send message timeout in " + timeoutInMills + " mills");
                 }
                 retry++;
@@ -473,6 +479,14 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         }
     }
 
+    /**
+     * 将服务端返回的结果封装为SendResult对象
+     * @param message       发送的消息对象
+     * @param partition     发送到服务端指定的分区
+     * @param serverUrl     发送的MQ服务器
+     * @param resp          服务端返回信息
+     * @return
+     */
     private SendResult genSendResult(final Message message, final Partition partition, final String serverUrl, final BooleanCommand resp) {
         final String resultStr = resp.getErrorMsg();
 

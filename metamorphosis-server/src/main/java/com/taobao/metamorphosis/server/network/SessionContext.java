@@ -33,14 +33,23 @@ import com.taobao.metamorphosis.transaction.TransactionId;
  */
 public interface SessionContext {
 
+    /**
+     * 获取所有的事务Id及对应的事务对象
+     * @return
+     */
     public ConcurrentHashMap<TransactionId, Transaction> getTransactions();
 
-
+    /**
+     * 获取当前线程的事务Id
+     * @return
+     */
     public String getSessionId();
 
-
+    /**
+     * 获取当前线程的连接对象
+     * @return
+     */
     public Connection getConnection();
-
 
     public boolean isInRecoverMode();
 

@@ -38,7 +38,7 @@ import com.taobao.metamorphosis.utils.StatConstants;
 
 
 /**
- * 消息抓取管理器的实现
+ * 用于从MQ服务端抓取消息的管理器
  * 
  * @author boyan(boyan@taobao.com)
  * @date 2011-9-13
@@ -48,6 +48,7 @@ public class SimpleFetchManager implements FetchManager {
 
     static final Log log = LogFactory.getLog(SimpleFetchManager.class);
 
+    /** 用于标识抓取消息的管理是否关闭 */
     private volatile boolean shutdown = false;
 
     /** 表示抓取消息的线程，线程数取决于{@link ConsumerConfig#fetchRunnerCount}配置，默认cpu个数 */
@@ -59,6 +60,7 @@ public class SimpleFetchManager implements FetchManager {
     /** 统计抓取请求的次数 */
     private volatile int fetchRequestCount;
 
+    /** 表示抓取消息的请求队列 */
     private FetchRequestQueue requestQueue;
 
     /** 消费端配置 */
@@ -68,8 +70,7 @@ public class SimpleFetchManager implements FetchManager {
 
     public static final Byte PROCESSED = (byte) 1;
 
-    private final static int CACAHE_SIZE = Integer.parseInt(
-            System.getProperty("metaq.consumer.message_ids.lru_cache.size", "4096"));
+    private final static int CACAHE_SIZE = Integer.parseInt(System.getProperty("metaq.consumer.message_ids.lru_cache.size", "4096"));
 
     private static MessageIdCache messageIdCache = new ConcurrentLRUHashMap(CACAHE_SIZE);
 
@@ -222,6 +223,7 @@ public class SimpleFetchManager implements FetchManager {
         public void run() {
             while (!this.stopped) {
                 try {
+                    // 从消息抓取请求的队列获取一个请求对象
                     final FetchRequest request = SimpleFetchManager.this.requestQueue.take();
                     this.processRequest(request);
                 }
@@ -233,18 +235,15 @@ public class SimpleFetchManager implements FetchManager {
         }
 
         /**
-         * 处理拉取消息的请求
+         * 处理拉取消息的请求，通知对应的消息监听器，处理抓取的消息
          * @param request
          */
         void processRequest(final FetchRequest request) {
             try {
                 final MessageIterator iterator = SimpleFetchManager.this.consumer.fetch(request, -1, null);
-                final MessageListener listener =
-                        SimpleFetchManager.this.consumer.getMessageListener(request.getTopic());
-                final ConsumerMessageFilter filter =
-                        SimpleFetchManager.this.consumer.getMessageFilter(request.getTopic());
-                this.notifyListener(request, iterator, listener, filter, SimpleFetchManager.this.consumer
-                        .getConsumerConfig().getGroup());
+                final MessageListener listener = SimpleFetchManager.this.consumer.getMessageListener(request.getTopic());
+                final ConsumerMessageFilter filter = SimpleFetchManager.this.consumer.getMessageFilter(request.getTopic());
+                this.notifyListener(request, iterator, listener, filter, SimpleFetchManager.this.consumer.getConsumerConfig().getGroup());
             }
             catch (final MetaClientException e) {
                 this.updateDelay(request);
@@ -259,8 +258,14 @@ public class SimpleFetchManager implements FetchManager {
             }
         }
 
+        /**
+         * 消息消费异常时会调用该方法，该方法会添加对应的处理异常日志，并将消息重新放回抓取队列中，进行重新消费
+         * @param request
+         * @param e
+         */
         private void LogAddRequest(final FetchRequest request, final Throwable e) {
-            if (e instanceof MetaClientException && e.getCause() instanceof NotifyRemotingException
+            if (e instanceof MetaClientException
+                    && e.getCause() instanceof NotifyRemotingException
                     && e.getMessage().contains("无可用连接")) {
                 // 最多30秒打印一次
                 final long now = System.currentTimeMillis();
@@ -339,6 +344,10 @@ public class SimpleFetchManager implements FetchManager {
             }
         }
 
+        /**
+         * 消息消费失败时，会调用该方法，将消息重新放回消息抓取的请求队列中，一遍后续重新从队列中获取，并进行重新消息
+         * @param request
+         */
         private void reAddFetchRequest2Queue(final FetchRequest request) {
             SimpleFetchManager.this.addFetchRequest(request);
         }
@@ -606,12 +615,20 @@ public class SimpleFetchManager implements FetchManager {
             return delay;
         }
 
-        // 延时查询
+        /**
+         * 当消费失败时，调用该方法，来重置该请求的延迟时间（消息抓取请求是存放在延迟队列里的）
+         * @param request
+         */
         private void updateDelay(final FetchRequest request) {
             final long delay = this.getNextDelay(request);
             request.setDelay(delay);
         }
 
+        /**
+         * 获取下一次的延迟时间，即什么时候才能从消息抓取请求的队列中拿出来
+         * @param request
+         * @return
+         */
         private long getNextDelay(final FetchRequest request) {
             final long maxDelayFetchTimeInMills = SimpleFetchManager.this.getMaxDelayFetchTimeInMills();
             // 每次1/10递增,最大MaxDelayFetchTimeInMills

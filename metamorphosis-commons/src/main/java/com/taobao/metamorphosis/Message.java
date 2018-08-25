@@ -46,10 +46,40 @@ public class Message implements Serializable {
     private transient boolean rollbackOnly = false;
 
 
-    void setId(final long id) {
-        this.id = id;
+
+    public Message(final String topic, final byte[] data) {
+        super();
+        this.topic = topic;
+        this.data = data;
+    }
+    public Message(final String topic, final byte[] data, final String attribute) {
+        super();
+        this.topic = topic;
+        this.data = data;
+        this.attribute = attribute;
     }
 
+
+
+    /**
+     * Returns whether the message is in order,it is deprecated and will be
+     * removed in future version.
+     *
+     * @return
+     */
+    @Deprecated
+    public boolean isOrdered() {
+        return false;
+    }
+
+    /**
+     * Returns whether the message has an attribute.
+     *
+     * @return
+     */
+    public boolean hasAttribute() {
+        return this.attribute != null;
+    }
 
     private void checkState() {
         if (this.readOnly) {
@@ -57,22 +87,30 @@ public class Message implements Serializable {
         }
     }
 
+    /**
+     * Returns the message's id.If it was sent success,the message id would be
+     * returned by broker,otherwise is zero.
+     *
+     * @return
+     */
+    public long getId() {
+        return this.id;
+    }
+    void setId(final long id) {
+        this.id = id;
+    }
+
+
 
     int getFlag() {
         return this.flag;
     }
-
-
     void setFlag(final int flag) {
         this.flag = flag;
     }
-
-
     boolean isRollbackOnly() {
         return this.rollbackOnly;
     }
-
-
     /**
      * Set message to be in rollback only state.The state is transient,it's only
      * valid in current message instance.
@@ -82,8 +120,6 @@ public class Message implements Serializable {
     public void setRollbackOnly() {
         this.rollbackOnly = true;
     }
-
-
     /**
      * Returns whether the message is readonly.
      * 
@@ -93,8 +129,6 @@ public class Message implements Serializable {
     public boolean isReadOnly() {
         return this.readOnly;
     }
-
-
     /**
      * Set the message to be readonly,but metamorphosis client and server could
      * modify message's id,flag,partition.The readonly state is transient,it
@@ -106,56 +140,6 @@ public class Message implements Serializable {
     public void setReadOnly(boolean readOnly) {
         this.readOnly = readOnly;
     }
-
-
-    /**
-     * Returns whether the message has an attribute.
-     * 
-     * @return
-     */
-    public boolean hasAttribute() {
-        return this.attribute != null;
-    }
-
-
-    /**
-     * Returns whether the message is in order,it is deprecated and will be
-     * removed in future version.
-     * 
-     * @return
-     */
-    @Deprecated
-    public boolean isOrdered() {
-        return false;
-    }
-
-
-    public Message(final String topic, final byte[] data) {
-        super();
-        this.topic = topic;
-        this.data = data;
-    }
-
-
-    public Message(final String topic, final byte[] data, final String attribute) {
-        super();
-        this.topic = topic;
-        this.data = data;
-        this.attribute = attribute;
-    }
-
-
-    /**
-     * Returns the message's id.If it was sent success,the message id would be
-     * returned by broker,otherwise is zero.
-     * 
-     * @return
-     */
-    public long getId() {
-        return this.id;
-    }
-
-
     /**
      * Returns the message's attribute,may be null.
      * 
@@ -164,8 +148,6 @@ public class Message implements Serializable {
     public String getAttribute() {
         return this.attribute;
     }
-
-
     /**
      * Set message's attribute
      * 
@@ -176,12 +158,19 @@ public class Message implements Serializable {
         this.attribute = attribute;
     }
 
-
     /**
-     * Set message's topic,if you want to send it,you must publish it at first
-     * with MessageProducer.
+     * Returns message's topic
+     *
+     * @return
+     */
+    public String getTopic() {
+        return this.topic;
+    }
+    /**
+     * Set message's topic,if you want to send it,you must publish it at first with MessageProducer.
      * 
-     * @see com.taobao.metamorphosis.client.producer.MessageProducer#publish(String)
+     * ≤Œ’’£∫com.taobao.metamorphosis.client.producer.MessageProducer#publish(String)
+     * @see
      * @param topic
      */
     public void setTopic(final String topic) {
@@ -189,7 +178,14 @@ public class Message implements Serializable {
         this.topic = topic;
     }
 
-
+    /**
+     * Returns message's payload
+     *
+     * @return
+     */
+    public byte[] getData() {
+        return this.data;
+    }
     /**
      * Set the message's payload
      * 
@@ -199,27 +195,18 @@ public class Message implements Serializable {
         this.checkState();
         this.data = data;
     }
-
-
+    void setPartition(final Partition partition) {
+        this.partition = partition;
+    }
     /**
-     * Returns message's topic
+     * Returns message's partition in broker,if it was sent fail,it would be
+     * null.
      * 
      * @return
      */
-    public String getTopic() {
-        return this.topic;
+    public Partition getPartition() {
+        return this.partition;
     }
-
-
-    /**
-     * Returns message's payload
-     * 
-     * @return
-     */
-    public byte[] getData() {
-        return this.data;
-    }
-
 
     @Override
     public int hashCode() {
@@ -231,7 +218,6 @@ public class Message implements Serializable {
         result = prime * result + (this.topic == null ? 0 : this.topic.hashCode());
         return result;
     }
-
 
     @Override
     public boolean equals(final Object obj) {
@@ -269,21 +255,4 @@ public class Message implements Serializable {
         }
         return true;
     }
-
-
-    void setPartition(final Partition partition) {
-        this.partition = partition;
-    }
-
-
-    /**
-     * Returns message's partition in broker,if it was sent fail,it would be
-     * null.
-     * 
-     * @return
-     */
-    public Partition getPartition() {
-        return this.partition;
-    }
-
 }

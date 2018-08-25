@@ -13,6 +13,7 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 public interface MessageBodyConverter<T> {
     /**
      * Convert a message object to byte array.
+     * 将消息对象转为byte
      * 
      * @param body
      * @return
@@ -23,6 +24,7 @@ public interface MessageBodyConverter<T> {
 
     /**
      * Convert a byte array to message object.
+     * 将byte类型的消息转为消息对象
      * 
      * @param bs
      * @return

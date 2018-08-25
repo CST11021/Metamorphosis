@@ -73,7 +73,6 @@ public interface OffsetStorage {
      */
     public void commitOffset(String group, Collection<TopicPartitionRegInfo> infoList);
 
-
     /**
      * 加载一条消费者的订阅信息，如果不存在返回null
      * 
@@ -84,12 +83,10 @@ public interface OffsetStorage {
      */
     public TopicPartitionRegInfo load(String topic, String group, Partition partition);
 
-
     /**
      * 释放资源，meta客户端在关闭的时候会主动调用此方法
      */
     public void close();
-
 
     /**
      * 初始化offset

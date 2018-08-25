@@ -55,7 +55,7 @@ public interface FetchManager {
     public int getFetchRequestCount();
 
     /**
-     * 添加fetch请求
+     * 添加fetch请求到队列中
      * 
      * @param request
      */

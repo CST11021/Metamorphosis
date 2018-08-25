@@ -170,7 +170,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
     }
 
     /**
-     * 想zk注册消息消费者
+     * 向zk注册消息消费者
      * 
      * @throws Exception
      */
@@ -204,7 +204,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
 
     protected ZKLoadRebalanceListener registerConsumerInternal(final ZKLoadRebalanceListener loadBalanceListener) throws UnknownHostException, InterruptedException, Exception {
         final ZKGroupDirs dirs = this.metaZookeeper.new ZKGroupDirs(loadBalanceListener.consumerConfig.getGroup());
-
+        // 获取所有被订阅的topic
         final String topicString = this.getTopicsString(loadBalanceListener.topicSubcriberRegistry);
 
         if (this.zkClient == null) {
@@ -227,8 +227,15 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                 }
                 final TopicPartitionRegInfo regInfo = new TopicPartitionRegInfo(topic, partition, offset);
                 topicPartRegInfoMap.put(partition, regInfo);
-                loadBalanceListener.fetchManager.addFetchRequest(new FetchRequest(new Broker(0,
-                    loadBalanceListener.consumerConfig.getServerUrl()), 0L, regInfo, subInfo.getMaxSize()));
+                // 创建一个消息抓取的请求，并添加到本地队列中
+                loadBalanceListener.fetchManager.addFetchRequest(
+                        new FetchRequest(
+                                new Broker(0, loadBalanceListener.consumerConfig.getServerUrl()),
+                                0L,
+                                regInfo,
+                                subInfo.getMaxSize()
+                        )
+                );
             }
             loadBalanceListener.fetchManager.startFetchRunner();
         }
@@ -260,6 +267,11 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         return loadBalanceListener;
     }
 
+    /**
+     * 返回所有被订阅的topic，多个topic之间用逗号分隔
+     * @param topicSubcriberRegistry
+     * @return
+     */
     private String getTopicsString(final ConcurrentHashMap<String/* topic */, SubscriberInfo> topicSubcriberRegistry) {
         final StringBuilder topicSb = new StringBuilder();
         boolean wasFirst = true;

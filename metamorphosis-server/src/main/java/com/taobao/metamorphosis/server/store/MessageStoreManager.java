@@ -60,6 +60,8 @@ public class MessageStoreManager implements Service {
 
     static final Log log = LogFactory.getLog(MessageStoreManager.class);
 
+    public static final int HALF_DAY = 1000 * 60 * 60 * 12;
+
     /**
      * 将消息保存到磁盘的任务线程
      */
@@ -93,6 +95,7 @@ public class MessageStoreManager implements Service {
     private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>> stores = new ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>>();
     /** MQ相关配置 */
     private final MetaConfig metaConfig;
+
     private ScheduledThreadPoolExecutor scheduledExecutorService;
 
     /** 消息文件的删除策略，当消息在MQ服务端保存太久一直没有被消费时，通过该策略从MQ中移除 */
@@ -101,8 +104,6 @@ public class MessageStoreManager implements Service {
     /** 用于决定指定的topic的消息文件删除策略的选择器 */
     private DeletePolicySelector deletePolicySelector;
 
-    public static final int HALF_DAY = 1000 * 60 * 60 * 12;
-
     /** topic的正则校验，只有匹配了集合中的正则表达式才是合法的topic */
     private final Set<Pattern> topicsPatSet = new HashSet<Pattern>();
 
@@ -110,6 +111,8 @@ public class MessageStoreManager implements Service {
 
     /** 表示用于定时删除消息文件的任务执行器 */
     private Scheduler scheduler;
+
+    private final Random random = new Random();
 
     public MessageStoreManager(final MetaConfig metaConfig, final DeletePolicy deletePolicy) {
         super();
@@ -472,8 +475,6 @@ public class MessageStoreManager implements Service {
         }
         return dir;
     }
-
-    private final Random random = new Random();
 
     /**
      * 返回指定topic的一个随机分区
