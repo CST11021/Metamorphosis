@@ -43,6 +43,7 @@
     <properties>
         <project.build.sourceEncoding>GBK</project.build.sourceEncoding>
     </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -57,9 +58,11 @@
                     <showWarnings>true</showWarnings>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>com.atlassian.maven.plugins</groupId>
                 <artifactId>maven-clover2-plugin</artifactId>
+                <version>4.0.6</version>
                 <configuration>
                     <licenseLocation>clover.license</licenseLocation>
                     <generateHistorical>true</generateHistorical>
@@ -70,12 +73,12 @@
                     <generateHtml>true</generateHtml>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-eclipse-plugin</artifactId>
                 <version>2.5.1</version>
                 <configuration>
-                    <encoding>GBK</encoding>
                     <downloadSources>true</downloadSources>
                     <downloadJavadocs>false</downloadJavadocs>
                 </configuration>
@@ -124,7 +127,6 @@
 
     <dependencyManagement>
         <dependencies>
-
             <!--metaq内部依赖-->
             <dependency>
                 <groupId>${pom.groupId}</groupId>
@@ -335,6 +337,7 @@
             </plugin>
         </plugins>
     </reporting>
+
     <scm>
         <connection>scm:git:git@github.com:killme2008/Metamorphosis.git</connection>
         <developerConnection>scm:git:git@github.com:killme2008/Metamorphosis.git</developerConnection>

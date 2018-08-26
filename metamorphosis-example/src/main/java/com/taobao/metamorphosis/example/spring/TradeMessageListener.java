@@ -17,6 +17,7 @@ public class TradeMessageListener extends DefaultMessageListener<Trade> {
     public void onReceiveMessages(MetaqMessage<Trade> msg) {
         Trade trade = msg.getBody();
         System.out.println("receive trade message:" + trade);
+        // throw new RuntimeException("test");
     }
 
 }
