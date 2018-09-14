@@ -499,7 +499,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     /**
      * 是否从zk注销该broker
-     * @param unregister
+     * @param unregister    是否注销
      */
     public void close(boolean unregister) {
         try {

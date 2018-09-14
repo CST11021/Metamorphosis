@@ -65,6 +65,7 @@ public class ZkUtils {
 
     /**
      * create the parent path
+     * 创建一个目录节点
      */
     public static void createParentPath(final ZkClient client, final String path) throws Exception {
         final String parentDir = path.substring(0, path.lastIndexOf('/'));
@@ -91,8 +92,13 @@ public class ZkUtils {
     }
 
     /**
-     * Create an ephemeral node with the given path and data.
-     * Throw NodeExistException if node already exists.
+     * Create an ephemeral node with the given path and data. Throw NodeExistException if node already exists.
+     * 创建一个数据节点，如果已经存在则抛出异常
+     *
+     * @param client        zk客户端
+     * @param path          节点路径
+     * @param data          节点数据
+     * @throws Exception
      */
     public static void createEphemeralPathExpectConflict(final ZkClient client, final String path, final String data) throws Exception {
         try {
@@ -131,6 +137,12 @@ public class ZkUtils {
     /**
      * Update the value of a persistent node with the given path and data.
      * create parrent directory if necessary. Never throw NodeExistException.
+     * 更新持久节点的数据
+     *
+     * @param client        zk客户端
+     * @param path          节点路径
+     * @param data          节点数据
+     * @throws Exception
      */
     public static void updatePersistentPath(final ZkClient client, final String path, final String data) throws Exception {
         try {
@@ -168,16 +180,20 @@ public class ZkUtils {
     /**
      * Update the value of a persistent node with the given path and data.
      * create parrent directory if necessary. Never throw NodeExistException.
+     * 更新临时节点的数据
+     *
+     * @param client    zk客户端
+     * @param path      节点路径
+     * @param data      节点数据
+     * @throws Exception
      */
     public static void updateEphemeralPath(final ZkClient client, final String path, final String data) throws Exception {
         try {
             client.writeData(path, data);
         }
         catch (final ZkNoNodeException e) {
-
             createParentPath(client, path);
             client.createEphemeral(path, data);
-
         }
         catch (final Exception e) {
             throw e;
@@ -202,6 +218,13 @@ public class ZkUtils {
         }
     }
 
+    /**
+     * 递归删除节点
+     *
+     * @param client        zk客户单
+     * @param path          节点路径
+     * @throws Exception
+     */
     public static void deletePathRecursive(final ZkClient client, final String path) throws Exception {
         try {
             client.deleteRecursive(path);
@@ -250,6 +273,11 @@ public class ZkUtils {
         return client.exists(path);
     }
 
+    /**
+     * 截取路径的最后一部分，例如：/root/child/test => test
+     * @param path
+     * @return
+     */
     public static String getLastPart(final String path) {
         if (path == null) {
             return null;
@@ -263,6 +291,9 @@ public class ZkUtils {
         }
     }
 
+    /**
+     * String类型的数据节点转换器
+     */
     public static class StringSerializer implements ZkSerializer {
 
         @Override
@@ -274,7 +305,6 @@ public class ZkUtils {
                 throw new ZkMarshallingError(e);
             }
         }
-
 
         @Override
         public byte[] serialize(final Object data) throws ZkMarshallingError {
