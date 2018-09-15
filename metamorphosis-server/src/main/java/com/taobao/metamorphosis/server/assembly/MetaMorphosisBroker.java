@@ -257,7 +257,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
     }
 
     /**
-     * 根据配置信息创建一个服务对象
+     * 根据配置信息创建一个用于通讯服务的{@link RemotingServer}对象
      * @param metaConfig MQ配置对象
      * @return
      */

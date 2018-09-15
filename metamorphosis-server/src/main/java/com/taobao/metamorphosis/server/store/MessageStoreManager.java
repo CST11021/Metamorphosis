@@ -96,6 +96,7 @@ public class MessageStoreManager implements Service {
     /** MQ相关配置 */
     private final MetaConfig metaConfig;
 
+    /** 定时将消息保存到磁盘的线程池 */
     private ScheduledThreadPoolExecutor scheduledExecutorService;
 
     /** 消息文件的删除策略，当消息在MQ服务端保存太久一直没有被消费时，通过该策略从MQ中移除 */
@@ -512,6 +513,7 @@ public class MessageStoreManager implements Service {
                 for (final MessageStore msgStore : subMap.values()) {
                     if (msgStore != null) {
                         try {
+                            // 关闭分区实例
                             msgStore.close();
                         }
                         catch (final Throwable e) {

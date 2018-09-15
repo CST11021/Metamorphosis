@@ -61,6 +61,8 @@ public class ExecutorsManager implements Service {
             this.unOrderedPutExecutor.shutdown();
         }
         try {
+            // shutdown：将线程池状态置为SHUTDOWN,并不会立即停止，调用该方法后，停止接收外部submit的任务，并且内部正在跑的任务和队列里等待的任务执行完后，才真正停止
+            // awaitTermination：当前线程阻塞，直到等所有已提交的任务（包括正在跑的和队列中等待的）执行完或者等超时时间到
             this.getExecutor.awaitTermination(5000, TimeUnit.MILLISECONDS);
             this.unOrderedPutExecutor.awaitTermination(5000, TimeUnit.MILLISECONDS);
         }

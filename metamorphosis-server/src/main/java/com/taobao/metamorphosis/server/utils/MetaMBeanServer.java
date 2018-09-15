@@ -32,6 +32,11 @@ import javax.management.ObjectName;
  */
 public class MetaMBeanServer {
 
+    /**
+     * 将对象o注册到java的MXBean平台
+     * @param o         要注册到MXBean平台的Bean对象
+     * @param name      注册对象的标识名
+     */
     public static void registMBean(Object o, String name) {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         if (null != mbs) {

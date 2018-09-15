@@ -37,16 +37,11 @@ public interface TransactionStore extends Service {
 
     void prepare(TransactionId txid) throws IOException;
 
-
     void commit(TransactionId txid, boolean wasPrepared) throws IOException;
-
 
     void rollback(TransactionId txid) throws IOException;
 
-
-    public void addMessage(final MessageStore store, long msgId, final PutCommand cmd, JournalLocation location)
-            throws IOException;
-
+    public void addMessage(final MessageStore store, long msgId, final PutCommand cmd, JournalLocation location) throws IOException;
 
     void recover(TransactionRecoveryListener listener) throws IOException;
 }

@@ -66,11 +66,13 @@ import com.taobao.metamorphosis.utils.MessageUtils;
  */
 public class JournalTransactionStore implements TransactionStore, JournalTransactionStoreMBean {
 
-    private final JournalStore journalStore;
+    static final Log log = LogFactory.getLog(JournalLocation.class);
 
+    private boolean doingRecover;
+    private final JournalStore journalStore;
     private final Map<Object, Tx> inflightTransactions = new LinkedHashMap<Object, Tx>();
     private final Map<TransactionId, Tx> preparedTransactions = new LinkedHashMap<TransactionId, Tx>();
-    private boolean doingRecover;
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
     /**
      * 事务操作接口
@@ -268,13 +270,8 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
 
     }
 
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
-    static final Log log = LogFactory.getLog(JournalLocation.class);
-
-
-    public JournalTransactionStore(final String dataPath, final MessageStoreManager storeManager,
-            final MetaConfig metaConfig) throws Exception {
+    public JournalTransactionStore(final String dataPath, final MessageStoreManager storeManager, final MetaConfig metaConfig) throws Exception {
         this.journalStore =
                 new JournalStore(dataPath, storeManager, this, metaConfig.getMaxCheckpoints(),
                     metaConfig.getFlushTxLogAtCommit());
@@ -292,7 +289,6 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
         }, metaConfig.getCheckpointInterval(), metaConfig.getCheckpointInterval(), TimeUnit.MILLISECONDS);
         MetaMBeanServer.registMBean(this, null);
     }
-
 
     @Override
     public void prepare(final TransactionId txid) throws IOException {
@@ -317,15 +313,9 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
         }
     }
 
-
     public JournalStore getJournalStore() {
         return this.journalStore;
     }
-
-
-    // public void setJournalStore(final JournalStore journalStore) {
-    // this.journalStore = journalStore;
-    // }
 
     public void replayPrepare(final TransactionId txid) throws IOException {
         Tx tx = null;
@@ -340,13 +330,11 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
         }
     }
 
-
     public Tx getInflyTx(final Object txid) {
         synchronized (this.inflightTransactions) {
             return this.inflightTransactions.get(txid);
         }
     }
-
 
     @Override
     public int getActiveTransactionCount() {
@@ -360,13 +348,11 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
         return count;
     }
 
-
     Tx getPreparedTx(final Object txid) {
         synchronized (this.preparedTransactions) {
             return this.preparedTransactions.get(txid);
         }
     }
-
 
     public Tx getTx(final Object txid, final JournalLocation location) {
         synchronized (this.inflightTransactions) {
@@ -379,7 +365,6 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
             return tx;
         }
     }
-
 
     @Override
     public void commit(final TransactionId txid, final boolean wasPrepared) throws IOException {
@@ -468,7 +453,6 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
 
     }
 
-
     public Tx replayCommit(final TransactionId txid, final boolean wasPrepared) throws IOException {
         if (wasPrepared) {
             synchronized (this.preparedTransactions) {
@@ -481,7 +465,6 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
             }
         }
     }
-
 
     @Override
     public void rollback(final TransactionId txid) throws IOException {
@@ -518,7 +501,6 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
         }
     }
 
-
     public void replayRollback(final TransactionId txid) throws IOException {
         boolean inflight = false;
         synchronized (this.inflightTransactions) {
@@ -531,11 +513,9 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
         }
     }
 
-
     @Override
     public void init() {
     }
-
 
     @Override
     public void dispose() {
@@ -547,7 +527,6 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
             throw new RuntimeException(e);
         }
     }
-
 
     @Override
     public synchronized void recover(final TransactionRecoveryListener listener) throws IOException {
@@ -582,13 +561,11 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
         }
     }
 
-
     /**
      * 添加消息，为了保证添加顺序，这里不得不加锁
      */
     @Override
-    public void addMessage(final MessageStore store, final long msgId, final PutCommand putCmd, JournalLocation location)
-            throws IOException {
+    public void addMessage(final MessageStore store, final long msgId, final PutCommand putCmd, JournalLocation location) throws IOException {
         if (location == null) {
             // 非重放，添加put日志
             final AppendMessageCommand appendCmd =
@@ -609,13 +586,11 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
         tx.add(store, msgId, putCmd);
     }
 
-
     @Override
     public void makeCheckpoint() throws Exception {
         this.journalStore.checkpoint();
 
     }
-
 
     public JournalLocation checkpoint() throws IOException {
         // 查找存活事务中最早开始的那个的位置，作为checkpoint保存起来，下次恢复只要从checkpoint位置开始恢复即可
@@ -640,7 +615,6 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
             return rc;
         }
     }
-
 
     public boolean isDoingRecover() {
         return this.doingRecover;
