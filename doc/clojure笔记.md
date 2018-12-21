@@ -1,9 +1,9 @@
-#Y分钟上手 Clojure REPL
+#Y鍒嗛挓涓婃墜 Clojure REPL
 
-参考：https://www.jianshu.com/p/c464237ccf88
+鍙傝�冿細https://www.jianshu.com/p/c464237ccf88
 
 
-Eclipse 插件 Counterclockwise
-IDEA 插件 Cursive
+Eclipse 鎻掍欢 Counterclockwise
+IDEA 鎻掍欢 Cursive
 
 

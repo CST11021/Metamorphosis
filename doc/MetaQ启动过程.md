@@ -1,14 +1,14 @@
 
-#ServerÆô¶¯Á÷³Ì
-##1.×¢²áShutdownHook
-###1.1½«¸Ãbroker´ÓzkÉÏ×¢Ïú
-###1.2Í£Ö¹ÓÃÓÚ´¦ÀígetºÍputÇëÇóµÄÏß³Ì³Ø¹ÜÀíÆ÷ExecutorsManager
-ËµÃ÷£ºExecutorsManager¹ÜÀíÆ÷°üº¬Á½¸öÏß³Ì³Ø£º
+#Serverå¯åŠ¨æµç¨‹
+##1.æ³¨å†ŒShutdownHook
+###1.1å°†è¯¥brokerä»zkä¸Šæ³¨é”€
+###1.2åœæ­¢ç”¨äºå¤„ç†getå’Œputè¯·æ±‚çš„çº¿ç¨‹æ± ç®¡ç†å™¨ExecutorsManager
+è¯´æ˜ï¼šExecutorsManagerç®¡ç†å™¨åŒ…å«ä¸¤ä¸ªçº¿ç¨‹æ± ï¼š
 
-* ÓÃÓÚ´¦ÀígetÇëÇó£¨¾ÍÊÇÏû·ÑÕß´ÓMQÀ­È¡ÏûÏ¢µÄÇëÇó£©µÄÏß³Ì³Ø
-* ÓÃÓÚ´¦ÀíÎŞĞòµÄputÇëÇó£¨¾ÍÊÇÉú²úÕßÏòMQ·¢ËÍÏûÏ¢µÄÇëÇó£©µÄÏß³Ì³Ø
+* ç”¨äºå¤„ç†getè¯·æ±‚ï¼ˆå°±æ˜¯æ¶ˆè´¹è€…ä»MQæ‹‰å–æ¶ˆæ¯çš„è¯·æ±‚ï¼‰çš„çº¿ç¨‹æ± 
+* ç”¨äºå¤„ç†æ— åºçš„putè¯·æ±‚ï¼ˆå°±æ˜¯ç”Ÿäº§è€…å‘MQå‘é€æ¶ˆæ¯çš„è¯·æ±‚ï¼‰çš„çº¿ç¨‹æ± 
 
-´úÂë£º
+ä»£ç ï¼š
 
 ```
 @Override
@@ -21,8 +21,8 @@
             this.unOrderedPutExecutor.shutdown();
         }
         try {
-            // shutdown£º½«Ïß³Ì³Ø×´Ì¬ÖÃÎªSHUTDOWN,²¢²»»áÁ¢¼´Í£Ö¹£¬µ÷ÓÃ¸Ã·½·¨ºó£¬Í£Ö¹½ÓÊÕÍâ²¿submitµÄÈÎÎñ£¬²¢ÇÒÄÚ²¿ÕıÔÚÅÜµÄÈÎÎñºÍ¶ÓÁĞÀïµÈ´ıµÄÈÎÎñÖ´ĞĞÍêºó£¬²ÅÕæÕıÍ£Ö¹
-            // awaitTermination£ºµ±Ç°Ïß³Ì×èÈû£¬Ö±µ½µÈËùÓĞÒÑÌá½»µÄÈÎÎñ£¨°üÀ¨ÕıÔÚÅÜµÄºÍ¶ÓÁĞÖĞµÈ´ıµÄ£©Ö´ĞĞÍê»òÕßµÈ³¬Ê±Ê±¼äµ½
+            // shutdownï¼šå°†çº¿ç¨‹æ± çŠ¶æ€ç½®ä¸ºSHUTDOWN,å¹¶ä¸ä¼šç«‹å³åœæ­¢ï¼Œè°ƒç”¨è¯¥æ–¹æ³•åï¼Œåœæ­¢æ¥æ”¶å¤–éƒ¨submitçš„ä»»åŠ¡ï¼Œå¹¶ä¸”å†…éƒ¨æ­£åœ¨è·‘çš„ä»»åŠ¡å’Œé˜Ÿåˆ—é‡Œç­‰å¾…çš„ä»»åŠ¡æ‰§è¡Œå®Œåï¼Œæ‰çœŸæ­£åœæ­¢
+            // awaitTerminationï¼šå½“å‰çº¿ç¨‹é˜»å¡ï¼Œç›´åˆ°ç­‰æ‰€æœ‰å·²æäº¤çš„ä»»åŠ¡ï¼ˆåŒ…æ‹¬æ­£åœ¨è·‘çš„å’Œé˜Ÿåˆ—ä¸­ç­‰å¾…çš„ï¼‰æ‰§è¡Œå®Œæˆ–è€…ç­‰è¶…æ—¶æ—¶é—´åˆ°
             this.getExecutor.awaitTermination(5000, TimeUnit.MILLISECONDS);
             this.unOrderedPutExecutor.awaitTermination(5000, TimeUnit.MILLISECONDS);
         }
@@ -32,9 +32,9 @@
     }
 ```
 
-###1.3Í£Ö¹ÏûÏ¢´æ´¢¹ÜÀíÆ÷MessageStoreManager
+###1.3åœæ­¢æ¶ˆæ¯å­˜å‚¨ç®¡ç†å™¨MessageStoreManager
 
-¹Ø±Õ¶¨Ê±½«ÏûÏ¢±£´æµ½´ÅÅÌµÄÏß³Ì³Ø·şÎñ
+å…³é—­å®šæ—¶å°†æ¶ˆæ¯ä¿å­˜åˆ°ç£ç›˜çš„çº¿ç¨‹æ± æœåŠ¡
 
 ```
     @Override
@@ -54,7 +54,7 @@
                 for (final MessageStore msgStore : subMap.values()) {
                     if (msgStore != null) {
                         try {
-                            // ¹Ø±Õ·ÖÇøÊµÀı
+                            // å…³é—­åˆ†åŒºå®ä¾‹
                             msgStore.close();
                         }
                         catch (final Throwable e) {
@@ -71,33 +71,33 @@
 
 ```
 /**
-     * ¹Ø±ÕĞ´Èë
+     * å…³é—­å†™å…¥
      * @throws IOException
      */
     @Override
     public void close() throws IOException {
         this.closed = true;
         this.interrupt();
-        // µÈ´ı×ÓÏß³ÌÍê³ÉĞ´ÍêÒì²½¶ÓÁĞÖĞÊ£ÓàÎ´Ğ´µÄÏûÏ¢
+        // ç­‰å¾…å­çº¿ç¨‹å®Œæˆå†™å®Œå¼‚æ­¥é˜Ÿåˆ—ä¸­å‰©ä½™æœªå†™çš„æ¶ˆæ¯
         try {
             this.join(500);
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        // ¹Ø±Õsegment£¬±£Ö¤ÄÚÈİ¶¼ÒÑ¾­Ìá½»µ½´ÅÅÌ
+        // å…³é—­segmentï¼Œä¿è¯å†…å®¹éƒ½å·²ç»æäº¤åˆ°ç£ç›˜
         for (final Segment segment : this.segments.view()) {
             segment.fileMessageSet.close();
         }
     }
 ```
 
-###1.4Í£Ö¹Í³¼Æ¹ÜÀíÆ÷StatsManager
-###1.5¹Ø±ÕÍ¨Ñ¶²ãServer
-###1.6´Óµ±Ç°JVMÖĞÒÆ³ıShutdownHook
+###1.4åœæ­¢ç»Ÿè®¡ç®¡ç†å™¨StatsManager
+###1.5å…³é—­é€šè®¯å±‚Server
+###1.6ä»å½“å‰JVMä¸­ç§»é™¤ShutdownHook
 
 ```
-// ¹³×Ó·½·¨Ö´ĞĞÍê³ÉºóÒª´ÓJVMÒÆ³ı
+// é’©å­æ–¹æ³•æ‰§è¡Œå®Œæˆåè¦ä»JVMç§»é™¤
 if (!this.runShutdownHook && this.shutdownHook != null) {
     try {
         Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
@@ -107,8 +107,8 @@ if (!this.runShutdownHook && this.shutdownHook != null) {
     }
 }
 ```
-###1.7Í£Ö¹MQ·şÎñ¶ËÃüÁî´¦ÀíÆ÷CommandProcessor
-###1.8ÆäËûÏà¹Ø·şÎñ
+###1.7åœæ­¢MQæœåŠ¡ç«¯å‘½ä»¤å¤„ç†å™¨CommandProcessor
+###1.8å…¶ä»–ç›¸å…³æœåŠ¡
 
 
 
@@ -118,9 +118,9 @@ if (!this.runShutdownHook && this.shutdownHook != null) {
 
 
 
-##2.³õÊ¼»¯Í¨Ñ¶²ãÏà¹ØµÄ·şÎñ
-MateQµÄÍ¨Ñ¶¿ò¼ÜÓÃµÄÊÇ°¢ÀïµÄgecko¿ò¼Ü
-geckoÒÀÀµ£º
+##2.åˆå§‹åŒ–é€šè®¯å±‚ç›¸å…³çš„æœåŠ¡
+MateQçš„é€šè®¯æ¡†æ¶ç”¨çš„æ˜¯é˜¿é‡Œçš„geckoæ¡†æ¶
+geckoä¾èµ–ï¼š
 
 ```
 <dependency>
@@ -129,12 +129,12 @@ geckoÒÀÀµ£º
     <version>1.1.5-SNAPSHOT</version>
 </dependency>
 ```
-³õÊ¼»¯Í¨Ñ¶·şÎñ¶ÔÏó´úÂë£º
+åˆå§‹åŒ–é€šè®¯æœåŠ¡å¯¹è±¡ä»£ç ï¼š
 
 ```
 /**
- * ¸ù¾İÅäÖÃĞÅÏ¢´´½¨Ò»¸öÓÃÓÚÍ¨Ñ¶·şÎñµÄ{@link RemotingServer}¶ÔÏó
- * @param metaConfig MQÅäÖÃ¶ÔÏó
+ * æ ¹æ®é…ç½®ä¿¡æ¯åˆ›å»ºä¸€ä¸ªç”¨äºé€šè®¯æœåŠ¡çš„{@link RemotingServer}å¯¹è±¡
+ * @param metaConfig MQé…ç½®å¯¹è±¡
  * @return
  */
 private static RemotingServer newRemotingServer(final MetaConfig metaConfig) {
@@ -149,10 +149,10 @@ private static RemotingServer newRemotingServer(final MetaConfig metaConfig) {
 
 
 
-###2.1×¢²áÃüÁî´¦ÀíÆ÷
-¸ù¾İ¿Í»§¶Ë·¢ÆğµÄ²»Í¨ÃüÁî£¬MQ·şÎñ»áµ÷ÓÃ²»Í¬µÄÃüÁî´¦ÀíÏàÓ¦µÄÇëÇó¿Í»§¶Ë·¢ÆğµÄÃüÁî¼°·şÎñ¶Ë¶ÔÓ¦µÄÃüÁî´¦ÀíÆ÷ÈçÏÂ£º
+###2.1æ³¨å†Œå‘½ä»¤å¤„ç†å™¨
+æ ¹æ®å®¢æˆ·ç«¯å‘èµ·çš„ä¸é€šå‘½ä»¤ï¼ŒMQæœåŠ¡ä¼šè°ƒç”¨ä¸åŒçš„å‘½ä»¤å¤„ç†ç›¸åº”çš„è¯·æ±‚å®¢æˆ·ç«¯å‘èµ·çš„å‘½ä»¤åŠæœåŠ¡ç«¯å¯¹åº”çš„å‘½ä»¤å¤„ç†å™¨å¦‚ä¸‹ï¼š
 
-| ¿Í»§¶Ë·¢ÆğµÄÃüÁî | ·şÎñ¶ËµÄÃüÁî´¦ÀíÆ÷ | ËµÃ÷ 
+| å®¢æˆ·ç«¯å‘èµ·çš„å‘½ä»¤ | æœåŠ¡ç«¯çš„å‘½ä»¤å¤„ç†å™¨ | è¯´æ˜ 
 ---------------|-----------------|-----
 | GetCommand     		|	GetProcessor     |     
 | PutCommand     		|	PutProcessor     |     
@@ -171,17 +171,17 @@ private static RemotingServer newRemotingServer(final MetaConfig metaConfig) {
 
 
 
-##3.³õÊ¼»¯ExecutorsManagerÏß³Ì³Ø·şÎñ¹ÜÀíÆ÷
+##3.åˆå§‹åŒ–ExecutorsManagerçº¿ç¨‹æ± æœåŠ¡ç®¡ç†å™¨
 
-* ³õÊ¼»¯ÓÃÓÚ´¦ÀígetÇëÇó£¨¾ÍÊÇÏû·ÑÕß´ÓMQÀ­È¡ÏûÏ¢µÄÇëÇó£©µÄÏß³Ì³Ø£¬Ïß³ÌÊıÄ¬ÈÏÎªCPU*10
-* ³õÊ¼»¯ÓÃÓÚ´¦ÀíÎŞĞòµÄputÇëÇó£¨¾ÍÊÇÉú²úÕßÏòMQ·¢ËÍÏûÏ¢µÄÇëÇó£©µÄÏß³Ì³Ø£¬Ïß³ÌÊıÄ¬ÈÏÎªCPU*10
+* åˆå§‹åŒ–ç”¨äºå¤„ç†getè¯·æ±‚ï¼ˆå°±æ˜¯æ¶ˆè´¹è€…ä»MQæ‹‰å–æ¶ˆæ¯çš„è¯·æ±‚ï¼‰çš„çº¿ç¨‹æ± ï¼Œçº¿ç¨‹æ•°é»˜è®¤ä¸ºCPU*10
+* åˆå§‹åŒ–ç”¨äºå¤„ç†æ— åºçš„putè¯·æ±‚ï¼ˆå°±æ˜¯ç”Ÿäº§è€…å‘MQå‘é€æ¶ˆæ¯çš„è¯·æ±‚ï¼‰çš„çº¿ç¨‹æ± ï¼Œçº¿ç¨‹æ•°é»˜è®¤ä¸ºCPU*10
 
 
 ```
-/** ÓÃÓÚ´¦ÀígetÇëÇó£¨¾ÍÊÇÏû·ÑÕß´ÓMQÀ­È¡ÏûÏ¢µÄÇëÇó£©µÄÏß³Ì³Ø */
+/** ç”¨äºå¤„ç†getè¯·æ±‚ï¼ˆå°±æ˜¯æ¶ˆè´¹è€…ä»MQæ‹‰å–æ¶ˆæ¯çš„è¯·æ±‚ï¼‰çš„çº¿ç¨‹æ±  */
 ThreadPoolExecutor getExecutor;
 
-/** ÓÃÓÚ´¦ÀíÎŞĞòµÄputÇëÇó£¨¾ÍÊÇÉú²úÕßÏòMQ·¢ËÍÏûÏ¢µÄÇëÇó£©µÄÏß³Ì³Ø */
+/** ç”¨äºå¤„ç†æ— åºçš„putè¯·æ±‚ï¼ˆå°±æ˜¯ç”Ÿäº§è€…å‘MQå‘é€æ¶ˆæ¯çš„è¯·æ±‚ï¼‰çš„çº¿ç¨‹æ±  */
 ThreadPoolExecutor unOrderedPutExecutor;
 
 
@@ -201,22 +201,22 @@ public ExecutorsManager(final MetaConfig metaConfig) {
 
 
 
-##4.´´½¨IdWorker£¨ÓÃÓÚÉú²úÎ¨Ò»µÄÏûÏ¢ID£¬È«¾ÖÎ¨Ò»£¬Ê±¼äÓĞĞò£©
+##4.åˆ›å»ºIdWorkerï¼ˆç”¨äºç”Ÿäº§å”¯ä¸€çš„æ¶ˆæ¯IDï¼Œå…¨å±€å”¯ä¸€ï¼Œæ—¶é—´æœ‰åºï¼‰
 
-µ±MQ·şÎñ¶Ë½ÓÊÕµ½PutCommonÃüÁîÊ±£¬»áÊ¹ÓÃIdWorderÎª¸ÃÏûÏ¢Éú³ÉÒ»¸öÎ¨Ò»µÄÏûÏ¢ID
-
-
+å½“MQæœåŠ¡ç«¯æ¥æ”¶åˆ°PutCommonå‘½ä»¤æ—¶ï¼Œä¼šä½¿ç”¨IdWorderä¸ºè¯¥æ¶ˆæ¯ç”Ÿæˆä¸€ä¸ªå”¯ä¸€çš„æ¶ˆæ¯ID
 
 
 
 
 
-##5.³õÊ¼»¯MessageStoreManagerÏûÏ¢´æ´¢¹ÜÀíÆ÷
 
-* ´´½¨MetaConfig#topics¼àÌı£¬µ±topics²ÎÊı¸Ä±äÊ±´¥·¢¼àÌıÆ÷£ºÕâ»áÖØĞÂ³õÊ¼»¯topicÓĞĞ§ĞÔµÄĞ£Ñé¹æÔò¡¢²ßÂÔÉ¾³ıÑ¡ÔñÆ÷ºÍ¶¨Ê±É¾³ıÏûÏ¢ÎÄ¼şµÄÈÎÎñÖ´ĞĞÆ÷
-* ´´½¨MetaConfig#unflushInterval¼àÌı£º
-* ´´½¨Ğ£ÑétopicºÏ·¨ĞÔµÄÕıÔò±í´ïÊ½
-* ³õÊ¼»¯¶¨Ê±ÈÎÎñ£¬¶¨Ê±½«ÏûÏ¢±£´æµ½´ÅÅÌ£¬²¢¿ªÊ¼Ö´ĞĞ½«ÏûÏ¢±£´æµ½´ÅÅÌµÄ¶¨Ê±ÈÎÎñ
+
+##5.åˆå§‹åŒ–MessageStoreManageræ¶ˆæ¯å­˜å‚¨ç®¡ç†å™¨
+
+* åˆ›å»ºMetaConfig#topicsç›‘å¬ï¼Œå½“topicså‚æ•°æ”¹å˜æ—¶è§¦å‘ç›‘å¬å™¨ï¼šè¿™ä¼šé‡æ–°åˆå§‹åŒ–topicæœ‰æ•ˆæ€§çš„æ ¡éªŒè§„åˆ™ã€ç­–ç•¥åˆ é™¤é€‰æ‹©å™¨å’Œå®šæ—¶åˆ é™¤æ¶ˆæ¯æ–‡ä»¶çš„ä»»åŠ¡æ‰§è¡Œå™¨
+* åˆ›å»ºMetaConfig#unflushIntervalç›‘å¬ï¼š
+* åˆ›å»ºæ ¡éªŒtopicåˆæ³•æ€§çš„æ­£åˆ™è¡¨è¾¾å¼
+* åˆå§‹åŒ–å®šæ—¶ä»»åŠ¡ï¼Œå®šæ—¶å°†æ¶ˆæ¯ä¿å­˜åˆ°ç£ç›˜ï¼Œå¹¶å¼€å§‹æ‰§è¡Œå°†æ¶ˆæ¯ä¿å­˜åˆ°ç£ç›˜çš„å®šæ—¶ä»»åŠ¡
 
 ```
 public MessageStoreManager(final MetaConfig metaConfig, final DeletePolicy deletePolicy) {
@@ -225,7 +225,7 @@ public MessageStoreManager(final MetaConfig metaConfig, final DeletePolicy delet
     this.deletePolicy = deletePolicy;
     this.newDeletePolicySelector();
 
-    // ¸øtopics²ÎÊıÌí¼Ó¼àÌı£¬µ±topics²ÎÊı¸Ä±äÊ±´¥·¢¼àÌıÆ÷£ºÕâ»áÖØĞÂ³õÊ¼»¯topicÓĞĞ§ĞÔµÄĞ£Ñé¹æÔò¡¢²ßÂÔÉ¾³ıÑ¡ÔñÆ÷ºÍ¶¨Ê±É¾³ıÏûÏ¢ÎÄ¼şµÄÈÎÎñÖ´ĞĞÆ÷
+    // ç»™topicså‚æ•°æ·»åŠ ç›‘å¬ï¼Œå½“topicså‚æ•°æ”¹å˜æ—¶è§¦å‘ç›‘å¬å™¨ï¼šè¿™ä¼šé‡æ–°åˆå§‹åŒ–topicæœ‰æ•ˆæ€§çš„æ ¡éªŒè§„åˆ™ã€ç­–ç•¥åˆ é™¤é€‰æ‹©å™¨å’Œå®šæ—¶åˆ é™¤æ¶ˆæ¯æ–‡ä»¶çš„ä»»åŠ¡æ‰§è¡Œå™¨
     this.metaConfig.addPropertyChangeListener("topics", new PropertyChangeListener() {
 
         @Override
@@ -237,20 +237,20 @@ public MessageStoreManager(final MetaConfig metaConfig, final DeletePolicy delet
 
     });
 
-    // ¸øunflushInterval²ÎÊı£¨¶à³¤Ê±¼ä×öÒ»´ÎÏûÏ¢Í¬²½£¬¾ÍÊÇ½«ÏûÏ¢±£´æµ½´ÅÅÌ£©Ìí¼Ó¼àÌı
+    // ç»™unflushIntervalå‚æ•°ï¼ˆå¤šé•¿æ—¶é—´åšä¸€æ¬¡æ¶ˆæ¯åŒæ­¥ï¼Œå°±æ˜¯å°†æ¶ˆæ¯ä¿å­˜åˆ°ç£ç›˜ï¼‰æ·»åŠ ç›‘å¬
     this.metaConfig.addPropertyChangeListener("unflushInterval", new PropertyChangeListener() {
         @Override
         public void propertyChange(final PropertyChangeEvent evt) {
-            // ¿ªÊ¼½«ÏûÏ¢±£´æµ½´ÅÅÌµÄÈÎÎñ
+            // å¼€å§‹å°†æ¶ˆæ¯ä¿å­˜åˆ°ç£ç›˜çš„ä»»åŠ¡
             MessageStoreManager.this.scheduleFlushTask();
         }
     });
 
-    // ´´½¨Ğ£ÑétopicºÏ·¨ĞÔµÄÕıÔò±í´ïÊ½
+    // åˆ›å»ºæ ¡éªŒtopicåˆæ³•æ€§çš„æ­£åˆ™è¡¨è¾¾å¼
     this.makeTopicsPatSet();
-    // ³õÊ¼»¯¶¨Ê±Ïß³Ì³Ø
+    // åˆå§‹åŒ–å®šæ—¶çº¿ç¨‹æ± 
     this.initScheduler();
-    // ¿ªÊ¼Ö´ĞĞ½«ÏûÏ¢±£´æµ½´ÅÅÌµÄ¶¨Ê±ÈÎÎñ
+    // å¼€å§‹æ‰§è¡Œå°†æ¶ˆæ¯ä¿å­˜åˆ°ç£ç›˜çš„å®šæ—¶ä»»åŠ¡
     this.scheduleFlushTask();
 }
 ```
@@ -262,7 +262,7 @@ public MessageStoreManager(final MetaConfig metaConfig, final DeletePolicy delet
 
 
 
-##6.³õÊ¼»¯StatsManagerÍ³¼Æ¹ÜÀíÆ÷
+##6.åˆå§‹åŒ–StatsManagerç»Ÿè®¡ç®¡ç†å™¨
 
 
 
@@ -272,11 +272,11 @@ public MessageStoreManager(final MetaConfig metaConfig, final DeletePolicy delet
 
 
 
-##7.³õÊ¼»¯BrokerZooKeeper£¨ÓÃ»§×¢²á£¨»ò×¢Ïú£©brokerºÍtopicµÈĞÅÏ¢µ½zk£©
+##7.åˆå§‹åŒ–BrokerZooKeeperï¼ˆç”¨æˆ·æ³¨å†Œï¼ˆæˆ–æ³¨é”€ï¼‰brokerå’Œtopicç­‰ä¿¡æ¯åˆ°zkï¼‰
 
-* ³õÊ¼»¯zkClient
-* ¶©ÔÄsession¹ıÆÚ¼àÌıÆ÷£¬µ±brokerÓëzkµÄsession¹ıÆÚ²¢·¢ÆğÖØÁ¬Ê±£¬½«brokerºÍtopic·¢²¼£¨×¢²á£©µ½zk
-* ³õÊ¼»¯zkÉÏ±£´æbrokerºÍtopicĞÅÏ¢µÄ½ÚµãÂ·¾¶
+* åˆå§‹åŒ–zkClient
+* è®¢é˜…sessionè¿‡æœŸç›‘å¬å™¨ï¼Œå½“brokerä¸zkçš„sessionè¿‡æœŸå¹¶å‘èµ·é‡è¿æ—¶ï¼Œå°†brokerå’Œtopicå‘å¸ƒï¼ˆæ³¨å†Œï¼‰åˆ°zk
+* åˆå§‹åŒ–zkä¸Šä¿å­˜brokerå’Œtopicä¿¡æ¯çš„èŠ‚ç‚¹è·¯å¾„
 
 ```
 public MetaZookeeper(final ZkClient zkClient, final String root) {
@@ -298,23 +298,23 @@ public MetaZookeeper(final ZkClient zkClient, final String root) {
 
 
 
-##8.³õÊ¼»¯JournalTransactionStoreÊÂÎñ´æ´¢ÒıÇæ
+##8.åˆå§‹åŒ–JournalTransactionStoreäº‹åŠ¡å­˜å‚¨å¼•æ“
 
-##9.³õÊ¼»¯ConsumerFilterManager
+##9.åˆå§‹åŒ–ConsumerFilterManager
 
-##10.³õÊ¼»¯BrokerCommandProcessor·şÎñ¶ËµÄÃüÁî´¦ÀíÆ÷
+##10.åˆå§‹åŒ–BrokerCommandProcessoræœåŠ¡ç«¯çš„å‘½ä»¤å¤„ç†å™¨
 
-##11.³õÊ¼»¯TransactionalCommandProcessorÃüÁî´¦ÀíÆ÷
+##11.åˆå§‹åŒ–TransactionalCommandProcessorå‘½ä»¤å¤„ç†å™¨
 
 
-##12.×¢²áMQServerµ½Mbean serverÆ½Ì¨
-½«MetaMorphosisBroker¶ÔÏó×¢²áµ½javaĞéÄâ»úµÄMbean serverÆ½Ì¨
+##12.æ³¨å†ŒMQServeråˆ°Mbean serverå¹³å°
+å°†MetaMorphosisBrokerå¯¹è±¡æ³¨å†Œåˆ°javaè™šæ‹Ÿæœºçš„Mbean serverå¹³å°
 
 ```
 /**
- * ½«¶ÔÏóo×¢²áµ½javaµÄMXBeanÆ½Ì¨
- * @param o         Òª×¢²áµ½MXBeanÆ½Ì¨µÄBean¶ÔÏó
- * @param name      ×¢²á¶ÔÏóµÄ±êÊ¶Ãû
+ * å°†å¯¹è±¡oæ³¨å†Œåˆ°javaçš„MXBeanå¹³å°
+ * @param o         è¦æ³¨å†Œåˆ°MXBeanå¹³å°çš„Beanå¯¹è±¡
+ * @param name      æ³¨å†Œå¯¹è±¡çš„æ ‡è¯†å
  */
 public static void registMBean(Object o, String name) {
     MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();

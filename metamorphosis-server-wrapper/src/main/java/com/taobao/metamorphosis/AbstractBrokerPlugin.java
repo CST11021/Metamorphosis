@@ -26,8 +26,8 @@ import com.taobao.metamorphosis.server.assembly.MetaMorphosisBroker;
 
 
 /**
- * @author ÎŞ»¨
- * @since 2011-6-9 ÏÂÎç02:22:38
+ * @author æ— èŠ±
+ * @since 2011-6-9 ä¸‹åˆ02:22:38
  */
 
 abstract public class AbstractBrokerPlugin implements BrokerPlugin {
