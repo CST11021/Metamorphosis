@@ -56,7 +56,7 @@ import com.taobao.metamorphosis.server.utils.MetaMBeanServer;
 import com.taobao.metamorphosis.utils.IdWorker;
 
 /**
- * ç»„è£…çš„meta server
+ * ×é×°µÄmeta server
  * 
  * @author boyan
  * @Date 2011-4-29
@@ -67,9 +67,9 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
     static final Log log = LogFactory.getLog(MetaMorphosisBroker.class);
 
     /**
-     * å½“ç¨‹åºæ­£å¸¸é€€å‡º,ç³»ç»Ÿè°ƒç”¨ System.exitæ–¹æ³•æˆ–è™šæ‹Ÿæœºè¢«å…³é—­æ—¶æ‰ä¼šæ‰§è¡Œæ·»åŠ çš„shutdownHookçº¿ç¨‹ã€‚
-     * å…¶ä¸­shutdownHookæ˜¯ä¸€ä¸ªå·²åˆå§‹åŒ–ä½†å¹¶æ²¡æœ‰å¯åŠ¨çš„çº¿ç¨‹ï¼Œå½“jvmå…³é—­çš„æ—¶å€™ï¼Œä¼šæ‰§è¡Œç³»ç»Ÿä¸­å·²ç»è®¾ç½®çš„æ‰€æœ‰é€šè¿‡æ–¹æ³•addShutdownHookæ·»åŠ çš„é’©å­ï¼Œ
-     * å½“ç³»ç»Ÿæ‰§è¡Œå®Œè¿™äº›é’©å­åï¼Œjvmæ‰ä¼šå…³é—­ã€‚æ‰€ä»¥å¯é€šè¿‡è¿™äº›é’©å­åœ¨jvmå…³é—­çš„æ—¶å€™è¿›è¡Œå†…å­˜æ¸…ç†ã€èµ„æºå›æ”¶ç­‰å·¥ä½œã€‚
+     * µ±³ÌĞòÕı³£ÍË³ö,ÏµÍ³µ÷ÓÃ System.exit·½·¨»òĞéÄâ»ú±»¹Ø±ÕÊ±²Å»áÖ´ĞĞÌí¼ÓµÄshutdownHookÏß³Ì¡£
+     * ÆäÖĞshutdownHookÊÇÒ»¸öÒÑ³õÊ¼»¯µ«²¢Ã»ÓĞÆô¶¯µÄÏß³Ì£¬µ±jvm¹Ø±ÕµÄÊ±ºò£¬»áÖ´ĞĞÏµÍ³ÖĞÒÑ¾­ÉèÖÃµÄËùÓĞÍ¨¹ı·½·¨addShutdownHookÌí¼ÓµÄ¹³×Ó£¬
+     * µ±ÏµÍ³Ö´ĞĞÍêÕâĞ©¹³×Óºó£¬jvm²Å»á¹Ø±Õ¡£ËùÒÔ¿ÉÍ¨¹ıÕâĞ©¹³×ÓÔÚjvm¹Ø±ÕµÄÊ±ºò½øĞĞÄÚ´æÇåÀí¡¢×ÊÔ´»ØÊÕµÈ¹¤×÷¡£
      */
     private final class ShutdownHook extends Thread {
         @Override
@@ -79,55 +79,55 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         }
     }
 
-    /** åœæ­¢æœåŠ¡çš„é’©å­å¯¹è±¡ */
+    /** Í£Ö¹·şÎñµÄ¹³×Ó¶ÔÏó */
     private final ShutdownHook shutdownHook;
-    /** ç”¨äºæ ‡è¯†æ˜¯å¦è¿è¡Œäº†åœæ­¢æœåŠ¡çš„é’©å­æ–¹æ³• */
+    /** ÓÃÓÚ±êÊ¶ÊÇ·ñÔËĞĞÁËÍ£Ö¹·şÎñµÄ¹³×Ó·½·¨ */
     private volatile boolean runShutdownHook = false;
-    /** MQçš„æ¶ˆæ¯å­˜å‚¨ç®¡ç†å™¨ */
+    /** MQµÄÏûÏ¢´æ´¢¹ÜÀíÆ÷ */
     private final MessageStoreManager storeManager;
-    /** ç”¨äºç®¡ç†å¤„ç†getå’Œputè¯·æ±‚çš„çº¿ç¨‹æ±  */
+    /** ÓÃÓÚ¹ÜÀí´¦ÀígetºÍputÇëÇóµÄÏß³Ì³Ø */
     private final ExecutorsManager executorsManager;
-    /** ç»Ÿè®¡ç®¡ç†å™¨ */
+    /** Í³¼Æ¹ÜÀíÆ÷ */
     private final StatsManager statsManager;
-    /** ç”¨äºé€šè®¯çš„MQæœåŠ¡ */
+    /** ÓÃÓÚÍ¨Ñ¶µÄMQ·şÎñ */
     private final RemotingServer remotingServer;
-    /** MQç›¸å…³çš„å‚æ•°é…ç½® */
+    /** MQÏà¹ØµÄ²ÎÊıÅäÖÃ */
     private final MetaConfig metaConfig;
-    /** ç”¨äºåˆ›å»ºIDçš„å¯¹è±¡ */
+    /** ÓÃÓÚ´´½¨IDµÄ¶ÔÏó */
     private final IdWorker idWorker;
-    /** Brokerä¸ZKäº¤äº’ï¼šç”¨äºæ³¨å†Œbrokerå’Œtopicç­‰ */
+    /** BrokerÓëZK½»»¥£ºÓÃÓÚ×¢²ábrokerºÍtopicµÈ */
     private final BrokerZooKeeper brokerZooKeeper;
     private final ConsumerFilterManager consumerFilterManager;
-    /** MQæœåŠ¡ç«¯å‘½ä»¤å¤„ç†å™¨ */
+    /** MQ·şÎñ¶ËÃüÁî´¦ÀíÆ÷ */
     private CommandProcessor brokerProcessor;
-    /** ç”¨äºæ ‡è¯†æœåŠ¡æ˜¯å¦å…³é—­ */
+    /** ÓÃÓÚ±êÊ¶·şÎñÊÇ·ñ¹Ø±Õ */
     private boolean shutdown = true;
-    /** è¡¨ç¤ºå½“å‰brokeræ˜¯å¦æˆåŠŸæ³¨å†Œåˆ°zkï¼Œå½“å‰MQæœåŠ¡å¯åŠ¨æ—¶ï¼Œä¼šå°†brokerç›¸å…³ä¿¡æ¯æ³¨å†Œåˆ°zk */
+    /** ±íÊ¾µ±Ç°brokerÊÇ·ñ³É¹¦×¢²áµ½zk£¬µ±Ç°MQ·şÎñÆô¶¯Ê±£¬»á½«brokerÏà¹ØĞÅÏ¢×¢²áµ½zk */
     private boolean registerZkSuccess;
 
 
 
     public MetaMorphosisBroker(final MetaConfig metaConfig) {
         super();
-        // æ³¨å†Œåœæ­¢æœåŠ¡çš„é’©å­æ–¹æ³•
+        // ×¢²áÍ£Ö¹·şÎñµÄ¹³×Ó·½·¨
         this.shutdownHook = new ShutdownHook();
         Runtime.getRuntime().addShutdownHook(this.shutdownHook);
 
         this.metaConfig = metaConfig;
-        // åˆ›å»ºä¸€ä¸ªç”¨äºé€šè®¯çš„RemotingServerå¯¹è±¡ï¼Œè¿™é‡Œé€šè®¯æ¡†æ¶ç”¨çš„é˜¿é‡Œçš„geckoæ¡†æ¶
+        // ´´½¨Ò»¸öÓÃÓÚÍ¨Ñ¶µÄRemotingServer¶ÔÏó£¬ÕâÀïÍ¨Ñ¶¿ò¼ÜÓÃµÄ°¢ÀïµÄgecko¿ò¼Ü
         this.remotingServer = newRemotingServer(metaConfig);
-        // çº¿ç¨‹æ± æœåŠ¡ç®¡ç†å™¨ï¼ˆç”Ÿäº§è€…å‘MQå‘é€æ¶ˆæ¯çš„è¯·æ±‚å’Œæ¶ˆè´¹è€…ä»MQæ‹‰å–æ¶ˆæ¯çš„è¯·æ±‚éƒ½æ˜¯é€šè¿‡è¯¥ç®¡ç†å™¨æä¾›çš„çº¿ç¨‹è¿›è¡Œå¤„ç†çš„ï¼‰
+        // Ïß³Ì³Ø·şÎñ¹ÜÀíÆ÷£¨Éú²úÕßÏòMQ·¢ËÍÏûÏ¢µÄÇëÇóºÍÏû·ÑÕß´ÓMQÀ­È¡ÏûÏ¢µÄÇëÇó¶¼ÊÇÍ¨¹ı¸Ã¹ÜÀíÆ÷Ìá¹©µÄÏß³Ì½øĞĞ´¦ÀíµÄ£©
         this.executorsManager = new ExecutorsManager(metaConfig);
-        // ç”¨äºç”Ÿäº§å”¯ä¸€çš„æ¶ˆæ¯IDï¼Œå…¨å±€å”¯ä¸€ï¼Œæ—¶é—´æœ‰åº
+        // ÓÃÓÚÉú²úÎ¨Ò»µÄÏûÏ¢ID£¬È«¾ÖÎ¨Ò»£¬Ê±¼äÓĞĞò
         this.idWorker = new IdWorker(metaConfig.getBrokerId());
-        // æ¶ˆæ¯å­˜å‚¨ç®¡ç†å™¨
+        // ÏûÏ¢´æ´¢¹ÜÀíÆ÷
         this.storeManager = new MessageStoreManager(metaConfig, this.newDeletePolicy(metaConfig));
-        // ç»Ÿè®¡ç®¡ç†å™¨
+        // Í³¼Æ¹ÜÀíÆ÷
         this.statsManager = new StatsManager(this.metaConfig, this.storeManager, this.remotingServer);
-        // Brokerä¸ZKäº¤äº’ï¼Œæ³¨å†Œbrokerå’Œtopicç­‰
+        // BrokerÓëZK½»»¥£¬×¢²ábrokerºÍtopicµÈ
         this.brokerZooKeeper = new BrokerZooKeeper(metaConfig);
 
-        // åˆå§‹åŒ–äº‹åŠ¡å­˜å‚¨å¼•æ“
+        // ³õÊ¼»¯ÊÂÎñ´æ´¢ÒıÇæ
         JournalTransactionStore transactionStore = null;
         try {
             transactionStore = new JournalTransactionStore(metaConfig.getDataLogPath(), this.storeManager, metaConfig);
@@ -142,32 +142,32 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
             throw new MetamorphosisServerStartupException("Initializing ConsumerFilterManager failed", e);
         }
 
-        // metaæœåŠ¡ç«¯å‘½ä»¤å¤„ç†å™¨
+        // meta·şÎñ¶ËÃüÁî´¦ÀíÆ÷
         final BrokerCommandProcessor next = new BrokerCommandProcessor(
                 this.storeManager, this.executorsManager, this.statsManager,
                 this.remotingServer, metaConfig, this.idWorker, this.brokerZooKeeper, this.consumerFilterManager);
 
-        // äº‹åŠ¡å‘½ä»¤å¤„ç†å™¨
+        // ÊÂÎñÃüÁî´¦ÀíÆ÷
         this.brokerProcessor = new TransactionalCommandProcessor(
                 metaConfig, this.storeManager, this.idWorker, next, transactionStore, this.statsManager);
 
         MetaMBeanServer.registMBean(this, null);
     }
 
-    /** å¯åŠ¨MetaQæœåŠ¡ */
+    /** Æô¶¯MetaQ·şÎñ */
     public synchronized void start() {
         if (!this.shutdown) {
             return;
         }
         this.shutdown = false;
 
-        // åˆå§‹åŒ–æ¶ˆæ¯å­˜å‚¨ç®¡ç†å™¨
+        // ³õÊ¼»¯ÏûÏ¢´æ´¢¹ÜÀíÆ÷
         this.storeManager.init();
         //
         this.executorsManager.init();
-        // ç»Ÿè®¡ç®¡ç†å™¨
+        // Í³¼Æ¹ÜÀíÆ÷
         this.statsManager.init();
-        // æ³¨å†Œå‘½ä»¤å¤„ç†å™¨
+        // ×¢²áÃüÁî´¦ÀíÆ÷
         this.registerProcessors();
 
         try {
@@ -176,15 +176,15 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
             throw new MetamorphosisServerStartupException("start remoting server failed", e);
         }
 
-        // å°†å½“å‰brokerå…ˆå…³ä¿¡æ¯æ³¨å†Œåˆ°zk
+        // ½«µ±Ç°brokerÏÈ¹ØĞÅÏ¢×¢²áµ½zk
         try {
-            // æ³¨å†Œbrokeråˆ°zk
+            // ×¢²ábrokerµ½zk
             this.brokerZooKeeper.registerBrokerInZk();
-            // ç»™å½“å‰brokeråˆ›å»ºä¸€ä¸ª master_config_checksum èŠ‚ç‚¹åˆ°zk
+            // ¸øµ±Ç°broker´´½¨Ò»¸ö master_config_checksum ½Úµãµ½zk
             this.brokerZooKeeper.registerMasterConfigFileChecksumInZk();
-            // æ·»åŠ topicå˜æ›´ç›‘å¬å™¨
+            // Ìí¼Ótopic±ä¸ü¼àÌıÆ÷
             this.addTopicsChangeListener();
-            // æ³¨å†Œå½“å‰brokerçš„topicä¿¡æ¯åˆ°zk
+            // ×¢²áµ±Ç°brokerµÄtopicĞÅÏ¢µ½zk
             this.registerTopicsInZk();
             this.registerZkSuccess = true;
         }
@@ -198,7 +198,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         log.info("Start metamorphosis server successfully");
     }
 
-    /** åœæ­¢MetaQæœåŠ¡ */
+    /** Í£Ö¹MetaQ·şÎñ */
     @Override
     public synchronized void stop() {
         if (this.shutdown) {
@@ -207,7 +207,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
 
         log.info("Stopping metamorphosis server...");
         this.shutdown = true;
-        // å°†è¯¥brokerä»zkä¸Šæ³¨é”€
+        // ½«¸Ãbroker´ÓzkÉÏ×¢Ïú
         this.brokerZooKeeper.close(this.registerZkSuccess);
         try {
             // Waiting for zookeeper to notify clients.
@@ -226,7 +226,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
             log.error("Shutdown remoting server failed", e);
         }
 
-        // é’©å­æ–¹æ³•æ‰§è¡Œå®Œæˆåè¦ä»JVMç§»é™¤
+        // ¹³×Ó·½·¨Ö´ĞĞÍê³ÉºóÒª´ÓJVMÒÆ³ı
         if (!this.runShutdownHook && this.shutdownHook != null) {
             try {
                 Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
@@ -237,14 +237,14 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
         }
 
         this.brokerProcessor.dispose();
-        // åœæ­¢å†…åµŒzk server
+        // Í£Ö¹ÄÚÇ¶zk server
         EmbedZookeeperServer.getInstance().stop();
 
         log.info("Stop metamorphosis server successfully");
     }
 
     /**
-     * æ ¹æ®é…ç½®åˆ›å»ºä¸€ä¸ªåˆ é™¤æ¶ˆæ¯æ–‡ä»¶çš„ç­–ç•¥å®ä¾‹
+     * ¸ù¾İÅäÖÃ´´½¨Ò»¸öÉ¾³ıÏûÏ¢ÎÄ¼şµÄ²ßÂÔÊµÀı
      * @param metaConfig
      * @return
      */
@@ -257,8 +257,8 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
     }
 
     /**
-     * æ ¹æ®é…ç½®ä¿¡æ¯åˆ›å»ºä¸€ä¸ªç”¨äºé€šè®¯æœåŠ¡çš„{@link RemotingServer}å¯¹è±¡
-     * @param metaConfig MQé…ç½®å¯¹è±¡
+     * ¸ù¾İÅäÖÃĞÅÏ¢´´½¨Ò»¸öÓÃÓÚÍ¨Ñ¶·şÎñµÄ{@link RemotingServer}¶ÔÏó
+     * @param metaConfig MQÅäÖÃ¶ÔÏó
      * @return
      */
     private static RemotingServer newRemotingServer(final MetaConfig metaConfig) {
@@ -270,7 +270,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
     }
 
     /**
-     * æ³¨å†Œå‘½ä»¤å¤„ç†å™¨
+     * ×¢²áÃüÁî´¦ÀíÆ÷
      */
     private void registerProcessors() {
         this.remotingServer.registerProcessor(GetCommand.class, new GetProcessor(this.brokerProcessor, this.executorsManager.getGetExecutor()));
@@ -283,10 +283,10 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
     }
 
     /**
-     * æ·»åŠ topicå˜æ›´ç›‘å¬å™¨ï¼Œå½“å½“å‰çš„MQæœåŠ¡å™¨çš„topicå˜æ›´æ—¶ï¼ŒåŒæ­¥åˆ°zkä¸Š
+     * Ìí¼Ótopic±ä¸ü¼àÌıÆ÷£¬µ±µ±Ç°µÄMQ·şÎñÆ÷µÄtopic±ä¸üÊ±£¬Í¬²½µ½zkÉÏ
      */
     private void addTopicsChangeListener() {
-        // ç›‘å¬topicsåˆ—è¡¨å˜åŒ–å¹¶æ³¨å†Œåˆ°zk
+        // ¼àÌıtopicsÁĞ±í±ä»¯²¢×¢²áµ½zk
         this.metaConfig.addPropertyChangeListener("topics", new PropertyChangeListener() {
 
             @Override
@@ -302,15 +302,15 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
     }
 
     /**
-     * æ³¨å†Œå½“å‰brokerçš„topicä¿¡æ¯åˆ°zk
+     * ×¢²áµ±Ç°brokerµÄtopicĞÅÏ¢µ½zk
      * @throws Exception
      */
     private void registerTopicsInZk() throws Exception {
-        // 1ã€å…ˆæ³¨å†Œé…ç½®ä¸­çš„topicåˆ°zookeeper
+        // 1¡¢ÏÈ×¢²áÅäÖÃÖĞµÄtopicµ½zookeeper
         for (final String topic : this.metaConfig.getTopics()) {
             this.brokerZooKeeper.registerTopicInZk(topic, true);
         }
-        // 2ã€æ³¨å†Œæ¶ˆæ¯ç®¡ç†å™¨ä¸­çš„topicåˆ°zookeeper
+        // 2¡¢×¢²áÏûÏ¢¹ÜÀíÆ÷ÖĞµÄtopicµ½zookeeper
         for (final String topic : this.storeManager.getMessageStores().keySet()) {
             this.brokerZooKeeper.registerTopicInZk(topic, true);
         }
