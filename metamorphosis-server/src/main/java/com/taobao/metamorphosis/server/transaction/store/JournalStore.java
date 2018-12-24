@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,30 +16,6 @@
  *   wuhua <wq163@163.com> , boyan <killme2008@gmail.com>
  */
 package com.taobao.metamorphosis.server.transaction.store;
-
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.taobao.gecko.core.buffer.IoBuffer;
@@ -59,19 +35,31 @@ import com.taobao.metamorphosis.server.utils.FileUtils;
 import com.taobao.metamorphosis.transaction.TransactionId;
 import com.taobao.metamorphosis.utils.CheckSum;
 import com.taobao.metamorphosis.utils.MessageUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
  * 事务存储引擎
- * 
- * @author boyan(boyan@taobao.com)
+ *
+ * @author boyan(boyan @ taobao.com)
  * @date 2011-8-17
- * 
  */
 public class JournalStore implements Closeable {
 
-    private final ConcurrentHashMap<Integer/* number */, DataFile> dataFiles =
-            new ConcurrentHashMap<Integer, DataFile>();
+    private final ConcurrentHashMap<Integer/* number */, DataFile> dataFiles = new ConcurrentHashMap<Integer, DataFile>();
 
     private final AtomicInteger number = new AtomicInteger(0);
 
@@ -89,20 +77,18 @@ public class JournalStore implements Closeable {
 
     private final Checkpoint checkpoint;
 
-    // 每个日志文件最大大小为64M,,67108864
+    /** 每个日志文件最大大小为64M,,67108864 */
     static int MAX_FILE_SIZE = Integer.parseInt(System.getProperty("meta.tx_journal_file_size", "67108864"));
 
-    // 日志刷盘设置，0表示让操作系统决定，1表示每次commit都刷盘，2表示每隔一秒刷盘一次
+    /** 日志刷盘设置，0表示让操作系统决定，1表示每次commit都刷盘，2表示每隔一秒刷盘一次 */
     private final int flushTxLogAtCommit;
 
-    // 修改过的datafile列表
+    /** 修改过的datafile列表 */
     private final Set<DataFile> modifiedDataFiles = new HashSet<DataFile>();
-
 
     DataFile getCurrDataFile() {
         return this.currDataFile;
     }
-
 
     ConcurrentHashMap<Integer, DataFile> getDataFiles() {
         return this.dataFiles;
@@ -110,10 +96,7 @@ public class JournalStore implements Closeable {
 
     private ScheduledExecutorService scheduledExecutorService;
 
-
-    public JournalStore(final String path, final MessageStoreManager storeManager,
-            final JournalTransactionStore transactionStore, final int maxCheckpoints, final int flushTxLogAtCommit)
-                    throws Exception {
+    public JournalStore(final String path, final MessageStoreManager storeManager, final JournalTransactionStore transactionStore, final int maxCheckpoints, final int flushTxLogAtCommit) throws Exception {
         FileUtils.makesureDir(new File(path));
         this.transactionsDir = new File(path + File.separator + "transactions");
         FileUtils.makesureDir(this.transactionsDir);
@@ -134,8 +117,7 @@ public class JournalStore implements Closeable {
                 public void run() {
                     try {
                         JournalStore.this.force();
-                    }
-                    catch (final IOException e) {
+                    } catch (final IOException e) {
                         log.error("force datafiles failed", e);
                     }
 
@@ -145,12 +127,10 @@ public class JournalStore implements Closeable {
 
     }
 
-
     private boolean isNeedForce(final TxCommand txCmd, final boolean commitOrRollback) {
         // 等于1的时候才需要每次prepare/commit都force
         return (commitOrRollback || txCmd.getForce()) && this.flushTxLogAtCommit == 1;
     }
-
 
     private void force() throws IOException {
         this.writeLock.lock();
@@ -158,34 +138,26 @@ public class JournalStore implements Closeable {
             for (final DataFile df : this.modifiedDataFiles) {
                 df.force();
             }
-        }
-        finally {
+        } finally {
             try {
                 this.modifiedDataFiles.clear();
-            }
-            finally {
+            } finally {
                 this.writeLock.unlock();
             }
         }
     }
 
-
     /**
      * 写入命令到事务日志
-     * 
-     * @param msg
-     *            事务命令
-     * @param attachment
-     *            事务命令的附加数据
-     * @param location
-     *            写入的位置
-     * @param committedOrRollback
-     *            是否是提交或者回滚命令
+     *
+     * @param msg                 事务命令
+     * @param attachment          事务命令的附加数据
+     * @param location            写入的位置
+     * @param committedOrRollback 是否是提交或者回滚命令
      * @return
      * @throws IOException
      */
-    public JournalLocation write(final TxCommand msg, final ByteBuffer attachment, final JournalLocation location,
-            final boolean committedOrRollback) throws IOException {
+    public JournalLocation write(final TxCommand msg, final ByteBuffer attachment, final JournalLocation location, final boolean committedOrRollback) throws IOException {
         final byte[] data = msg.toByteArray();
         final ByteBuffer buf = ByteBuffer.allocate(4 + data.length + (attachment != null ? attachment.remaining() : 0));
         buf.putInt(data.length);
@@ -210,8 +182,7 @@ public class JournalStore implements Closeable {
             }
             this.maybeRoll(dataFile);
             return new JournalLocation(dataFile.getNumber(), offset);
-        }
-        finally {
+        } finally {
             this.writeLock.unlock();
             final boolean force = this.isNeedForce(msg, committedOrRollback);
             if (force) {
@@ -221,7 +192,6 @@ public class JournalStore implements Closeable {
 
     }
 
-
     private void force(final DataFile df) throws IOException {
         if (df == null) {
             return;
@@ -229,12 +199,10 @@ public class JournalStore implements Closeable {
         this.writeLock.lock();
         try {
             df.force();
-        }
-        finally {
+        } finally {
             this.writeLock.unlock();
         }
     }
-
 
     @Override
     public void close() throws IOException {
@@ -247,20 +215,17 @@ public class JournalStore implements Closeable {
             for (final DataFile df : this.dataFiles.values()) {
                 try {
                     df.close();
-                }
-                catch (final Exception e) {
+                } catch (final Exception e) {
                     log.warn("close error:" + df, e);
                 }
             }
             this.dataFiles.clear();
             this.currDataFile = null;
-        }
-        finally {
+        } finally {
             this.writeLock.unlock();
         }
 
     }
-
 
     private void maybeRoll(final DataFile dataFile) throws IOException {
         // 文件超过大小并且不再被引用，则删除之
@@ -274,7 +239,6 @@ public class JournalStore implements Closeable {
         }
     }
 
-
     private DataFile getDataFile(final JournalLocation location) throws IOException {
         DataFile dataFile = null;
         if (location == null) {
@@ -285,8 +249,7 @@ public class JournalStore implements Closeable {
             }
             // 递增计数
             dataFile.increment();
-        }
-        else {
+        } else {
             dataFile = this.dataFiles.get(location.number);
         }
         return dataFile;
@@ -295,7 +258,6 @@ public class JournalStore implements Closeable {
     private static final Decoder decoer = new MetamorphosisWireFormatType().newCodecFactory().getDecoder();
 
     static final Log log = LogFactory.getLog(JournalStore.class);
-
 
     private void recover() throws IOException {
         log.info("Begin to recover transaction journal...");
@@ -327,32 +289,28 @@ public class JournalStore implements Closeable {
                 if (cp == null || this.getFileNumber(file) >= cp.number) {
                     dataFile = this.recoverFile(cp, ls, lenBuf, i, file);
                 }
-            }
-            else {
+            } else {
                 log.info(file.getName() + " is not a valid transaction journal store file");
             }
         }
 
         if (dataFile == null) {
             this.currDataFile = this.newDataFile();
-        }
-        else {
+        } else {
             this.currDataFile = dataFile;
             this.number.set(dataFile.getNumber());
         }
         log.info("Recover transaction journal successfully");
     }
 
-
     /**
      * 返回最近的checkpoint
-     * 
+     *
      * @return
      */
     public JournalLocation getRecentCheckpoint() {
         return this.checkpoint.getRecentCheckpoint();
     }
-
 
     /**
      * 设置一个checkpoint，下次回放将从最近设置的checkpoint开始
@@ -361,9 +319,7 @@ public class JournalStore implements Closeable {
         this.checkpoint.check(this.transactionStore.checkpoint());
     }
 
-
-    private DataFile recoverFile(final JournalLocation cp, final File[] ls, final ByteBuffer lenBuf, final int i,
-            final File file) throws IOException {
+    private DataFile recoverFile(final JournalLocation cp, final File[] ls, final ByteBuffer lenBuf, final int i, final File file) throws IOException {
         final int number = this.getFileNumber(file);
         // 读数据的起点
         long readOffset = 0;
@@ -389,8 +345,7 @@ public class JournalStore implements Closeable {
                     int attachmentLen = 0;
                     try {
                         attachmentLen = this.processCmd(number, cmdOffset, cmdBuf, dataFile);
-                    }
-                    catch (final Exception e) {
+                    } catch (final Exception e) {
                         log.error("Process tx command failed", e);
                         // 回放失败，跳出循环，后续的事务日志将被truncate
                         break;
@@ -398,13 +353,11 @@ public class JournalStore implements Closeable {
                     }
                     readOffset += 4;
                     readOffset += cmdBufLen + attachmentLen;
-                }
-                else {
+                } else {
                     // 没读满cmdBuf，跳出循环
                     break;
                 }
-            }
-            else {
+            } else {
                 // 没读满lenBuf，跳出循环
                 break;
             }
@@ -421,17 +374,15 @@ public class JournalStore implements Closeable {
         if (dataFile.getLength() > MAX_FILE_SIZE && dataFile.isUnUsed()) {
             dataFile.delete();
             return null;
-        }
-        else {
+        } else {
             this.dataFiles.put(number, dataFile);
         }
         return dataFile;
     }
 
-
     /**
      * 重放事务日志，返回附加数据长度
-     * 
+     *
      * @param number
      * @param offset
      * @param cmdBuf
@@ -439,135 +390,127 @@ public class JournalStore implements Closeable {
      * @return
      * @throws Exception
      */
-    private int processCmd(final int number, final long offset, final ByteBuffer cmdBuf, final DataFile dataFile)
-            throws Exception {
+    private int processCmd(final int number, final long offset, final ByteBuffer cmdBuf, final DataFile dataFile) throws Exception {
         final byte[] data = new byte[cmdBuf.remaining()];
         cmdBuf.get(data);
         final TxCommand cmd = TxCommand.parseFrom(data);
         if (cmd != null) {
             switch (cmd.getCmdType()) {
-            case APPEND_MSG:
-                return this.appendMsg(number, offset, cmd, dataFile);
-            case TX_OP:
-                return this.replayTx(offset, cmdBuf.capacity(), cmd, dataFile);
+                case APPEND_MSG:
+                    return this.appendMsg(number, offset, cmd, dataFile);
+                case TX_OP:
+                    return this.replayTx(offset, cmdBuf.capacity(), cmd, dataFile);
             }
         }
         return 0;
     }
 
-
-    private int replayTx(final long offset, final long cmdBufLen, final TxCommand txCmd, final DataFile dataFile)
-            throws InvalidProtocolBufferException {
+    private int replayTx(final long offset, final long cmdBufLen, final TxCommand txCmd, final DataFile dataFile) throws InvalidProtocolBufferException {
         final TransactionOperation command = TransactionOperation.parseFrom(txCmd.getCmdContent());
         final TransactionId xid = TransactionId.valueOf(command.getTransactionId());
         try {
             // 重放事务日志
             switch (command.getType()) {
-            case XA_PREPARE:
-                this.transactionStore.replayPrepare(xid);
-                break;
-            case XA_COMMIT:
-            case LOCAL_COMMIT:
-                final Tx tx = this.transactionStore.replayCommit(xid, command.getWasPrepared());
-                if (tx == null) {
+                case XA_PREPARE:
+                    this.transactionStore.replayPrepare(xid);
                     break;
-                }
-                if (tx.getOperations().isEmpty()) {
-                    break;
-                }
+                case XA_COMMIT:
+                case LOCAL_COMMIT:
+                    final Tx tx = this.transactionStore.replayCommit(xid, command.getWasPrepared());
+                    if (tx == null) {
+                        break;
+                    }
+                    if (tx.getOperations().isEmpty()) {
+                        break;
+                    }
 
-                final Map<MessageStore, List<Long>> ids = tx.getMsgIds();
-                final Map<MessageStore, List<PutCommand>> putCmds = tx.getPutCommands();
-                // 获取附加数据，添加消息的位置信息
-                final int attachmentLen = command.getDataLength();
-                final ByteBuffer buf = ByteBuffer.allocate(attachmentLen);
-                // 附加数据的索引位置，起点＋4个字节的cmd长度＋cmd本身长度
-                final long dataOffset = 4 + offset + cmdBufLen;
-                dataFile.read(buf, dataOffset);
-                buf.flip();
-                final Map<String, AddMsgLocation> locations = AddMsgLocationUtils.decodeLocations(buf);
+                    final Map<MessageStore, List<Long>> ids = tx.getMsgIds();
+                    final Map<MessageStore, List<PutCommand>> putCmds = tx.getPutCommands();
+                    // 获取附加数据，添加消息的位置信息
+                    final int attachmentLen = command.getDataLength();
+                    final ByteBuffer buf = ByteBuffer.allocate(attachmentLen);
+                    // 附加数据的索引位置，起点＋4个字节的cmd长度＋cmd本身长度
+                    final long dataOffset = 4 + offset + cmdBufLen;
+                    dataFile.read(buf, dataOffset);
+                    buf.flip();
+                    final Map<String, AddMsgLocation> locations = AddMsgLocationUtils.decodeLocations(buf);
 
-                final AtomicBoolean replayed = new AtomicBoolean(false);
-                final AtomicInteger counter = new AtomicInteger();
-                if (ids != null && !ids.isEmpty()) {
-                    for (final Map.Entry<MessageStore, List<Long>> entry : ids.entrySet()) {
-                        final MessageStore msgStore = entry.getKey();
-                        final AddMsgLocation addedLocation = locations.get(msgStore.getDescription());
-                        // 没有添加消息，需要重新添加
-                        final List<Long> idList = entry.getValue();
-                        final List<PutCommand> cmdList = putCmds.get(msgStore);
-                        if (addedLocation == null) {
-                            counter.incrementAndGet();
-                            msgStore.append(idList, cmdList, new AppendCallback() {
-                                @Override
-                                public void appendComplete(final Location newLocation) {
-                                    replayed.set(true);
-                                    final int checksum =
-                                            CheckSum.crc32(MessageUtils.makeMessageBuffer(idList, cmdList).array());
-                                    locations.put(msgStore.getDescription(),
-                                        new AddMsgLocation(newLocation.getOffset(), newLocation.getLength(), checksum,
-                                            msgStore.getDescription()));
-                                    counter.decrementAndGet();
-                                }
-                            });
-
-                        }
-                        else {
-                            // 尝试重放
-                            counter.incrementAndGet();
-                            msgStore.replayAppend(addedLocation.getOffset(), addedLocation.getLength(),
-                                addedLocation.checksum, idList, cmdList, new AppendCallback() {
-                                @Override
-                                public void appendComplete(final Location newLocation) {
-                                    // 如果重放的时候更新了位置，则需要更新位置信息
-                                    if (newLocation != null) {
+                    final AtomicBoolean replayed = new AtomicBoolean(false);
+                    final AtomicInteger counter = new AtomicInteger();
+                    if (ids != null && !ids.isEmpty()) {
+                        for (final Map.Entry<MessageStore, List<Long>> entry : ids.entrySet()) {
+                            final MessageStore msgStore = entry.getKey();
+                            final AddMsgLocation addedLocation = locations.get(msgStore.getDescription());
+                            // 没有添加消息，需要重新添加
+                            final List<Long> idList = entry.getValue();
+                            final List<PutCommand> cmdList = putCmds.get(msgStore);
+                            if (addedLocation == null) {
+                                counter.incrementAndGet();
+                                msgStore.append(idList, cmdList, new AppendCallback() {
+                                    @Override
+                                    public void appendComplete(final Location newLocation) {
                                         replayed.set(true);
+                                        final int checksum =
+                                                CheckSum.crc32(MessageUtils.makeMessageBuffer(idList, cmdList).array());
                                         locations.put(msgStore.getDescription(),
-                                            new AddMsgLocation(newLocation.getOffset(), newLocation.getLength(),
-                                                addedLocation.checksum, addedLocation.storeDesc));
+                                                new AddMsgLocation(newLocation.getOffset(), newLocation.getLength(), checksum,
+                                                        msgStore.getDescription()));
+                                        counter.decrementAndGet();
                                     }
-                                    counter.decrementAndGet();
-                                }
-                            });
+                                });
 
+                            } else {
+                                // 尝试重放
+                                counter.incrementAndGet();
+                                msgStore.replayAppend(addedLocation.getOffset(), addedLocation.getLength(),
+                                        addedLocation.checksum, idList, cmdList, new AppendCallback() {
+                                            @Override
+                                            public void appendComplete(final Location newLocation) {
+                                                // 如果重放的时候更新了位置，则需要更新位置信息
+                                                if (newLocation != null) {
+                                                    replayed.set(true);
+                                                    locations.put(msgStore.getDescription(),
+                                                            new AddMsgLocation(newLocation.getOffset(), newLocation.getLength(),
+                                                                    addedLocation.checksum, addedLocation.storeDesc));
+                                                }
+                                                counter.decrementAndGet();
+                                            }
+                                        });
+
+                            }
                         }
                     }
-                }
 
-                // 如果有重放，覆写位置信息
-                if (replayed.get()) {
-                    // 等待回调完成
-                    while (counter.get() > 0) {
-                        Thread.sleep(50);
+                    // 如果有重放，覆写位置信息
+                    if (replayed.get()) {
+                        // 等待回调完成
+                        while (counter.get() > 0) {
+                            Thread.sleep(50);
+                        }
+                        dataFile.write(dataOffset, AddMsgLocationUtils.encodeLocation(locations));
+                        dataFile.force();
                     }
-                    dataFile.write(dataOffset, AddMsgLocationUtils.encodeLocation(locations));
-                    dataFile.force();
-                }
-                // 返回附加数据大小
-                dataFile.decrement();
-                return attachmentLen;
-            case LOCAL_ROLLBACK:
-            case XA_ROLLBACK:
-                this.transactionStore.replayRollback(xid);
-                dataFile.decrement();
-                break;
-            default:
-                throw new IOException("Invalid journal command type: " + command.getType());
+                    // 返回附加数据大小
+                    dataFile.decrement();
+                    return attachmentLen;
+                case LOCAL_ROLLBACK:
+                case XA_ROLLBACK:
+                    this.transactionStore.replayRollback(xid);
+                    dataFile.decrement();
+                    break;
+                default:
+                    throw new IOException("Invalid journal command type: " + command.getType());
             }
-        }
-        catch (final IOException e) {
+        } catch (final IOException e) {
             log.error("Recovery Failure: Could not replay: " + txCmd + ", reason: " + e, e);
-        }
-        catch (final InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }
         return 0;
 
     }
 
-
-    private int appendMsg(final int number, final long offset, final TxCommand cmd, final DataFile dataFile)
-            throws InvalidProtocolBufferException, IOException {
+    private int appendMsg(final int number, final long offset, final TxCommand cmd, final DataFile dataFile) throws InvalidProtocolBufferException, IOException {
         final AppendMessageCommand appendCmd = AppendMessageCommand.parseFrom(cmd.getCmdContent());
         final PutCommand putCmd =
                 (PutCommand) decoer.decode(IoBuffer.wrap(appendCmd.getPutCommand().toByteArray()), null);
@@ -580,10 +523,9 @@ public class JournalStore implements Closeable {
         return 0;
     }
 
-
     /**
      * 生成一个新的数据文件
-     * 
+     *
      * @throws FileNotFoundException
      */
     protected DataFile newDataFile() throws IOException {
@@ -594,7 +536,6 @@ public class JournalStore implements Closeable {
         log.info("Created a new redo log：" + this.currDataFile);
         return this.currDataFile;
     }
-
 
     private int getFileNumber(final File file) {
         final int number = Integer.parseInt(file.getName().substring(this.FILE_PREFIX.length()));

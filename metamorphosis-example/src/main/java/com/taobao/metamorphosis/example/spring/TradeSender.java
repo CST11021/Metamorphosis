@@ -20,6 +20,11 @@ public class TradeSender {
         final String topic = "test";
         MetaqTemplate template = (MetaqTemplate) context.getBean("metaqTemplate");
 
+        // 通过监听System.in来发送消息
+        sendMessage(topic, template);
+    }
+
+    private static void sendMessage(String topic, MetaqTemplate template) throws Exception {
         final BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
         long tradeId = 0;
@@ -39,7 +44,6 @@ public class TradeSender {
             }
         }
     }
-
 
     private static String readLine(final BufferedReader reader) throws IOException {
         System.out.println("Type a message to send:");

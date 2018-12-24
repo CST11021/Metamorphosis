@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,33 +17,26 @@
  */
 package com.taobao.metamorphosis.server.transaction.store;
 
+import com.taobao.metamorphosis.network.ByteUtils;
+import com.taobao.metamorphosis.server.utils.FileUtils;
+import com.taobao.metamorphosis.utils.JSONUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.taobao.metamorphosis.network.ByteUtils;
-import com.taobao.metamorphosis.server.utils.FileUtils;
-import com.taobao.metamorphosis.utils.JSONUtils;
 
 
 /**
  * checkpoint文件存储
- * 
- * @author boyan(boyan@taobao.com)
+ *
+ * @author boyan(boyan @ taobao.com)
  * @date 2011-8-24
- * 
  */
 public class Checkpoint implements Closeable {
     private final Queue<DataFile> checkpoints;
@@ -100,8 +93,7 @@ public class Checkpoint implements Closeable {
 
         if (this.currCheckpoint == null) {
             this.newCheckpoint();
-        }
-        else {
+        } else {
             this.number.set(this.currCheckpoint.getNumber());
             this.lastLocation = this.readLocation(this.currCheckpoint);
         }
@@ -142,7 +134,7 @@ public class Checkpoint implements Closeable {
 
     /**
      * 返回最近的checkpoint
-     * 
+     *
      * @return
      */
     public JournalLocation getRecentCheckpoint() {
@@ -152,7 +144,7 @@ public class Checkpoint implements Closeable {
 
     /**
      * 新设置checkpoint，如果没有改变则不存入磁盘，否则产生一个新的checkpoint文件
-     * 
+     *
      * @param location
      */
     public synchronized void check(final JournalLocation location) throws Exception {

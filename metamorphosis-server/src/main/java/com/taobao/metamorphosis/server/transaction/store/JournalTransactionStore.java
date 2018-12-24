@@ -271,6 +271,14 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
     }
 
 
+    /**
+     *
+     *
+     * @param dataPath          日志存储路径，默认为：用户目录下的meta目录
+     * @param storeManager      消息存储管理器
+     * @param metaConfig        MQ服务器配置
+     * @throws Exception
+     */
     public JournalTransactionStore(final String dataPath, final MessageStoreManager storeManager, final MetaConfig metaConfig) throws Exception {
         this.journalStore =
                 new JournalStore(dataPath, storeManager, this, metaConfig.getMaxCheckpoints(),
@@ -287,6 +295,7 @@ public class JournalTransactionStore implements TransactionStore, JournalTransac
                 }
             }
         }, metaConfig.getCheckpointInterval(), metaConfig.getCheckpointInterval(), TimeUnit.MILLISECONDS);
+        // 将事务存储引擎注册为MBean
         MetaMBeanServer.registMBean(this, null);
     }
 

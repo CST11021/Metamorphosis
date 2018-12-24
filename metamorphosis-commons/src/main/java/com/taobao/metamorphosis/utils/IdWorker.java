@@ -88,6 +88,8 @@ public class IdWorker {
 
     public static void main(String[] args) {
         IdWorker idWorker = new IdWorker(1000L);
-        System.out.println(idWorker.nextId());
+        for (int i = 0;i < 1000; i++) {
+            System.out.println(idWorker.nextId());
+        }
     }
 }

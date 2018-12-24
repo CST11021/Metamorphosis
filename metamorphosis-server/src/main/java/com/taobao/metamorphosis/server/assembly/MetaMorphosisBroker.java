@@ -176,7 +176,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
             throw new MetamorphosisServerStartupException("start remoting server failed", e);
         }
 
-        // 将当前broker先关信息注册到zk
+        // 将当前broker相关信息注册到zk
         try {
             // 注册broker到zk
             this.brokerZooKeeper.registerBrokerInZk();

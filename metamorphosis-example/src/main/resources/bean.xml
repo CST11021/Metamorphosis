@@ -2,6 +2,7 @@
 <!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
 <beans>
 
+    <!-- ********************* 基础配置 ********************* -->
 
     <!-- 会话工厂 -->
     <bean id="sessionFactory" class="com.taobao.metamorphosis.client.extension.spring.MetaqMessageSessionFactoryBean">
@@ -11,13 +12,13 @@
         <property name="zkSyncTimeMs" value="5000"/>
     </bean>
 
-    <!-- message body converter using java serialization. -->
+    <!-- 消息体转换器：使用java序列化 -->
     <bean id="messageBodyConverter" class="com.taobao.metamorphosis.client.extension.spring.JavaSerializationMessageBodyConverter"/>
 
 
 
 
-
+    <!-- ********************* 生产者配置 ********************* -->
 
     <!-- 发送消息的模板类 -->
     <bean id ="metaqTemplate" class="com.taobao.metamorphosis.client.extension.spring.MetaqTemplate">    
@@ -28,8 +29,9 @@
 
 
 
+    <!-- ********************* 消费者相关配置 ********************* -->
 
-    <!-- 订阅消息 -->
+    <!-- 声明消费者订阅的topic -->
     <bean id = "testTopic" class="com.taobao.metamorphosis.client.extension.spring.MetaqTopic">
         <property name="group" value="testGroup"/>
         <property name="topic" value="test"/>
@@ -37,16 +39,13 @@
         <property name="maxBufferSize" value="16384"/>
     </bean>
 
+    <!--消费者监听器：用于监听topic-->
     <bean id= "messageListener" class="com.taobao.metamorphosis.example.spring.TradeMessageListener">
-        <!-- 处理消息的线程数 -->
+        <!-- 消费者处理消息的线程数 -->
         <property name="processThreads" value="10"/>
     </bean>
 
-
-
-
-
-    <!-- listener container to subscribe topics -->
+    <!-- 用于订阅topic的侦听器容器 -->
     <bean id ="listenerContainer" class="com.taobao.metamorphosis.client.extension.spring.MessageListenerContainer"> 
          <property name="messageSessionFactory" ref="sessionFactory"/>
          <property name="messageBodyConverter" ref="messageBodyConverter"/>
