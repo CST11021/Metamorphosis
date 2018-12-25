@@ -37,7 +37,6 @@ public class ConsumerFilterManager implements Service {
     public ConsumerFilterManager() {
 
     }
-
     public ConsumerFilterManager(MetaConfig metaConfig) throws Exception {
         this.metaConfig = metaConfig;
         if (!StringUtils.isBlank(metaConfig.getAppClassPath())) {
@@ -60,13 +59,7 @@ public class ConsumerFilterManager implements Service {
     }
 
 
-    ClassLoader getFilterClassLoader() {
-        return this.filterClassLoader;
-    }
 
-    void setFilterClassLoader(ClassLoader filterClassLoader) {
-        this.filterClassLoader = filterClassLoader;
-    }
 
     public ConsumerMessageFilter findFilter(final String topic, final String group) {
         if (this.filterClassLoader == null) {
@@ -136,6 +129,13 @@ public class ConsumerFilterManager implements Service {
         this.filterClassLoader = null;
         this.filters.clear();
 
+    }
+
+    ClassLoader getFilterClassLoader() {
+        return this.filterClassLoader;
+    }
+    void setFilterClassLoader(ClassLoader filterClassLoader) {
+        this.filterClassLoader = filterClassLoader;
     }
 
 }

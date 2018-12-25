@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * 服务器端配置
+ * MateQ服务器端配置
  *
  * @author boyan
  * @author wuhua
@@ -61,17 +61,31 @@ public class MetaConfig extends Config implements Serializable, MetaConfigMBean 
     private int serverPort = 8123;
     /** 控制板端口 */
     private int dashboardHttpPort = 8120;
-    /** 表示MQ服务器所在的机器 */
+    /** 表示MQ服务器所在的机器, 如果没有配置，默认为本地IP地址 */
     private String hostName;
-    /** topic分区数，默认为1 */
+    /**
+     * topic分区数，每个topic在MQ服务器上可以有多个分区，当生产者想MQ服务器发送消息时，如果客户端没有指定的分区（客户端没有指定分区时，
+     * 请求中的分区索引默认是-1），则服务器会从可用（分区是可以被关闭的）的分区中，随机选择一个分区来保存消息
+     */
     private int numPartitions = 1;
     /**
      * 每隔多少条消息做一次磁盘同步，强制将更改的数据刷入磁盘。默认为1000条。也就是说在掉电情况下，最多允许丢失1000条消息。
-     * 可设置为0，强制每次写入立即同步到磁盘。在设置为0的情况下，服务器会自动启用group commit技术，将多个消息合并成一次再同步来提升IO性能。
+     * 可设置为1，强制每次写入立即同步到磁盘。在<=0的情况下，服务器会自动启用group commit技术，将多个消息合并成一次再同步来提升IO性能。
      * 经过测试，group commit情况下消息发送者的TPS没有受到太大影响，但是服务端的负载会上升很多。
+     *
+     * 判断是否启用异步写入：
+     * 1、如果设置为unflushThreshold <=0的数字，则认为启动异步写入；
+     * 2、如果设置为unflushThreshold = 1，则是同步写入，即每写入一个消息都会提交到磁盘；
+     * 3、如果unflushThreshold > 0，则是依赖组提交或者是超时提交
+     *
+     * 客户端每次put消息到MQ服务器时，服务器都判断是否要将该消息立即写入磁盘，判断规则如下：
+     * 如果这个topic的消息的最后写入磁盘的时间 > 配置时间（unflushInterval） 或者 这个topic还没写入磁盘的消息数量 > 配置的数量（unflushThreshold），则立即写入磁盘
      */
     private int unflushThreshold = 1000;
-    /** 间隔多少毫秒定期做一次磁盘sync（将消息保存到磁盘）,默认是10秒。也就是说在服务器掉电情况下，最多丢失10秒内发送过来的消息。不可设置为小于或者等于0。*/
+    /**
+     * 间隔多少毫秒定期做一次磁盘sync（将消息保存到磁盘）,默认是10秒。也就是说在服务器掉电情况下，最多丢失10秒内发送过来的消息。不可设置为小于或者等于0。
+     * MessageStoreManager#FlushRunner会定期将消息管理器中的消息flush到磁盘
+     */
     private int unflushInterval = 10000;
     /** 表示单个消息数据文件的最大大小，默认为1G。默认无需修改此选项 */
     private int maxSegmentSize = 1 * 1024 * 1024 * 1024;

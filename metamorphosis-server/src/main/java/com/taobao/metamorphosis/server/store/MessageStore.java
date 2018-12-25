@@ -233,6 +233,8 @@ public class MessageStore extends Thread implements Closeable {
     /** 表示异步消息加载时的写入队列（以异步的方式从分区目录中读取消息文件） */
     private final LinkedTransferQueue<WriteRequest> bufferQueue = new LinkedTransferQueue<WriteRequest>();
 
+    private volatile String desc;
+
     // -----
     // 构造器
     // -----
@@ -287,7 +289,7 @@ public class MessageStore extends Thread implements Closeable {
         }
     }
 
-    private volatile String desc;
+
 
     public String getDescription() {
         if (this.desc == null) {
@@ -341,6 +343,9 @@ public class MessageStore extends Thread implements Closeable {
         }
     }
 
+    /**
+     * 执行删除策略的任务
+     */
     public void runDeletePolicy() {
         if (this.deletePolicy == null) {
             return;
@@ -474,7 +479,8 @@ public class MessageStore extends Thread implements Closeable {
     private final ReentrantLock writeLock = new ReentrantLock();
 
     /**
-     * Append单个消息
+     * 将消息保存到消息存储管理器
+     *
      * @param msgId
      * @param req
      * @param cb
@@ -753,7 +759,14 @@ public class MessageStore extends Thread implements Closeable {
         return last.start + last.size();
     }
 
+    /**
+     * 根据添加的消息数量再决定是否要立即写入磁盘
+     *
+     * @param numOfMessages
+     * @throws IOException
+     */
     private void mayBeFlush(final int numOfMessages) throws IOException {
+        // 如果这个topic的消息的最后写入磁盘的时间>配置时间 或者 这个topic还没写入磁盘的消息数量>配置的数量，则立即写入磁盘
         if (this.unflushed.addAndGet(numOfMessages) > this.metaConfig.getTopicConfig(this.topic).getUnflushThreshold()
                 || SystemTimer.currentTimeMillis() - this.lastFlushTime.get() > this.metaConfig.getTopicConfig(
                     this.topic).getUnflushInterval()) {
@@ -774,7 +787,8 @@ public class MessageStore extends Thread implements Closeable {
     }
 
     /**
-     * 提交到磁盘
+     * 将消息管理器中的消息flush到磁盘
+     *
      * @throws IOException
      */
     public void flush() throws IOException {
@@ -787,10 +801,17 @@ public class MessageStore extends Thread implements Closeable {
         }
     }
 
+    /**
+     * 将消息管理器中的消息flush到磁盘
+     *
+     * @throws IOException
+     */
     private void flush0() throws IOException {
+        // 如果是使用异步的批量提交，则停止flush
         if (this.useGroupCommit()) {
             return;
         }
+
         // 由于只有最后一个segment是可变，即可写入消息的，所以只需要提交最后一个segment的消息
         this.segments.last().fileMessageSet.flush();
         this.unflushed.set(0);

@@ -66,6 +66,7 @@ public class MessageStoreManager implements Service {
      * 将消息保存到磁盘的任务线程
      */
     private final class FlushRunner implements Runnable {
+        /** 间隔多少毫秒定期将消息保存到磁盘, 默认配置是10秒。也就是说在服务器掉电情况下，最多丢失10秒内发送过来的消息。*/
         int unflushInterval;
 
         FlushRunner(final int unflushInterval) {
@@ -76,10 +77,12 @@ public class MessageStoreManager implements Service {
         public void run() {
             for (final ConcurrentHashMap<Integer, MessageStore> map : MessageStoreManager.this.stores.values()) {
                 for (final MessageStore store : map.values()) {
+                    // 判断这个topic的将消息flush到磁盘的时间间隔是否为定时任务执行的时间间隔
                     if (this.unflushInterval != MessageStoreManager.this.metaConfig.getTopicConfig(store.getTopic())
                             .getUnflushInterval()) {
                         continue;
                     }
+
                     try {
                         store.flush();
                     }

@@ -250,12 +250,13 @@ public class BrokerCommandProcessor implements CommandProcessor {
 
         final String partitionString = this.metaConfig.getBrokerId() + "-" + request.getPartition();
 
+        // 记录统计管理器
         this.statsManager.statsPut(request.getTopic(), partitionString, 1);
         this.statsManager.statsMessageSize(request.getTopic(), request.getData().length);
         int partition = -1;
 
         try {
-            // 如果分区被关闭则直接返回
+            // 如果客户端指定的分区被关闭则直接返回Forbidden状态
             if (this.metaConfig.isClosedPartition(request.getTopic(), request.getPartition())) {
                 log.warn("Can not put message to partition " + request.getPartition() + " for topic="
                         + request.getTopic() + ",it was closed");
@@ -294,6 +295,7 @@ public class BrokerCommandProcessor implements CommandProcessor {
 
     protected int getPartition(final PutCommand request) {
         int partition = request.getPartition();
+        // 如果客户端的分区索引是-1，则MQ服务器会随机选择一个分区
         if (partition == Partition.RandomPartiton.getPartition()) {
             partition = this.storeManager.chooseRandomPartition(request.getTopic());
         }

@@ -18,7 +18,7 @@
 package com.taobao.metamorphosis.server.utils;
 
 /**
- * Meta config mbean
+ * 表示暴露到java MBean控制台的方法
  * 
  * @author boyan
  * @Date 2011-7-14

@@ -47,6 +47,8 @@ public class DeleteJob implements Job {
         final JobDataMap dataMap = context.getJobDetail().getJobDataMap();
         final Set<String> topics = (Set<String>) dataMap.get(TOPICS);
         final MessageStoreManager storeManager = (MessageStoreManager) dataMap.get(STORE_MGR);
+
+        // 遍历每个所有topic中的每个消息存储器
         for (final String topic : topics) {
             final Collection<MessageStore> msgStores = storeManager.getMessageStoresByTopic(topic);
             if (msgStores != null) {
