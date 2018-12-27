@@ -33,12 +33,32 @@ import com.taobao.metamorphosis.server.network.SessionContext;
  */
 public interface MessageSet {
 
+    /**
+     * 切片
+     *
+     * @param offset    起始索引
+     * @param limit     切片大小
+     * @return
+     * @throws IOException
+     */
     public MessageSet slice(long offset, long limit) throws IOException;
 
     public void write(GetCommand getCommand, SessionContext ctx);
 
+    /**
+     * 将当个消息的数据追加到消息结合中
+     *
+     * @param buff      表示一个消息数据（这里的消息数据不单单是消息体的数据）
+     * @return
+     * @throws IOException
+     */
     public long append(ByteBuffer buff) throws IOException;
 
+    /**
+     * 将消息写到磁盘
+     *
+     * @throws IOException
+     */
     public void flush() throws IOException;
 
     public void read(final ByteBuffer bf, long offset) throws IOException;

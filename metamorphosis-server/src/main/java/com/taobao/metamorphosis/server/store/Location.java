@@ -18,14 +18,17 @@
 package com.taobao.metamorphosis.server.store;
 
 /**
- * 数据存入的位置
+ * 用于描述消息存入消息存储器（MessageStore）的位置
  * 
  * @author boyan(boyan@taobao.com)
  * @date 2011-8-22
  * 
  */
 public class Location {
+
+    /** 表示消息写入{@link MessageStore#segments}前，这个segments的大小，也就是消息写入的索引 */
     protected final long offset;
+    /** 表示写入的消息的数据大小，该消息数据不单单是消息体的数据 */
     protected final int length;
 
     public static Location InvalidLocaltion = new Location(-1, -1);

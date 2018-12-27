@@ -55,7 +55,7 @@ public class MetaConfig extends Config implements Serializable, MetaConfigMBean 
 
     /** 服务器集群中唯一的id，必须为整型0-1024之间。对服务器集群的定义是使用同一个zookeeper并且在zookeeper上的root path相同，具体参见zookeeper配置 */
     private int brokerId = 0;
-    /** 用户目录下的meta目录, 表示消息存储在MQ服务器上的磁盘目录 */
+    /** 用户目录下的meta目录, 表示消息存储在MQ服务器上的磁盘目录, 消息存储的目录 = dataPath + File.separator + topic + "-" + partition */
     private String dataPath = System.getProperty("user.home") + File.separator + "meta";
     /** MQ默认的端口 */
     private int serverPort = 8123;

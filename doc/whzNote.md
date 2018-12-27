@@ -97,3 +97,29 @@ metamorphosis-example里面有详细的使用例子，包括：
 2、消息归档策略
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+消息put到MQ服务器时，如果事先没有配置topic，则该topic是动态的topic，这时也会注册到zk
+
+
+
+
+
+
+
+
+
+
+
+

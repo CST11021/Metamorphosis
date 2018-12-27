@@ -116,6 +116,7 @@ public class MessageStoreManager implements Service {
     /** 表示用于定时删除消息文件的任务执行器 */
     private Scheduler scheduler;
 
+    /** 用于随机选择消息保存的分区的随机数生成器 */
     private final Random random = new Random();
 
     public MessageStoreManager(final MetaConfig metaConfig, final DeletePolicy deletePolicy) {
@@ -152,6 +153,55 @@ public class MessageStoreManager implements Service {
         // 开始执行将消息保存到磁盘的定时任务
         this.scheduleFlushTask();
 
+    }
+
+    @Override
+    public void init() {
+        // 加载已有数据并校验
+        try {
+            this.loadMessageStores(this.metaConfig);
+        }
+        catch (final IOException e) {
+            log.error("load message stores failed", e);
+            throw new MetamorphosisServerStartupException("Initilize message store manager failed", e);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // 启动定时删除消息的任务执行器
+        this.startScheduleDeleteJobs();
+    }
+
+    @Override
+    public void dispose() {
+        this.scheduledExecutorService.shutdown();
+        if (this.scheduler != null) {
+            try {
+                this.scheduler.shutdown(true);
+            }
+            catch (final SchedulerException e) {
+                log.error("Shutdown quartz scheduler failed", e);
+            }
+        }
+        for (final ConcurrentHashMap<Integer/* partition */, MessageStore> subMap : MessageStoreManager.this.stores
+                .values()) {
+            if (subMap != null) {
+                for (final MessageStore msgStore : subMap.values()) {
+                    if (msgStore != null) {
+                        try {
+                            // 关闭分区实例
+                            msgStore.close();
+                        }
+                        catch (final Throwable e) {
+                            log.error("Try to run close  " + msgStore.getTopic() + "," + msgStore.getPartition()
+                                    + " failed", e);
+                        }
+                    }
+                }
+            }
+        }
+        this.stores.clear();
     }
 
     /**
@@ -497,55 +547,6 @@ public class MessageStoreManager implements Service {
     public int getNumPartitions(final String topic) {
         final TopicConfig topicConfig = this.metaConfig.getTopicConfig(topic);
         return topicConfig != null ? topicConfig.getNumPartitions() : this.metaConfig.getNumPartitions();
-    }
-
-    @Override
-    public void dispose() {
-        this.scheduledExecutorService.shutdown();
-        if (this.scheduler != null) {
-            try {
-                this.scheduler.shutdown(true);
-            }
-            catch (final SchedulerException e) {
-                log.error("Shutdown quartz scheduler failed", e);
-            }
-        }
-        for (final ConcurrentHashMap<Integer/* partition */, MessageStore> subMap : MessageStoreManager.this.stores
-                .values()) {
-            if (subMap != null) {
-                for (final MessageStore msgStore : subMap.values()) {
-                    if (msgStore != null) {
-                        try {
-                            // 关闭分区实例
-                            msgStore.close();
-                        }
-                        catch (final Throwable e) {
-                            log.error("Try to run close  " + msgStore.getTopic() + "," + msgStore.getPartition()
-                                + " failed", e);
-                        }
-                    }
-                }
-            }
-        }
-        this.stores.clear();
-    }
-
-    @Override
-    public void init() {
-        // 加载已有数据并校验
-        try {
-            this.loadMessageStores(this.metaConfig);
-        }
-        catch (final IOException e) {
-            log.error("load message stores failed", e);
-            throw new MetamorphosisServerStartupException("Initilize message store manager failed", e);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        // 启动定时删除消息的任务执行器
-        this.startScheduleDeleteJobs();
     }
 
     /**

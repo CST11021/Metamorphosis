@@ -273,6 +273,7 @@ public class BrokerCommandProcessor implements CommandProcessor {
                 return;
             }
 
+            // 获取消息要保存的分区索引
             partition = this.getPartition(request);
             final MessageStore store = this.storeManager.getOrCreateMessageStore(request.getTopic(), partition);
             // 如果是动态添加的topic，需要注册到zk
@@ -293,6 +294,12 @@ public class BrokerCommandProcessor implements CommandProcessor {
         }
     }
 
+    /**
+     * 获取该Put请求要将消息保存在哪个分区，如果没有请求没有指定存储分区，这从可用的分区中随机选取一个
+     *
+     * @param request
+     * @return
+     */
     protected int getPartition(final PutCommand request) {
         int partition = request.getPartition();
         // 如果客户端的分区索引是-1，则MQ服务器会随机选择一个分区

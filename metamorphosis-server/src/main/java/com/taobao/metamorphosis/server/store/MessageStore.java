@@ -78,11 +78,11 @@ public class MessageStore extends Thread implements Closeable {
      * 消息是有先后顺序的，必须将消息添加到最后一个Segment上。
      */
     static class Segment {
-        // 该片段代表的offset（这里可以理解为消息的id）
+        /** 该片段代表的offset，也就是这个消息文件的文件名，不带.mate后缀（这里可以理解为消息的id，但是实际上并不是消息的id）*/
         final long start;
-        // 对应保存消息的文件
+        /** 表示保存到磁盘的消息文件，一个消息对应一个文件 */
         final File file;
-        // 该片段的消息集合
+        /** 该片段的消息集合 */
         FileMessageSet fileMessageSet;
 
         public Segment(final long start, final File file) {
@@ -108,15 +108,15 @@ public class MessageStore extends Thread implements Closeable {
             }
         }
 
-        // 获取片段大小
+        /** 获取片段大小 */
         public long size() {
             return this.fileMessageSet.highWaterMark();
         }
 
-        // 判断offset是否在本文件内
+        /** 判断offset是否在本文件内 */
         public boolean contains(final long offset) {
-            if (this.size() == 0 && offset == this.start || this.size() > 0 && offset >= this.start
-                    && offset <= this.start + this.size() - 1) {
+            if (this.size() == 0 && offset == this.start
+                    || this.size() > 0 && offset >= this.start && offset <= this.start + this.size() - 1) {
                 return true;
             }
             else {
@@ -144,6 +144,11 @@ public class MessageStore extends Thread implements Closeable {
             this.contents.set(new Segment[0]);
         }
 
+        /**
+         * 将这个Segment追加到SegmentList
+         *
+         * @param segment
+         */
         public void append(final Segment segment) {
             while (true) {
                 final Segment[] curr = this.contents.get();
@@ -156,6 +161,11 @@ public class MessageStore extends Thread implements Closeable {
             }
         }
 
+        /**
+         * 从SegmentList删除指定的Segment元素
+         *
+         * @param segment
+         */
         public void delete(final Segment segment) {
             while (true) {
                 final Segment[] curr = this.contents.get();
@@ -183,10 +193,20 @@ public class MessageStore extends Thread implements Closeable {
             }
         }
 
+        /**
+         * 获取SegmentList中的元素内容
+         *
+         * @return
+         */
         public Segment[] view() {
             return this.contents.get();
         }
 
+        /**
+         * 获取最后一个
+         *
+         * @return
+         */
         public Segment last() {
             final Segment[] copy = this.view();
             if (copy.length > 0) {
@@ -195,6 +215,11 @@ public class MessageStore extends Thread implements Closeable {
             return null;
         }
 
+        /**
+         * 获取第一个
+         *
+         * @return
+         */
         public Segment first() {
             final Segment[] copy = this.view();
             if (copy.length > 0) {
@@ -207,10 +232,11 @@ public class MessageStore extends Thread implements Closeable {
     private static final int ONE_M_BYTES = 512 * 1024;
     /** 表示存储消息文件的后缀 */
     private static final String FILE_SUFFIX = ".meta";
+    /** 表示分区是否被关闭 */
     private volatile boolean closed = false;
-    /** 从分区目录中加载消息后，会将消息保存到该列表中 */
+    /** 从分区目录中加载消息后，会将消息保存到该列表中（初始化消息存储器时，会将磁盘的消息文件也加载进来） */
     private SegmentList segments;
-    /** 表示该消息存在本地磁盘的分区目录 */
+    /** 表示该消息存在本地磁盘的分区目录，分区目录下有很多.meta的消息文件 */
     private final File partitionDir;
     /** 表示消息归属的topic */
     private final String topic;
@@ -222,7 +248,7 @@ public class MessageStore extends Thread implements Closeable {
     private final DeletePolicy deletePolicy;
 
     private final AtomicInteger unflushed;
-    /** 表示从分区目录加载消息的读取时间 */
+    /** 表示最后一次flush消息到磁盘的时间 */
     private final AtomicLong lastFlushTime;
 
     /** 传输给消费者的最大数据大小,默认为1M */
@@ -230,14 +256,12 @@ public class MessageStore extends Thread implements Closeable {
     /** 如果配置了异步写入，则启动异步写入线程（如果unflushThreshold<= 0，则认为启动异步写入的方式） */
     int unflushThreshold = 1000;
 
-    /** 表示异步消息加载时的写入队列（以异步的方式从分区目录中读取消息文件） */
+    /** 表示异步消息加载时的写入队列（以异步的方式从分区目录中读取消息文件），客户端用异步的方式发消息时，会将消息先保存在该队列，后续再以异步的方式写入磁盘 */
     private final LinkedTransferQueue<WriteRequest> bufferQueue = new LinkedTransferQueue<WriteRequest>();
 
     private volatile String desc;
 
-    // -----
-    // 构造器
-    // -----
+
     public MessageStore(final String topic, final int partition, final MetaConfig metaConfig, final DeletePolicy deletePolicy) throws IOException {
         this(topic, partition, metaConfig, deletePolicy, 0);
     }
@@ -289,282 +313,9 @@ public class MessageStore extends Thread implements Closeable {
         }
     }
 
-
-
-    public String getDescription() {
-        if (this.desc == null) {
-            this.desc = this.topic + "-" + this.partition;
-        }
-        return this.desc;
-    }
-
-    public long getMessageCount() {
-        long sum = 0;
-        for (final Segment seg : this.segments.view()) {
-            sum += seg.fileMessageSet.getMessageCount();
-        }
-        return sum;
-    }
-
-    public long getSizeInBytes() {
-        long sum = 0;
-        for (final Segment seg : this.segments.view()) {
-            sum += seg.fileMessageSet.getSizeInBytes();
-        }
-        return sum;
-    }
-
-    SegmentList getSegments() {
-        return this.segments;
-    }
-
-    File getPartitionDir() {
-        return this.partitionDir;
-    }
-
     /**
-     * 关闭写入
-     * @throws IOException
+     * 该线程方法用于将消息存储管理器中的消息保存到磁盘
      */
-    @Override
-    public void close() throws IOException {
-        this.closed = true;
-        this.interrupt();
-        // 等待子线程完成写完异步队列中剩余未写的消息
-        try {
-            this.join(500);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        // 关闭segment，保证内容都已经提交到磁盘
-        for (final Segment segment : this.segments.view()) {
-            segment.fileMessageSet.close();
-        }
-    }
-
-    /**
-     * 执行删除策略的任务
-     */
-    public void runDeletePolicy() {
-        if (this.deletePolicy == null) {
-            return;
-        }
-        final long start = System.currentTimeMillis();
-        final Segment[] view = this.segments.view();
-        for (final Segment segment : view) {
-            // 非可变并且可删除
-            if (!segment.fileMessageSet.isMutable() && this.deletePolicy.canDelete(segment.file, start)) {
-                log.info("Deleting file " + segment.file.getAbsolutePath() + " with policy " + this.deletePolicy.name());
-                this.segments.delete(segment);
-                try {
-                    segment.fileMessageSet.close();
-                    this.deletePolicy.process(segment.file);
-                }
-                catch (final IOException e) {
-                    log.error("关闭并删除file message set失败", e);
-                }
-
-            }
-        }
-
-    }
-
-    /**
-     * 从存储消息的分区目录中加载消息，offsetIfCreate 表示加载消息时，文件的起始偏移量
-     * @param offsetIfCreate 表示消息的偏移量
-     * @throws IOException
-     */
-    private void loadSegments(final long offsetIfCreate) throws IOException {
-        // 表示该分区下的所有消息
-        final List<Segment> accum = new ArrayList<Segment>();
-
-        // 1、获取该分区下的消息文件列表，并加载到accum列表
-        final File[] ls = this.partitionDir.listFiles();
-        if (ls != null) {
-            // 遍历分区目录下的所有.meta后缀的数据文件，将所有文件都变为不可变的文件
-            for (final File file : ls) {
-                // 判断是否为存储消息的文件，存储消息的文件都.meta
-                if (file.isFile() && file.toString().endsWith(FILE_SUFFIX)) {
-                    if (!file.canRead()) {
-                        throw new IOException("Could not read file " + file);
-                    }
-                    final String filename = file.getName();
-                    // 获取分区文件名，然后转为Long类型
-                    final long start = Long.parseLong(filename.substring(0, filename.length() - FILE_SUFFIX.length()));
-                    // 先作为不可变的加载进来
-                    accum.add(new Segment(start, file, false));
-                }
-            }
-        }
-
-        // 2、对accum列表进行校验和排序
-        if (accum.size() == 0) {
-            // 没有可用的文件，创建一个，索引从offsetIfCreate开始
-            final File newFile = new File(this.partitionDir, this.nameFromOffset(offsetIfCreate));
-            accum.add(new Segment(offsetIfCreate, newFile));
-        }
-        else {
-            // 至少有一个文件，校验并按照start升序排序
-            Collections.sort(accum, new Comparator<Segment>() {
-                @Override
-                public int compare(final Segment o1, final Segment o2) {
-                    if (o1.start == o2.start) {
-                        return 0;
-                    }
-                    else if (o1.start > o2.start) {
-                        return 1;
-                    }
-                    else {
-                        return -1;
-                    }
-                }
-            });
-            // 校验分区目录下的消息文件，保证消息顺序存储
-            this.validateSegments(accum);
-            // 最后一个文件修改为可变
-            final Segment last = accum.remove(accum.size() - 1);
-            last.fileMessageSet.close();
-            log.info("Loading the last segment in mutable mode and running recover on " + last.file.getAbsolutePath());
-            final Segment mutable = new Segment(last.start, last.file);
-            accum.add(mutable);
-            log.info("Loaded " + accum.size() + " segments...");
-        }
-
-        // 3、校验完后封装为一个 SegmentList 对象并赋值
-        // 多个segmentg通过SegmentList组织起来，SegmentList能保证在并发访问下的删除、添加保持一致性，SegmentList没有采用java的关键字
-        // synchronized进行同步，而是使用类似cvs原语的方式进行同步访问（因为绝大部分情况下并没有并发问题，可以极大的提高效率）
-        this.segments = new SegmentList(accum.toArray(new Segment[accum.size()]));
-    }
-
-    /**
-     * 校验分区目录下的消息文件，保证消息顺序存储
-     * @param segments
-     */
-    private void validateSegments(final List<Segment> segments) {
-        // 验证按升序排序的Segment是否前后衔接，确保文件没有被篡改和破坏(这里的验证是比较简单的验证，消息内容的验证在FileMessageSet中，
-        // 通过比较checksum进行验证，在前面的篇幅中介绍过，这两种方式结合可以在范围上从大到小进行验证，保证内容基本不被破坏和篡改)
-        this.writeLock.lock();
-        try {
-            for (int i = 0; i < segments.size() - 1; i++) {
-                final Segment curr = segments.get(i);
-                final Segment next = segments.get(i + 1);
-                if (curr.start + curr.size() != next.start) {
-                    throw new IllegalStateException("The following segments don't validate: "
-                            + curr.file.getAbsolutePath() + ", " + next.file.getAbsolutePath());
-                }
-            }
-        }
-        finally {
-            this.writeLock.unlock();
-        }
-    }
-
-    /**
-     * 检查该目录是否为文件夹
-     * @param dir
-     */
-    private void checkDir(final File dir) {
-        if (!dir.exists()) {
-            if (!dir.mkdir()) {
-                throw new RuntimeException("Create directory failed:" + dir.getAbsolutePath());
-            }
-        }
-        if (!dir.isDirectory()) {
-            throw new RuntimeException("Path is not a directory:" + dir.getAbsolutePath());
-        }
-    }
-
-    /** 校验分区目录下的消息文件时，对其进行加锁 */
-    private final ReentrantLock writeLock = new ReentrantLock();
-
-    /**
-     * 将消息保存到消息存储管理器
-     *
-     * @param msgId
-     * @param req
-     * @param cb
-     */
-    public void append(final long msgId, final PutCommand req, final AppendCallback cb) {
-        this.appendBuffer(MessageUtils.makeMessageBuffer(msgId, req), cb);
-    }
-
-    /**
-     * 这里比较好的设计是采用回调的方式来，对于异步写入实现就变得非常容易，AppendCallback返回的是消息成功写入的位置Location(起始位置和消
-     * 息长度)，该Location并不是相对于当前Segment的开始位置0，而是相对于当前Segment给定的值(对应文件命名值即为给定的值)，以后查询消息的
-     * 时候直接使用该位置就可以快速定位到消息写入到哪个文件，这也就是为什么文件名的命名采用前后衔接的方式，这也通过2分查找可以快速定位消息的位置
-     * @param buffer
-     * @param cb
-     */
-    private void appendBuffer(final ByteBuffer buffer, final AppendCallback cb) {
-        if (this.closed) {
-            throw new IllegalStateException("Closed MessageStore.");
-        }
-
-        // 如果启动异步写入并且消息长度小于一次提交的最大值maxTransferSize，则将该消息放入异步写入队列
-        if (this.useGroupCommit() && buffer.remaining() < this.maxTransferSize) {
-            this.bufferQueue.offer(new WriteRequest(buffer, cb));
-        }
-        else {
-            Location location = null;
-            final int remainning = buffer.remaining();
-            this.writeLock.lock();
-            try {
-                final Segment cur = this.segments.last();
-                final long offset = cur.start + cur.fileMessageSet.append(buffer);
-                this.mayBeFlush(1);
-                this.mayBeRoll();
-                location = Location.create(offset, remainning);
-            }
-            catch (final IOException e) {
-                log.error("Append file failed", e);
-                location = Location.InvalidLocaltion;
-            }
-            finally {
-                this.writeLock.unlock();
-                if (cb != null) {
-                    // 调用回调方法，数据写入文件缓存
-                    cb.appendComplete(location);
-                }
-            }
-        }
-    }
-
-    /**
-     * 消息文件异步写入内存的包装类
-     */
-    private static class WriteRequest {
-        public final ByteBuffer buf;
-        public final AppendCallback cb;
-        public Location result;
-
-        public WriteRequest(final ByteBuffer buf, final AppendCallback cb) {
-            super();
-            this.buf = buf;
-            this.cb = cb;
-        }
-    }
-
-    private void notifyCallback(AppendCallback callback, Location location) {
-        try {
-            callback.appendComplete(location);
-        }
-        catch (Exception e) {
-            log.error("Call AppendCallback failed", e);
-        }
-    }
-
-    /**
-     * 判断是否启用异步写入：
-     * 1、如果设置为unflushThreshold <=0的数字，则认为启动异步写入；
-     * 2、如果设置为unflushThreshold =1，则是同步写入，即每写入一个消息都会提交到磁盘；
-     * 3、如果unflushThreshold>0，则是依赖组提交或者是超时提交
-     * @return
-     */
-    private boolean useGroupCommit() {
-        return this.unflushThreshold <= 0;
-    }
-
     @Override
     public void run() {
         // 等待force的队列
@@ -661,6 +412,291 @@ public class MessageStore extends Thread implements Closeable {
 
     }
 
+
+
+    public String getDescription() {
+        if (this.desc == null) {
+            this.desc = this.topic + "-" + this.partition;
+        }
+        return this.desc;
+    }
+
+    public long getMessageCount() {
+        long sum = 0;
+        for (final Segment seg : this.segments.view()) {
+            sum += seg.fileMessageSet.getMessageCount();
+        }
+        return sum;
+    }
+
+    public long getSizeInBytes() {
+        long sum = 0;
+        for (final Segment seg : this.segments.view()) {
+            sum += seg.fileMessageSet.getSizeInBytes();
+        }
+        return sum;
+    }
+
+    SegmentList getSegments() {
+        return this.segments;
+    }
+
+    File getPartitionDir() {
+        return this.partitionDir;
+    }
+
+    /**
+     * 关闭写入
+     * @throws IOException
+     */
+    @Override
+    public void close() throws IOException {
+        this.closed = true;
+        this.interrupt();
+        // 等待子线程完成写完异步队列中剩余未写的消息
+        try {
+            this.join(500);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        // 关闭segment，保证内容都已经提交到磁盘
+        for (final Segment segment : this.segments.view()) {
+            segment.fileMessageSet.close();
+        }
+    }
+
+    /**
+     * 执行删除策略的任务
+     */
+    public void runDeletePolicy() {
+        if (this.deletePolicy == null) {
+            return;
+        }
+        final long start = System.currentTimeMillis();
+        final Segment[] view = this.segments.view();
+        for (final Segment segment : view) {
+            // 非可变并且可删除
+            if (!segment.fileMessageSet.isMutable() && this.deletePolicy.canDelete(segment.file, start)) {
+                log.info("Deleting file " + segment.file.getAbsolutePath() + " with policy " + this.deletePolicy.name());
+                this.segments.delete(segment);
+                try {
+                    segment.fileMessageSet.close();
+                    this.deletePolicy.process(segment.file);
+                }
+                catch (final IOException e) {
+                    log.error("关闭并删除file message set失败", e);
+                }
+
+            }
+        }
+
+    }
+
+    /**
+     * 从存储消息的分区目录中加载消息，offsetIfCreate 表示加载消息时，文件的起始偏移量
+     * @param offsetIfCreate 表示消息的偏移量
+     * @throws IOException
+     */
+    private void loadSegments(final long offsetIfCreate) throws IOException {
+        // 表示该分区下的所有消息
+        final List<Segment> accum = new ArrayList<Segment>();
+
+        // 1、获取该分区下的消息文件列表（.meta文件），并加载到accum列表
+        final File[] ls = this.partitionDir.listFiles();
+        if (ls != null) {
+            // 遍历分区目录下的所有.meta后缀的数据文件，将所有文件都变为不可变的文件
+            for (final File file : ls) {
+                // 判断是否为存储消息的文件，存储消息的文件都是.meta文件
+                if (file.isFile() && file.toString().endsWith(FILE_SUFFIX)) {
+                    if (!file.canRead()) {
+                        throw new IOException("Could not read file " + file);
+                    }
+                    final String filename = file.getName();
+                    // 获取消息文件的文件名，然后转为Long类型
+                    final long start = Long.parseLong(filename.substring(0, filename.length() - FILE_SUFFIX.length()));
+                    // 先作为不可变的加载进来
+                    accum.add(new Segment(start, file, false));
+                }
+            }
+        }
+
+        // 2、对accum列表进行校验和排序
+        if (accum.size() == 0) {
+            // 没有可用的文件，创建一个，索引从offsetIfCreate开始
+            final File newFile = new File(this.partitionDir, this.nameFromOffset(offsetIfCreate));
+            accum.add(new Segment(offsetIfCreate, newFile));
+        }
+        else {
+            // 至少有一个文件，校验并按照start升序排序
+            Collections.sort(accum, new Comparator<Segment>() {
+                @Override
+                public int compare(final Segment o1, final Segment o2) {
+                    if (o1.start == o2.start) {
+                        return 0;
+                    }
+                    else if (o1.start > o2.start) {
+                        return 1;
+                    }
+                    else {
+                        return -1;
+                    }
+                }
+            });
+            // 校验分区目录下的消息文件，保证消息顺序存储
+            this.validateSegments(accum);
+            // 最后一个文件修改为可变
+            final Segment last = accum.remove(accum.size() - 1);
+            // 关闭消息文件的channel
+            last.fileMessageSet.close();
+            log.info("Loading the last segment in mutable mode and running recover on " + last.file.getAbsolutePath());
+            final Segment mutable = new Segment(last.start, last.file);
+            accum.add(mutable);
+            log.info("Loaded " + accum.size() + " segments...");
+        }
+
+        // 3、校验完后封装为一个 SegmentList 对象并赋值
+        // 多个segmentg通过SegmentList组织起来，SegmentList能保证在并发访问下的删除、添加保持一致性，SegmentList没有采用java的关键字
+        // synchronized进行同步，而是使用类似cvs原语的方式进行同步访问（因为绝大部分情况下并没有并发问题，可以极大的提高效率）
+        this.segments = new SegmentList(accum.toArray(new Segment[accum.size()]));
+    }
+
+    /**
+     * 校验分区目录下的消息文件，保证消息顺序存储
+     * @param segments
+     */
+    private void validateSegments(final List<Segment> segments) {
+        // 验证按升序排序的Segment是否前后衔接，确保文件没有被篡改和破坏(这里的验证是比较简单的验证，消息内容的验证在FileMessageSet中，
+        // 通过比较checksum进行验证，在前面的篇幅中介绍过，这两种方式结合可以在范围上从大到小进行验证，保证内容基本不被破坏和篡改)
+        this.writeLock.lock();
+        try {
+            for (int i = 0; i < segments.size() - 1; i++) {
+                final Segment curr = segments.get(i);
+                final Segment next = segments.get(i + 1);
+                if (curr.start + curr.size() != next.start) {
+                    throw new IllegalStateException("The following segments don't validate: "
+                            + curr.file.getAbsolutePath() + ", " + next.file.getAbsolutePath());
+                }
+            }
+        }
+        finally {
+            this.writeLock.unlock();
+        }
+    }
+
+    /**
+     * 检查该目录是否为文件夹
+     * @param dir
+     */
+    private void checkDir(final File dir) {
+        if (!dir.exists()) {
+            if (!dir.mkdir()) {
+                throw new RuntimeException("Create directory failed:" + dir.getAbsolutePath());
+            }
+        }
+        if (!dir.isDirectory()) {
+            throw new RuntimeException("Path is not a directory:" + dir.getAbsolutePath());
+        }
+    }
+
+    /** 校验分区目录下的消息文件时，对其进行加锁 */
+    private final ReentrantLock writeLock = new ReentrantLock();
+
+    /**
+     * 将消息保存到消息存储管理器，当客户端put消息到MQ服务器时，会调用该方法，将消息存储到消息存储器
+     *
+     * @param msgId 消息id
+     * @param req   put请求
+     * @param cb    回调接口
+     */
+    public void append(final long msgId, final PutCommand req, final AppendCallback cb) {
+        this.appendBuffer(MessageUtils.makeMessageBuffer(msgId, req), cb);
+    }
+
+    /**
+     * 这里比较好的设计是采用回调的方式来，对于异步写入实现就变得非常容易，AppendCallback返回的是消息成功写入的位置Location(起始位置和消
+     * 息长度)，该Location并不是相对于当前Segment的开始位置0，而是相对于当前Segment给定的值(对应文件命名值即为给定的值)，以后查询消息的
+     * 时候直接使用该位置就可以快速定位到消息写入到哪个文件，这也就是为什么文件名的命名采用前后衔接的方式，这也通过2分查找可以快速定位消息的位置
+     *
+     * @param buffer    表示一个消息文件的数据
+     * @param cb        回调接口
+     */
+    private void appendBuffer(final ByteBuffer buffer, final AppendCallback cb) {
+        if (this.closed) {
+            throw new IllegalStateException("Closed MessageStore.");
+        }
+
+        // 如果启动异步写入并且消息长度小于一次提交的最大值maxTransferSize，则将该消息放入异步写入队列
+        if (this.useGroupCommit() && buffer.remaining() < this.maxTransferSize) {
+            this.bufferQueue.offer(new WriteRequest(buffer, cb));
+        }
+        else {
+            Location location = null;
+            final int remainning = buffer.remaining();
+            this.writeLock.lock();
+            try {
+                final Segment cur = this.segments.last();
+                // 将消息文件数据追加到fileMessageSet中，并返回追加前的fileMessageSet大小
+                final long offset = cur.start + cur.fileMessageSet.append(buffer);
+                // 根据消息的数量，判断是否要立即写入磁盘，当达到满足写入磁盘条件时，会立即写入
+                this.mayBeFlush(1);
+                // 判断segments的可变segment是否要指向下一个segment
+                this.mayBeRoll();
+                // offset:表示消息存入消息存储器（MessageStore）的位置
+                // remainning:保存的消息数据的大小
+                location = Location.create(offset, remainning);
+            }
+            catch (final IOException e) {
+                log.error("Append file failed", e);
+                location = Location.InvalidLocaltion;
+            }
+            finally {
+                this.writeLock.unlock();
+                if (cb != null) {
+                    // 调用回调方法，数据写入文件缓存
+                    cb.appendComplete(location);
+                }
+            }
+        }
+    }
+
+    /**
+     * 消息文件异步写入内存的包装类
+     */
+    private static class WriteRequest {
+        public final ByteBuffer buf;
+        public final AppendCallback cb;
+        public Location result;
+
+        public WriteRequest(final ByteBuffer buf, final AppendCallback cb) {
+            super();
+            this.buf = buf;
+            this.cb = cb;
+        }
+    }
+
+    private void notifyCallback(AppendCallback callback, Location location) {
+        try {
+            callback.appendComplete(location);
+        }
+        catch (Exception e) {
+            log.error("Call AppendCallback failed", e);
+        }
+    }
+
+    /**
+     * 判断是否启用异步写入：
+     * 1、如果设置为unflushThreshold <=0的数字，则认为启动异步写入；
+     * 2、如果设置为unflushThreshold =1，则是同步写入，即每写入一个消息都会提交到磁盘；
+     * 3、如果unflushThreshold>0，则是依赖组提交或者是超时提交
+     * @return
+     */
+    private boolean useGroupCommit() {
+        return this.unflushThreshold <= 0;
+    }
+
+
+
     /**
      * Append多个消息，返回写入的位置
      * 
@@ -722,7 +758,7 @@ public class MessageStore extends Thread implements Closeable {
     }
 
     /**
-     * 判断是否需要roll，如果当前 messagestore最后一个segment的size>=配置的segment size，则产生新的segment，并将新的segment作为最
+     * 判断是否需要roll，如果当前 messagestore最后一个segment的size >= 配置的segment size，则产生新的segment，并将新的segment作为最
      * 后一个segment，原来最后的segment提交一次，并将mutable设置为false
      * @throws IOException
      */
@@ -753,9 +789,16 @@ public class MessageStore extends Thread implements Closeable {
         this.segments.append(new Segment(newOffset, newFile));
     }
 
+    /**
+     * 返回下一个消息文件的offset，就是消息文件名的
+     *
+     * @return
+     * @throws IOException
+     */
     private long nextAppendOffset() throws IOException {
         final Segment last = this.segments.last();
         last.fileMessageSet.flush();
+        // 下一个消息文件名 = 当前最后一个消息文件名的 + 当前最后一个消息文件的大小
         return last.start + last.size();
     }
 

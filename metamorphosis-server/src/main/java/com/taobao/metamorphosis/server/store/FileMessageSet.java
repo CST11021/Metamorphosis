@@ -55,13 +55,22 @@ import java.util.concurrent.atomic.AtomicLong;
 public class FileMessageSet implements MessageSet, Closeable {
 
     static final Log log = LogFactory.getLog(FileMessageSet.class);
+    static final Log transferLog = LogFactory.getLog("TransferLog");
 
+    private static boolean fastBoot = Boolean.valueOf(System.getProperty("meta.fast_boot", "false"));
+
+    /** 消息保存在磁盘，一个消息保存为一个文件，该对象是连接文件的通道, 使用FileChannel, 您可以从文件中读取数据和将数据写入文件。 */
     private final FileChannel channel;
+    /** 该消息集合中的消息数量 */
     private final AtomicLong messageCount;
+    /** 表示该消息集合的数量大小 */
     private final AtomicLong sizeInBytes;
-    private final AtomicLong highWaterMark; // 已经确保写入磁盘的水位
-    private final long offset;              // 镜像offset
-    private boolean mutable;                // 表示当前消息文件是否可变
+    /** 已经确保写入磁盘的水位 */
+    private final AtomicLong highWaterMark;
+    /** 镜像offset */
+    private final long offset;
+    /** 表示当前消息文件是否可变，分区下的最后一个消息文件是可变的 */
+    private boolean mutable;
 
     public FileMessageSet(final FileChannel channel) throws IOException {
         this(channel, 0, 0, true);
@@ -93,13 +102,6 @@ public class FileMessageSet implements MessageSet, Closeable {
     }
 
 
-    public boolean isMutable() {
-        return this.mutable;
-    }
-    public void setMutable(final boolean mutable) {
-        this.mutable = mutable;
-    }
-
     @Override
     public long getMessageCount() {
         return this.messageCount.get();
@@ -119,55 +121,20 @@ public class FileMessageSet implements MessageSet, Closeable {
         while (buf.hasRemaining()) {
             sizeInBytes += this.channel.write(buf);
         }
+        //
         this.sizeInBytes.addAndGet(sizeInBytes);
+        // 该消息集合中的消息数量+1
         this.messageCount.incrementAndGet();
         return offset;
     }
 
     @Override
     public void flush() throws IOException {
+        // FileChannel.force()方法将通道里尚未写入磁盘的数据强制写到磁盘上。出于性能方面的考虑，操作系统会将数据缓存在内存中，所以无法
+        // 保证写入到FileChannel里的数据一定会即时写到磁盘上。要保证这一点，需要调用force()方法。
+        // force()方法有一个boolean类型的参数，指明是否同时将文件元数据（权限信息等）写到磁盘上。
         this.channel.force(true);
         this.highWaterMark.set(this.sizeInBytes.get());
-    }
-
-    /**
-     * just for test
-     *
-     * @param newValue
-     */
-    void setSizeInBytes(final long newValue) {
-        this.sizeInBytes.set(newValue);
-    }
-
-    /**
-     * just for test
-     *
-     * @param waterMark
-     */
-    void setHighWaterMarker(final long waterMark) {
-        this.highWaterMark.set(waterMark);
-    }
-
-    /**
-     * Just for test
-     *
-     * @return
-     */
-    long getOffset() {
-        return this.offset;
-    }
-
-    /**
-     * Just for test
-     *
-     * @return
-     */
-    public long getSizeInBytes() {
-        return this.sizeInBytes.get();
-    }
-
-    FileChannel getFileChannel() {
-        return this.channel;
     }
 
     /**
@@ -177,8 +144,6 @@ public class FileMessageSet implements MessageSet, Closeable {
     public MessageSet slice(final long offset, final long limit) throws IOException {
         return new FileMessageSet(this.channel, offset, limit, false);
     }
-
-    static final Log transferLog = LogFactory.getLog("TransferLog");
 
     @Override
     public void read(final ByteBuffer bf, final long offset) throws IOException {
@@ -219,6 +184,24 @@ public class FileMessageSet implements MessageSet, Closeable {
         }
     }
 
+    @Override
+    public void close() throws IOException {
+        if (!this.channel.isOpen()) {
+            return;
+        }
+        if (this.mutable) {
+            // 将消息写到磁盘上
+            this.flush();
+        }
+        this.channel.close();
+    }
+
+    /**
+     * 记录日志
+     *
+     * @param getCommand
+     * @param conn
+     */
     private void tryToLogTransferInfo(final GetCommand getCommand, final Connection conn) {
         if (transferLog.isDebugEnabled()) {
             final StringBuilder sb = new StringBuilder("TransferLog[\r\n");
@@ -242,23 +225,6 @@ public class FileMessageSet implements MessageSet, Closeable {
         buf.flip();
         return buf;
     }
-
-    @Override
-    public void close() throws IOException {
-        if (!this.channel.isOpen()) {
-            return;
-        }
-        if (this.mutable) {
-            this.flush();
-        }
-        this.channel.close();
-    }
-
-    FileChannel channel() {
-        return this.channel;
-    }
-
-    private static boolean fastBoot = Boolean.valueOf(System.getProperty("meta.fast_boot", "false"));
 
     private long recover() throws IOException {
         if (fastBoot) {
@@ -335,4 +301,54 @@ public class FileMessageSet implements MessageSet, Closeable {
         }
     }
 
+
+
+    /**
+     * just for test
+     *
+     * @param newValue
+     */
+    void setSizeInBytes(final long newValue) {
+        this.sizeInBytes.set(newValue);
+    }
+
+    /**
+     * just for test
+     *
+     * @param waterMark
+     */
+    void setHighWaterMarker(final long waterMark) {
+        this.highWaterMark.set(waterMark);
+    }
+
+    /**
+     * Just for test
+     *
+     * @return
+     */
+    long getOffset() {
+        return this.offset;
+    }
+
+    /**
+     * Just for test
+     *
+     * @return
+     */
+    public long getSizeInBytes() {
+        return this.sizeInBytes.get();
+    }
+
+    public boolean isMutable() {
+        return this.mutable;
+    }
+    public void setMutable(final boolean mutable) {
+        this.mutable = mutable;
+    }
+    FileChannel getFileChannel() {
+        return this.channel;
+    }
+    FileChannel channel() {
+        return this.channel;
+    }
 }

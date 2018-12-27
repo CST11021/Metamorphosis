@@ -27,9 +27,9 @@ package com.taobao.metamorphosis.server.store;
 public interface AppendCallback {
 
     /**
-     * 在append成功后回调此方法，传入写入的location
+     * 当消息保存到MQ服务器后，会调用该回调接口
      * 
-     * @param location
+     * @param location  消息保存在MessageStore的内存位置
      */
     public void appendComplete(Location location);
 }
