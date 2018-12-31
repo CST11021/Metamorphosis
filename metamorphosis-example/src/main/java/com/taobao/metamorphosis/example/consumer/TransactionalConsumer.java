@@ -23,6 +23,7 @@ import java.util.concurrent.Executor;
 
 import com.taobao.metamorphosis.Message;
 import com.taobao.metamorphosis.client.MessageSessionFactory;
+import com.taobao.metamorphosis.client.MetaClientConfig;
 import com.taobao.metamorphosis.client.MetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.consumer.ConsumerConfig;
 import com.taobao.metamorphosis.client.consumer.MessageConsumer;
@@ -37,10 +38,18 @@ import com.taobao.metamorphosis.client.consumer.MessageListener;
  */
 public class TransactionalConsumer {
     public static void main(final String[] args) throws Exception {
-        final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(initMetaConfig());
-        final String topic = "meta-test";
+        // 1、初始化客户端配置
+        MetaClientConfig config = initMetaConfig();
+
+        // 2、创建消息会话工厂
+        final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(config);
+
+        // 3、创建消费者
         final String group = "meta-example";
         final MessageConsumer consumer = sessionFactory.createConsumer(new ConsumerConfig(group));
+
+        // 4、订阅消息，并进行消费
+        final String topic = "meta-test";
         consumer.subscribe(topic, 1024 * 1024, new MessageListener() {
 
             private int count = 0;
@@ -65,6 +74,5 @@ public class TransactionalConsumer {
         });
         // complete subscribe
         consumer.completeSubscribe();
-
     }
 }

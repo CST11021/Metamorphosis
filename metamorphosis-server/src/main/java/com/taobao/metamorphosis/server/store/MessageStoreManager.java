@@ -379,6 +379,7 @@ public class MessageStoreManager implements Service {
      * @throws InterruptedException
      */
     private void loadMessageStores(final MetaConfig metaConfig) throws IOException, InterruptedException {
+        //
         for (final File dir : this.getDataDirSet(metaConfig)) {
             this.loadDataDir(metaConfig, dir);
         }

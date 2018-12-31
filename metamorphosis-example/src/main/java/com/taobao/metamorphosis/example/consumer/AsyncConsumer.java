@@ -23,6 +23,7 @@ import java.util.concurrent.Executor;
 
 import com.taobao.metamorphosis.Message;
 import com.taobao.metamorphosis.client.MessageSessionFactory;
+import com.taobao.metamorphosis.client.MetaClientConfig;
 import com.taobao.metamorphosis.client.MetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.consumer.ConsumerConfig;
 import com.taobao.metamorphosis.client.consumer.MessageConsumer;
@@ -38,15 +39,21 @@ import com.taobao.metamorphosis.client.consumer.MessageListener;
  */
 public class AsyncConsumer {
     public static void main(final String[] args) throws Exception {
-        final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(initMetaConfig());
+        // 1、初始化客户端配置
+        MetaClientConfig config = initMetaConfig();
 
-        final String topic = "meta-test";
+        // 2、创建消息会话工厂
+        final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(config);
+
+        // 3、创建消费者
         final String group = "meta-example";
         ConsumerConfig consumerConfig = new ConsumerConfig(group);
         // 默认最大获取延迟为5秒，这里设置成100毫秒，请根据实际应用要求做设置，测试的时候如果使用默认值5秒，会有消费延迟的现象
         consumerConfig.setMaxDelayFetchTimeInMills(100);
         final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
 
+        // 4、订阅消息，并消费消息
+        final String topic = "meta-test";
         consumer.subscribe(topic, 1024 * 1024, new MessageListener() {
 
             @Override

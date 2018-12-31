@@ -21,6 +21,7 @@ import static com.taobao.metamorphosis.example.Help.initMetaConfig;
 
 import com.taobao.metamorphosis.Message;
 import com.taobao.metamorphosis.client.MessageSessionFactory;
+import com.taobao.metamorphosis.client.MetaClientConfig;
 import com.taobao.metamorphosis.client.MetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.consumer.ConsumerConfig;
 import com.taobao.metamorphosis.client.consumer.MessageConsumer;
@@ -38,15 +39,22 @@ import com.taobao.metamorphosis.consumer.MessageIterator;
 @Deprecated
 public class SyncConsumer {
     public static void main(final String[] args) throws Exception {
-        final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(initMetaConfig());
-        final String topic = "meta-test";
+        // 1、初始化客户端配置
+        MetaClientConfig config = initMetaConfig();
+
+        // 2、创建消息会话工厂
+        final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(config);
+
+        // 3、创建消费者
         final String group = "meta-example";
         // create consumer,强烈建议使用单例
         final MessageConsumer consumer = sessionFactory.createConsumer(new ConsumerConfig(group));
 
+        // 4、从服务端拉取消息进行消费
+        final String topic = "meta-test";
         long offset = 0;
-        MessageIterator it;
-        while ((it = consumer.get(topic, new Partition("100-0"), offset, 1024 * 1024)) != null) {
+        MessageIterator it = consumer.get(topic, new Partition("100-0"), offset, 1024 * 1024);
+        while (it != null) {
             while (it.hasNext()) {
                 final Message msg = it.next();
                 System.out.println("Receive message " + new String(msg.getData()));

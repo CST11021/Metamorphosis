@@ -108,61 +108,42 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
     static final char[] INVALID_GROUP_CHAR = { '~', '!', '#', '$', '%', '^', '&', '*', '(', ')', '+', '=', '`', '\'',
             '"', ',', ';', '/', '?', '[', ']', '<', '>', '.', ':', ' ' };
 
-    private static final int MAX_RECONNECT_TIMES = Integer.valueOf(
-            System.getProperty("metaq.client.network.max.reconnect.times", "350"));
-
-    public static final boolean TCP_NO_DELAY = Boolean.valueOf(
-            System.getProperty("metaq.network.tcp_nodelay", "true"));
-
-    public static final long MAX_SCHEDULE_WRITTEN_BYTES = Long.valueOf(
-            System.getProperty("metaq.network.max_schedule_written_bytes", String.valueOf(Runtime.getRuntime().maxMemory() / 3)));
+    private static final int MAX_RECONNECT_TIMES = Integer.valueOf(System.getProperty("metaq.client.network.max.reconnect.times", "350"));
+    public static final boolean TCP_NO_DELAY = Boolean.valueOf(System.getProperty("metaq.network.tcp_nodelay", "true"));
+    public static final long MAX_SCHEDULE_WRITTEN_BYTES = Long.valueOf(System.getProperty("metaq.network.max_schedule_written_bytes", String.valueOf(Runtime.getRuntime().maxMemory() / 3)));
 
     private static final int STATS_OPTIMEOUT = 3000;
 
-    /** 通讯客户端 */
+    //** 通讯客户端 */
     protected RemotingClientWrapper remotingClient;
-    /** MQ的客户端配置 */
+    //** MQ的客户端配置 */
     private final MetaClientConfig metaClientConfig;
-
-    /** 生产者和zk交互管理器 */
+    //** 生产者和zk交互管理器 */
     protected final ProducerZooKeeper producerZooKeeper;
-
-    /** 消费者和zk交互管理器 */
+    //** 消费者和zk交互管理器 */
     private final ConsumerZooKeeper consumerZooKeeper;
-
     // private DiamondManager diamondManager;
-
-    /** 表示此工厂创建的所有子对象，如生产者、消费者等 */
+    //** 表示此工厂创建的所有子对象，如生产者、消费者等 */
     private final CopyOnWriteArrayList<Shutdownable> children = new CopyOnWriteArrayList<Shutdownable>();
-
-    /** 用于标识会话工厂是否关闭 */
+    //** 用于标识会话工厂是否关闭 */
     private volatile boolean shutdown;
-
-    /** 用于标识的钩子方法是否被调用 */
+    //** 用于标识的钩子方法是否被调用 */
     private volatile boolean isHutdownHookCalled = false;
-
-    /** 钩子线程，sessionFactory关闭时执行钩子 */
+    //** 钩子线程，sessionFactory关闭时执行钩子 */
     private final Thread shutdownHook;
-
-    /** 本地恢复消息管理器 */
+    //** 本地恢复消息管理器 */
     private final RecoverManager recoverManager;
-
-    /** 订阅关系管理器 */
+    //** 订阅关系管理器 */
     private final SubscribeInfoManager subscribeInfoManager;
-
-    /** ID生成器，全局唯一，用于生产SessionId */
+    //** ID生成器，全局唯一，用于生产SessionId */
     protected final IdGenerator sessionIdGenerator;
-
-    /** zk配置 */
+    //** zk配置 */
     private ZKConfig zkConfig;
-
-    /** zk客户端 */
+    //** zk客户端 */
     private volatile ZkClient zkClient;
-
-    /** Meta与zookeeper交互的辅助类 */
+    //** Meta与zookeeper交互的辅助类 */
     protected MetaZookeeper metaZookeeper;
-
-    /** 当新的zkClient建立的时候,调用该监听器方法 */
+    //** 当新的zkClient建立的时候,调用该监听器方法 */
     private final CopyOnWriteArrayList<ZkClientChangedListener> zkClientChangedListeners = new CopyOnWriteArrayList<ZkClientChangedListener>();
 
 
@@ -178,7 +159,7 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
             clientConfig.setWireFormatType(new MetamorphosisWireFormatType());
             clientConfig.setMaxScheduleWrittenBytes(MAX_SCHEDULE_WRITTEN_BYTES);
 
-            // 2、创建客户端
+            // 2、创建用于通讯的客户端
             try {
                 this.remotingClient = new RemotingClientWrapper(RemotingFactory.connect(clientConfig));
             }
@@ -254,6 +235,23 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
     }
 
 
+
+
+
+
+
+    // -------------- 创建消费者 --------------
+
+
+
+    @Override
+    public MessageConsumer createConsumer(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage) {
+        return this.createConsumer(consumerConfig, offsetStorage, this.recoverManager);
+    }
+    @Override
+    public MessageConsumer createConsumer(final ConsumerConfig consumerConfig) {
+        return this.createConsumer(consumerConfig, null, null);
+    }
     /**
      * 创建消费者
      * @param consumerConfig    客户端配置
@@ -300,14 +298,13 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
                 )
         );
     }
-    @Override
-    public MessageConsumer createConsumer(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage) {
-        return this.createConsumer(consumerConfig, offsetStorage, this.recoverManager);
-    }
-    @Override
-    public MessageConsumer createConsumer(final ConsumerConfig consumerConfig) {
-        return this.createConsumer(consumerConfig, null, null);
-    }
+
+
+
+
+
+
+
 
 
 
@@ -558,6 +555,7 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
 
+    // 表示此工厂创建的所有子对象，如生产者、消费者等，将该对象添加到children以便于管理
     protected <T extends Shutdownable> T addChild(final T child) {
         this.children.add(child);
         return child;

@@ -22,6 +22,9 @@ import static com.taobao.metamorphosis.example.Help.initMetaConfig;
 import java.util.concurrent.Executor;
 
 import com.taobao.metamorphosis.Message;
+import com.taobao.metamorphosis.client.MessageSessionFactory;
+import com.taobao.metamorphosis.client.MetaClientConfig;
+import com.taobao.metamorphosis.client.MetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.consumer.ConsumerConfig;
 import com.taobao.metamorphosis.client.consumer.MessageConsumer;
 import com.taobao.metamorphosis.client.consumer.MessageListener;
@@ -38,12 +41,18 @@ import com.taobao.metamorphosis.client.extension.MetaBroadcastMessageSessionFact
 
 public class BroadcastAsyncConsumer {
     public static void main(final String[] args) throws Exception {
-        final BroadcastMessageSessionFactory sessionFactory = new MetaBroadcastMessageSessionFactory(initMetaConfig());
+        // 1、初始化客户端配置
+        MetaClientConfig config = initMetaConfig();
 
-        final String topic = "meta-test";
+        // 2、创建消息会话工厂
+        final BroadcastMessageSessionFactory sessionFactory = new MetaBroadcastMessageSessionFactory(config);
+
+        // 3、创建消费者
         final String group = "meta-example";
         final MessageConsumer consumer = sessionFactory.createBroadcastConsumer(new ConsumerConfig(group));
 
+        // 4、订阅消息，并消费消息
+        final String topic = "meta-test";
         consumer.subscribe(topic, 1024 * 1024, new MessageListener() {
             @Override
             public void recieveMessages(final Message message) {
@@ -57,6 +66,5 @@ public class BroadcastAsyncConsumer {
             }
         });
         consumer.completeSubscribe();
-
     }
 }

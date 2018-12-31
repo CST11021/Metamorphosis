@@ -55,7 +55,7 @@ import com.taobao.metamorphosis.utils.StatConstants;
 
 
 /**
- * 消息消费者基类
+ * 消息消费者基类：消息会话工厂默认使用SimpleMessageConsumer消费者
  * 
  * @author boyan
  * @Date 2011-4-23
@@ -97,6 +97,7 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
     /** Topic与订阅者的订阅关系，Map<Topic, 订阅者信息> */
     private final ConcurrentHashMap<String, SubscriberInfo> topicSubcriberRegistry = new ConcurrentHashMap<String, SubscriberInfo>();
 
+    // 消息拉取器，用于从MQ服务器拉取消息，并进行处理
     private FetchManager fetchManager;
 
     private final ConcurrentHashSet<String> publishedTopics = new ConcurrentHashSet<String>();

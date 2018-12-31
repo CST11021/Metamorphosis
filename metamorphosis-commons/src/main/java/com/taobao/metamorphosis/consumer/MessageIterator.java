@@ -36,6 +36,7 @@ import com.taobao.metamorphosis.utils.MessageUtils;
 public class MessageIterator {
     private final String topic;
     private final byte[] data;
+    // 当前迭代的偏移量，不包括发起请求的偏移量在内
     private int offset;
     private Message message;
     private ByteBuffer currentMsgBuf;
@@ -47,37 +48,6 @@ public class MessageIterator {
         this.data = data;
         this.offset = 0;
     }
-
-
-    public ByteBuffer getCurrentMsgBuf() {
-        return this.currentMsgBuf;
-    }
-
-
-    public int getDataLength() {
-        return this.data != null ? this.data.length : 0;
-    }
-
-
-    public void setOffset(final int offset) {
-        this.offset = offset;
-    }
-
-
-    public Message getPrevMessage() {
-        return this.message;
-    }
-
-
-    /**
-     * 返回当前迭代的偏移量，不包括发起请求的偏移量在内
-     * 
-     * @return
-     */
-    public int getOffset() {
-        return this.offset;
-    }
-
 
     /**
      * 当还有消息的时候返回true
@@ -102,7 +72,6 @@ public class MessageIterator {
 
     }
 
-
     /**
      * 返回下一个消息
      * 
@@ -113,14 +82,32 @@ public class MessageIterator {
         if (!this.hasNext()) {
             throw new NoSuchElementException();
         }
-        final MessageUtils.DecodedMessage decodeMessage =
-                MessageUtils.decodeMessage(this.topic, this.data, this.offset);
+        final MessageUtils.DecodedMessage decodeMessage = MessageUtils.decodeMessage(this.topic, this.data, this.offset);
         this.setOffset(decodeMessage.newOffset);
         this.message = decodeMessage.message;
         this.currentMsgBuf = decodeMessage.buf;
         return decodeMessage.message;
     }
 
+    public void remove() {
+        throw new UnsupportedOperationException("Unsupported remove");
+    }
+
+    public ByteBuffer getCurrentMsgBuf() {
+        return this.currentMsgBuf;
+    }
+    public int getDataLength() {
+        return this.data != null ? this.data.length : 0;
+    }
+    public void setOffset(final int offset) {
+        this.offset = offset;
+    }
+    public Message getPrevMessage() {
+        return this.message;
+    }
+    public int getOffset() {
+        return this.offset;
+    }
 
     @Override
     public int hashCode() {
@@ -131,7 +118,6 @@ public class MessageIterator {
         result = prime * result + (this.topic == null ? 0 : this.topic.hashCode());
         return result;
     }
-
 
     @Override
     public boolean equals(final Object obj) {
@@ -160,12 +146,6 @@ public class MessageIterator {
             return false;
         }
         return true;
-    }
-
-
-    public void remove() {
-        throw new UnsupportedOperationException("Unsupported remove");
-
     }
 
 }

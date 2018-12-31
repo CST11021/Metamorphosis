@@ -12,14 +12,13 @@ import java.util.concurrent.Executors;
 
 
 /**
- * Default message listener.
+ * 默认的消息监听器
  *
  * @param <T>
  * @author dennis<killme2008   @   gmail.com>
  * @since 1.4.5
  */
-public abstract class DefaultMessageListener<T> implements MessageListener,
-        org.springframework.beans.factory.InitializingBean, DisposableBean {
+public abstract class DefaultMessageListener<T> implements MessageListener, org.springframework.beans.factory.InitializingBean, DisposableBean {
 
     static final Log log = LogFactory.getLog(DefaultMessageListener.class);
 
@@ -64,6 +63,9 @@ public abstract class DefaultMessageListener<T> implements MessageListener,
             this.executor = null;
         }
     }
+
+
+
 
     @Override
     public Executor getExecutor() {

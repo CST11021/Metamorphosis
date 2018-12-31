@@ -48,7 +48,39 @@ public interface MessageSessionFactory extends Shutdownable {
      */
     public List<Partition> getPartitionsForTopic(String topic);
 
+    /**
+     * Returns a topic browser to iterate all messages under the topic from all alive brokers.
+     *
+     * @param topic the topic
+     * @param maxSize fetch batch size in bytes.
+     * @param timeout timeout value to fetch messages.
+     * @param timeUnit timeout value unit.
+     * @since 1.4.5
+     * @return topic browser
+     */
+    public TopicBrowser createTopicBrowser(String topic, int maxSize, long timeout, TimeUnit timeUnit);
 
+    /**
+     * Returns a topic browser to iterate all messages under the topic from all
+     * alive brokers.
+     *
+     * @param topic
+     *            the topic
+     * @since 1.4.5
+     * @return topic browser
+     * @see #createTopicBrowser(String, int, long, TimeUnit)
+     */
+    public TopicBrowser createTopicBrowser(String topic);
+
+
+
+
+
+
+
+    // ---------
+    // 创建生产者
+    // ---------
 
     /**
      * 创建消息生产者
@@ -86,6 +118,17 @@ public interface MessageSessionFactory extends Shutdownable {
 
 
 
+
+
+
+
+
+
+
+    // ---------
+    // 创建消息者
+    // ---------
+
     /**
      * 创建消息消费者，默认将offset存储在zk
      * 
@@ -93,7 +136,6 @@ public interface MessageSessionFactory extends Shutdownable {
      * @return
      */
     public MessageConsumer createConsumer(ConsumerConfig consumerConfig);
-
     /**
      * 创建消息消费者，使用指定的offset存储器
      *
@@ -102,6 +144,16 @@ public interface MessageSessionFactory extends Shutdownable {
      * @return
      */
     public MessageConsumer createConsumer(ConsumerConfig consumerConfig, OffsetStorage offsetStorage);
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -152,34 +204,7 @@ public interface MessageSessionFactory extends Shutdownable {
 
 
 
-    /**
-     * Returns a topic browser to iterate all messages under the topic from all
-     * alive brokers.
-     * 
-     * @param topic
-     *            the topic
-     * @param maxSize
-     *            fetch batch size in bytes.
-     * @param timeout
-     *            timeout value to fetch messages.
-     * @param timeUnit
-     *            timeout value unit.
-     * @since 1.4.5
-     * @return topic browser
-     */
-    public TopicBrowser createTopicBrowser(String topic, int maxSize, long timeout, TimeUnit timeUnit);
 
-    /**
-     * Returns a topic browser to iterate all messages under the topic from all
-     * alive brokers.
-     * 
-     * @param topic
-     *            the topic
-     * @since 1.4.5
-     * @return topic browser
-     * @see #createTopicBrowser(String, int, long, TimeUnit)
-     */
-    public TopicBrowser createTopicBrowser(String topic);
 
 
 

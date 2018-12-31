@@ -91,7 +91,7 @@ public interface MessageConsumer extends Shutdownable {
      * 
      * @param topic                 订阅的topic
      * @param maxSize               订阅每次接收的最大数据大小
-     * @param messageListener
+     * @param messageListener       消息监听器
      * @param consumerMessageFilter message filter 消息监听器
      */
     public MessageConsumer subscribe(String topic, int maxSize, MessageListener messageListener, ConsumerMessageFilter consumerMessageFilter) throws MetaClientException;

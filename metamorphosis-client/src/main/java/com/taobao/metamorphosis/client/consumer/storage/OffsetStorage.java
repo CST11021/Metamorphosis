@@ -58,13 +58,24 @@ import com.taobao.metamorphosis.cluster.Partition;
  * 端现有消息的最小偏移量开始，从头开始消费所有消息。但是，通常情况下，新的消费分组都是希望从最新的消息开始消费，ComsumerConfig提供了一个
  * setConsumeFromMaxOffset(boolean always)方法来设置从最新位置开始消费。其中always参数表示是否每次消费者启动都从最新位置开始消费，
  * 这样就忽略了在消费者停止期间的消息。通常仅在测试的时候将always参数设置为true，以便每次测试最新的消息。除非你真的不需要消费者停止期间（
- * 比如重启间隔）的消息，否则不要将always设置为真。
+ * 比如重启间隔）的消息，否则不要将always设置为true。
  * 
  * @author boyan
  * @Date 2011-4-28
  * 
  */
 public interface OffsetStorage {
+
+    /**
+     * 初始化offset
+     *
+     * @param topic
+     * @param group
+     * @param partition
+     * @param offset
+     */
+    public void initOffset(String topic, String group, Partition partition, long offset);
+
     /**
      * 保存offset到存储
      * 
@@ -88,13 +99,4 @@ public interface OffsetStorage {
      */
     public void close();
 
-    /**
-     * 初始化offset
-     * 
-     * @param topic
-     * @param group
-     * @param partition
-     * @param offset
-     */
-    public void initOffset(String topic, String group, Partition partition, long offset);
 }
