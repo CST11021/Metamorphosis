@@ -150,16 +150,16 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
     public MetaMessageSessionFactory(final MetaClientConfig metaClientConfig) throws MetaClientException {
         super();
         try {
-            // 1、检查配置信息，并设置gecko的客户端配置
+            // 1、检查配置信息
             this.checkConfig(metaClientConfig);
             this.metaClientConfig = metaClientConfig;
+
+            // 2、创建用于通讯的客户端，MateQ使用阿里的gecko通信框架
             final ClientConfig clientConfig = new ClientConfig();
             clientConfig.setTcpNoDelay(TCP_NO_DELAY);
             clientConfig.setMaxReconnectTimes(MAX_RECONNECT_TIMES);
             clientConfig.setWireFormatType(new MetamorphosisWireFormatType());
             clientConfig.setMaxScheduleWrittenBytes(MAX_SCHEDULE_WRITTEN_BYTES);
-
-            // 2、创建用于通讯的客户端
             try {
                 this.remotingClient = new RemotingClientWrapper(RemotingFactory.connect(clientConfig));
             }
@@ -504,7 +504,8 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
     /**
-     * 连接metaq服务器
+     * 通信层连接metaq服务器
+     *
      * @param metaClientConfig
      * @throws NetworkException
      */

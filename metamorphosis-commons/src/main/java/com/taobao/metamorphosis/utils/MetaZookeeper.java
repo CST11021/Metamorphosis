@@ -39,7 +39,7 @@ import com.taobao.metamorphosis.cluster.json.TopicBroker;
 
 
 /**
- * Meta与zookeeper交互的辅助类
+ * Meta与zookeeper交互的辅助类：用于获取broker在zk上注册的信息，比如：主从MQ服务器的brokerId，topic等信息
  * 
  * @author boyan(boyan@taobao.com)
  * @date 2011-12-15
@@ -60,15 +60,24 @@ public class MetaZookeeper {
         }
     }
 
+    // zk客户端
     private volatile ZkClient zkClient;
 
+    //** 表示MQ在zk上的根节点，默认是/meta，来源于{@link ZkUtils.ZKConfig#zkRoot} */
     public final String metaRoot;
+    // 消费者在zk上的路径：/meta/consumers
     public final String consumersPath;
+    // brokerId在zk的路径
+    // 例如：/meta/brokers/ids/0，这里0表示broken的id，爱该路径下可能还有从MQ服务器
+    // path = /meta/brokers/ids/0/master	value = meta://192.168.13.158:8123
+    // path = /meta/brokers/ids/0/salve     value = ...
     public final String brokerIdsPath;
+    // topic在zk上的路径，例如：/meta/brokers/test_topic，
     @Deprecated
     public final String brokerTopicsPath;
-    // added by dennis,sinace 1.4.3
+    // 当topic发布完成后，会记录在该路径节点     added by dennis,sinace 1.4.3
     public final String brokerTopicsPubPath;
+    // 当topic被订阅后，会记录在该路径节点
     public final String brokerTopicsSubPath;
 
     public MetaZookeeper(final ZkClient zkClient, final String root) {
@@ -82,7 +91,11 @@ public class MetaZookeeper {
     }
 
     /**
-     * 格式化root节点的路径，以"/"开始，如果是以"/"结束则干掉
+     * 犯规化root节点的路径，以"/"开始，并且不以"/"结束，例如：
+     * mate/test/       =>      /mate/test
+     * /mate            =>      /mate
+     * mate/            =>      /mate
+     *
      * @param root
      * @return
      */
@@ -97,6 +110,7 @@ public class MetaZookeeper {
 
     /**
      * 如果是以"/"结尾的，则移除"/"
+     *
      * @param root
      * @return
      */
@@ -116,6 +130,7 @@ public class MetaZookeeper {
      */
     public Cluster getCluster() {
         final Cluster cluster = new Cluster();
+        // 获取"/brokers/ids"路径下的子节点
         final List<String> nodes = ZkUtils.getChildren(this.zkClient, this.brokerIdsPath);
         for (final String node : nodes) {
             // String brokerZKString = readData(zkClient, brokerIdsPath + "/" + node);
@@ -160,7 +175,7 @@ public class MetaZookeeper {
     }
 
     /**
-     * 从zk查询slave broker,不存在则返回null
+     * 从zk查询slave broker,不存在则返回null,
      * @param brokerId
      * @return
      */
@@ -184,8 +199,7 @@ public class MetaZookeeper {
                     logger.warn("skip invalid slave path:" + broker);
                     continue;
                 }
-                final String brokerData =
-                        ZkUtils.readDataMaybeNull(this.zkClient, this.brokerIdsPath + "/" + brokerId + "/" + broker);
+                final String brokerData = ZkUtils.readDataMaybeNull(this.zkClient, this.brokerIdsPath + "/" + brokerId + "/" + broker);
                 if (StringUtils.isNotBlank(brokerData)) {
                     ret.add(new Broker(brokerId, brokerData + "?slaveId=" + slaveId));
                 }
@@ -265,13 +279,12 @@ public class MetaZookeeper {
         }
         return ret;
     }
-
     private boolean isMaster(final String[] brokerStrs) {
         return brokerStrs != null && brokerStrs.length == 2 && brokerStrs[1].equals("m");
     }
 
     /**
-     * 返回一个broker发布的所有topics
+     * 返回指定id的master broker上所有被订阅的topic
      * @param brokerId
      * @return
      */
@@ -303,16 +316,19 @@ public class MetaZookeeper {
         if (topics != null) {
             for (final String topic : topics) {
                 List<Partition> partList = null;
+                // 获取指定brokerId的master的订阅topic路径，客户端订阅topic时，会记录在zk上
                 final String dataString =
                         ZkUtils.readDataMaybeNull(this.zkClient, this.brokerTopicsPathOf(topic, false, brokerId, -1));
                 if (StringUtils.isBlank(dataString)) {
                     continue;
                 }
+
                 try {
                     final TopicBroker topicBroker = TopicBroker.parse(dataString);
                     if (topicBroker == null) {
                         continue;
                     }
+
                     for (int part = 0; part < topicBroker.getNumParts(); part++) {
                         if (partList == null) {
                             partList = new ArrayList<Partition>();
@@ -337,7 +353,7 @@ public class MetaZookeeper {
      * 
      * @param topics
      * @param brokerId
-     * @return
+     * @return Map<topic, ${brokenId}-${分区索引}>
      */
     public Map<String, List<String>> getPartitionStringsForSubTopicsFromMaster(final Collection<String> topics, final int brokerId) {
         final Map<String, List<String>> ret = new HashMap<String, List<String>>();
@@ -412,7 +428,9 @@ public class MetaZookeeper {
     }
 
     /**
-     * brokerId 在zk上注册的path
+     * brokerId 在zk上注册的path，例如：
+     * /meta/brokers/ids/0/master
+     * /meta/brokers/ids/0/slave
      * 
      * @param brokerId
      * @param slaveId slave编号, 小于0表示master
@@ -446,40 +464,49 @@ public class MetaZookeeper {
     }
 
     /**
-     * 
-     * Returns topic path in zk
+     * 返回topic在zk上的路径
      * 
      * @since 1.4.3
      * @param topic
-     * @param publish
+     * @param publish       true：返回发布的topic路径；false：返回订阅的topic路径
      * @param brokerId
-     * @param slaveId slave编号, 小于0表示master
+     * @param slaveId       slave编号, 小于0表示master
      * */
     public String brokerTopicsPathOf(final String topic, boolean publish, final int brokerId, final int slaveId) {
         String parent = publish ? this.brokerTopicsPubPath : this.brokerTopicsSubPath;
         return parent + "/" + topic + "/" + brokerId + (slaveId >= 0 ? "-s" + slaveId : "-m");
     }
 
+
+
+
     public ZkClient getZkClient() {
         return this.zkClient;
     }
-
     public void setZkClient(final ZkClient zkClient) {
         this.zkClient = zkClient;
     }
 
+
+
     /**
-     * 封装了消息消费者在zk上group目录和ids目录
+     * 封装了消息消费者在zk上group目录和ids节点信息
      */
     public class ZKGroupDirs {
+
+        // 消费者路径，默认：/meta/consumers
+        public String consumerDir = MetaZookeeper.this.consumersPath;
+        // 消费者分组路径，默认：/meta/consumers/ + 分组名
+        public String consumerGroupDir;
+        // 消费者的id路径，例如：/meta/consumers/分组名/ids
+        public String consumerRegistryDir;
+
         public ZKGroupDirs(final String group) {
             this.consumerGroupDir = this.consumerDir + "/" + group;
             this.consumerRegistryDir = this.consumerGroupDir + "/ids";
         }
 
-        public String consumerDir = MetaZookeeper.this.consumersPath;
-        public String consumerGroupDir;
-        public String consumerRegistryDir;
+
     }
 
     /**

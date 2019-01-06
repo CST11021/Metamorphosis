@@ -30,7 +30,7 @@ package com.taobao.metamorphosis.client.consumer;
 public interface FetchManager {
 
     /**
-     * 启动管理器
+     * 开始从MQ服务器Fetch消息
      */
     public void startFetchRunner();
 

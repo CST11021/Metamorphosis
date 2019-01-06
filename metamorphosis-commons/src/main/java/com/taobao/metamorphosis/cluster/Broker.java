@@ -35,15 +35,19 @@ import com.taobao.metamorphosis.utils.URIUtils;
  */
 public class Broker {
 
-    private int id;             // 集群机器id
-    private String host;        // MQ所在的机器（IP）
-    private int port;           // 端口
-    private int slaveId = -1;   // 标识是否为slave服务器，-1表示master服务器
+    // 集群机器id
+    private int id;
+    // MQ所在的机器（IP）
+    private String host;
+    // 端口
+    private int port;
+    // 标识是否为slave服务器，-1表示master服务器
+    private int slaveId = -1;
 
 
     /**
      * @param id
-     * @param data meta://host:port or meta://host:port?slaveId=xx
+     * @param data 例如：meta://host:port 或者 meta://host:port?slaveId=xx
      *
      * */
     public Broker(final int id, final String data) {

@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Broker集群
+ * 表示Broker集群
  * 
  * @author boyan
  * @Date 2011-4-25
@@ -34,10 +34,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Cluster {
 
+    /** Map<borkerId>, Set<Broker>> */
     private final ConcurrentHashMap<Integer/* broker id */, Set<Broker>> brokers = new ConcurrentHashMap<Integer, Set<Broker>>();
 
     transient private final static Random random = new Random();
 
+    /** Map<brokerId, Set<Broker>> */
     public ConcurrentHashMap<Integer, Set<Broker>> getBrokers() {
         return this.brokers;
     }
@@ -54,6 +56,11 @@ public class Cluster {
         return size;
     }
 
+    /**
+     * 随机获取一个broker
+     * @param id
+     * @return
+     */
     public Broker getBrokerRandom(int id) {
         Set<Broker> set = this.brokers.get(id);
         if (set == null || set.size() <= 0) {
@@ -71,6 +78,12 @@ public class Cluster {
         return (Broker) set.toArray()[random.nextInt(set.size())];
     }
 
+    /**
+     * 获取master类型的broker
+     *
+     * @param id
+     * @return
+     */
     public Broker getMasterBroker(int id) {
         Set<Broker> set = this.brokers.get(id);
         if (set == null || set.size() <= 0) {
@@ -84,6 +97,12 @@ public class Cluster {
         return null;
     }
 
+    /**
+     * 添加broker
+     *
+     * @param id
+     * @param broker
+     */
     public void addBroker(int id, Broker broker) {
         Set<Broker> set = this.brokers.get(id);
         if (set == null) {
@@ -93,6 +112,12 @@ public class Cluster {
         set.add(broker);
     }
 
+    /**
+     * 添加broker
+     *
+     * @param id
+     * @param brokers
+     */
     public void addBroker(int id, Set<Broker> brokers) {
         Set<Broker> set = this.brokers.get(id);
         if (set == null) {
@@ -102,10 +127,21 @@ public class Cluster {
         set.addAll(brokers);
     }
 
+    /**
+     * 移除broker
+     *
+     * @param id
+     * @return
+     */
     public Set<Broker> remove(int id) {
         return this.brokers.remove(id);
     }
 
+    /**
+     * 获取master集群
+     *
+     * @return
+     */
     public Cluster masterCluster() {
         Cluster cluster = new Cluster();
         for (Map.Entry<Integer, Set<Broker>> entry : this.brokers.entrySet()) {

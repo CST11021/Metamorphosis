@@ -78,21 +78,18 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
 
     static final Log log = LogFactory.getLog(ConsumerZooKeeper.class);
 
-    /** zk配置 */
-    private final ZKConfig zkConfig;
-
-    /** ZK客户端，用于与zk交互 */
-    protected ZkClient zkClient;
-
-    /** 通讯客户端，用于MQ服务器通讯 */
-    private final RemotingClientWrapper remotingClient;
-
-    protected final MetaZookeeper metaZookeeper;
-
     static final int MAX_N_RETRIES = 7;
 
+    //** zk配置 */
+    private final ZKConfig zkConfig;
+    //** ZK客户端，用于与zk交互 */
+    protected ZkClient zkClient;
+    //** 通讯客户端，用于MQ服务器通讯 */
+    private final RemotingClientWrapper remotingClient;
+    // 用于获取broken注册在zk上的信息
+    protected final MetaZookeeper metaZookeeper;
+    // 保存消息抓取器对应的ZKLoadRebalanceListener
     protected final ConcurrentHashMap<FetchManager, FutureTask<ZKLoadRebalanceListener>> consumerLoadBalanceListeners = new ConcurrentHashMap<FetchManager, FutureTask<ZKLoadRebalanceListener>>();
-
 
     public ConsumerZooKeeper(final MetaZookeeper metaZookeeper, final RemotingClientWrapper remotingClient, final ZkClient zkClient, final ZKConfig zkConfig) {
         super();
@@ -102,6 +99,25 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         this.zkConfig = zkConfig;
     }
 
+
+    @Override
+    public void onZkClientChanged(final ZkClient newClient) {
+        this.zkClient = newClient;
+        // 重新注册consumer
+        for (final FutureTask<ZKLoadRebalanceListener> task : this.consumerLoadBalanceListeners.values()) {
+            try {
+                final ZKLoadRebalanceListener listener = task.get();
+                // 要清空已有的注册信息，防止在注册consumer失败的时候还提交offset，导致覆盖更新的offset
+                listener.topicRegistry.clear();
+                log.info("re-register consumer to zk,group=" + listener.consumerConfig.getGroup());
+                this.registerConsumerInternal(listener);
+            }
+            catch (final Exception e) {
+                log.error("reRegister consumer failed", e);
+            }
+        }
+
+    }
 
     public void commitOffsets(final FetchManager fetchManager) {
         final ZKLoadRebalanceListener listener = this.getBrokerConnectionListener(fetchManager);
@@ -127,7 +143,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
     }
 
     /**
-     * 取消注册consumer
+     * 注销consumer
      * 
      * @param fetchManager
      */
@@ -171,27 +187,36 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
 
     /**
      * 向zk注册消息消费者
-     * 
+     *
+     * @param consumerConfig            消费者配置信息
+     * @param fetchManager              消息抓取器
+     * @param topicSubcriberRegistry    topic订阅注册中心
+     * @param offsetStorage             消息抓取的初始索引
+     * @param loadBalanceStrategy       消费者的负载均衡策略
      * @throws Exception
      */
     public void registerConsumer(final ConsumerConfig consumerConfig, final FetchManager fetchManager, final ConcurrentHashMap<String/* topic */, SubscriberInfo> topicSubcriberRegistry, final OffsetStorage offsetStorage, final LoadBalanceStrategy loadBalanceStrategy) throws Exception {
 
-        final FutureTask<ZKLoadRebalanceListener> task =
-                new FutureTask<ZKLoadRebalanceListener>(new Callable<ZKLoadRebalanceListener>() {
-
+        final FutureTask<ZKLoadRebalanceListener> task = new FutureTask<ZKLoadRebalanceListener>(
+                new Callable<ZKLoadRebalanceListener>() {
                     @Override
                     public ZKLoadRebalanceListener call() throws Exception {
+                        // 消费者在zk上的路径信息
                         final ZKGroupDirs dirs = ConsumerZooKeeper.this.metaZookeeper.new ZKGroupDirs(consumerConfig.getGroup());
+                        // 获取消费的id，如果有配置消费者的id，则使用使用配置的id，否则使用uuid生成器
                         final String consumerUUID = ConsumerZooKeeper.this.getConsumerUUID(consumerConfig);
                         final String consumerUUIDString = consumerConfig.getGroup() + "_" + consumerUUID;
-                        final ZKLoadRebalanceListener loadBalanceListener =
-                                new ZKLoadRebalanceListener(fetchManager, dirs, consumerUUIDString,
-                                        consumerConfig, offsetStorage, topicSubcriberRegistry, loadBalanceStrategy);
+
+                        //
+                        final ZKLoadRebalanceListener loadBalanceListener = new ZKLoadRebalanceListener(fetchManager, dirs, consumerUUIDString, consumerConfig, offsetStorage, topicSubcriberRegistry, loadBalanceStrategy);
                         loadBalanceListener.start();
                         return ConsumerZooKeeper.this.registerConsumerInternal(loadBalanceListener);
                     }
-
                 });
+
+        // putIfAbsent方法：
+        //      如果传入key对应的value已经存在，就返回存在的value，不进行替换；
+        //      如果不存在，就添加key和value，返回null。
         final FutureTask<ZKLoadRebalanceListener> existsTask = this.consumerLoadBalanceListeners.putIfAbsent(fetchManager, task);
 
         if (existsTask == null) {
@@ -201,7 +226,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         }
 
     }
-
+    // 注册消费者，并开始发起抓取消息的请求
     protected ZKLoadRebalanceListener registerConsumerInternal(final ZKLoadRebalanceListener loadBalanceListener) throws UnknownHostException, InterruptedException, Exception {
         final ZKGroupDirs dirs = this.metaZookeeper.new ZKGroupDirs(loadBalanceListener.consumerConfig.getGroup());
         // 获取所有被订阅的topic
@@ -211,11 +236,11 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             // 直连模式
             loadBalanceListener.fetchManager.stopFetchRunner();
             loadBalanceListener.fetchManager.resetFetchState();
+
             // zkClient为null，使用配置项并发起fetch请求
             for (final String topic : loadBalanceListener.topicSubcriberRegistry.keySet()) {
                 final SubscriberInfo subInfo = loadBalanceListener.topicSubcriberRegistry.get(topic);
-                ConcurrentHashMap<Partition, TopicPartitionRegInfo> topicPartRegInfoMap =
-                        loadBalanceListener.topicRegistry.get(topic);
+                ConcurrentHashMap<Partition, TopicPartitionRegInfo> topicPartRegInfoMap = loadBalanceListener.topicRegistry.get(topic);
                 if (topicPartRegInfoMap == null) {
                     topicPartRegInfoMap = new ConcurrentHashMap<Partition, TopicPartitionRegInfo>();
                     loadBalanceListener.topicRegistry.put(topic, topicPartRegInfoMap);
@@ -243,14 +268,15 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             for (int i = 0; i < MAX_N_RETRIES; i++) {
                 // 注册consumer id
                 ZkUtils.makeSurePersistentPathExists(this.zkClient, dirs.consumerRegistryDir);
-                ZkUtils.createEphemeralPathExpectConflict(this.zkClient, dirs.consumerRegistryDir + "/"
-                        + loadBalanceListener.consumerIdString, topicString);
+                // 创建一个数据节点
+                ZkUtils.createEphemeralPathExpectConflict(this.zkClient, dirs.consumerRegistryDir + "/" + loadBalanceListener.consumerIdString, topicString);
                 // 监视同一个分组的consumer列表是否有变化
                 this.zkClient.subscribeChildChanges(dirs.consumerRegistryDir, loadBalanceListener);
 
                 // 监视订阅topic的分区是否有变化
                 for (final String topic : loadBalanceListener.topicSubcriberRegistry.keySet()) {
                     final String partitionPath = this.metaZookeeper.brokerTopicsSubPath + "/" + topic;
+                    // 保存分区路径到zk
                     ZkUtils.makeSurePersistentPathExists(this.zkClient, partitionPath);
                     this.zkClient.subscribeChildChanges(partitionPath, loadBalanceListener);
                 }
@@ -266,7 +292,6 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         }
         return loadBalanceListener;
     }
-
     /**
      * 返回所有被订阅的topic，多个topic之间用逗号分隔
      * @param topicSubcriberRegistry
@@ -286,19 +311,23 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         }
         return topicSb.toString();
     }
-
+    /**
+     * 返回消费的id，如果有配置消费者的id，则使用使用配置的id，否则使用uuid生成器
+     *
+     * @param consumerConfig
+     * @return
+     * @throws Exception
+     */
     protected String getConsumerUUID(final ConsumerConfig consumerConfig) throws Exception {
         String consumerUUID = null;
         if (consumerConfig.getConsumerId() != null) {
             consumerUUID = consumerConfig.getConsumerId();
         }
         else {
-          consumerUUID =
-            RemotingUtils.getLocalHost() + "-" + this.getPid() + "-" + UUID.randomUUID();
+          consumerUUID = RemotingUtils.getLocalHost() + "-" + this.getPid() + "-" + UUID.randomUUID();
         }
         return consumerUUID;
     }
-
     private String getPid() {
         final String name = ManagementFactory.getRuntimeMXBean().getName();
         if (name.contains("@")) {
@@ -307,25 +336,11 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         return name;
     }
 
-    @Override
-    public void onZkClientChanged(final ZkClient newClient) {
-        this.zkClient = newClient;
-        // 重新注册consumer
-        for (final FutureTask<ZKLoadRebalanceListener> task : this.consumerLoadBalanceListeners.values()) {
-            try {
-                final ZKLoadRebalanceListener listener = task.get();
-                // 要清空已有的注册信息，防止在注册consumer失败的时候还提交offset，导致覆盖更新的offset
-                listener.topicRegistry.clear();
-                log.info("re-register consumer to zk,group=" + listener.consumerConfig.getGroup());
-                this.registerConsumerInternal(listener);
-            }
-            catch (final Exception e) {
-                log.error("reRegister consumer failed", e);
-            }
-        }
 
-    }
 
+    /**
+     * 当zookeeper客户端状态变更时监听器
+     */
     class ZKSessionExpireListenner implements IZkStateListener {
         private final String consumerIdString;
         private final ZKLoadRebalanceListener loadBalancerListener;
@@ -336,7 +351,6 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             this.consumerIdString = loadBalancerListener.consumerIdString;
             this.loadBalancerListener = loadBalancerListener;
         }
-
 
         @Override
         public void handleNewSession() throws Exception {
@@ -352,13 +366,11 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             ConsumerZooKeeper.this.registerConsumerInternal(this.loadBalancerListener);
         }
 
-
         @Override
         public void handleStateChanged(final KeeperState state) throws Exception {
             // do nothing, since zkclient will do reconnect for us.
 
         }
-
 
         @Override
         public boolean equals(final Object obj) {
@@ -369,7 +381,6 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             return this.loadBalancerListener.equals(other.loadBalancerListener);
         }
 
-
         @Override
         public int hashCode() {
             return this.loadBalancerListener.hashCode();
@@ -378,7 +389,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
     }
 
     /**
-     * Consumer load balance listener for zookeeper.
+     * zookeeper的消费者负载平衡监听器。
      * This is a internal class for consumer,you should not use it directly in your code.
      * 
      * @author dennis<killme2008@gmail.com>
@@ -386,43 +397,42 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
      */
     public class ZKLoadRebalanceListener implements IZkChildListener, Runnable {
 
+        /** 消费者在zk上的注册的信息 */
         private final ZKGroupDirs dirs;
-
+        /** 表示消费者所在分组信息 */
         private final String group;
-
+        /** 消费者的分组 + consumerUUID */
         protected final String consumerIdString;
-
+        /** 消息消费者的负载均衡策略 */
         private final LoadBalanceStrategy loadBalanceStrategy;
-
+        /** 表示当前topic对应的订阅者信息：Map<topic, topic的订阅者> */
         Map<String, List<String>> oldConsumersPerTopicMap = new HashMap<String, List<String>>();
-
+        /** 表示当前topic对应的分区信息：Map<topic, topic的分区索引> */
         Map<String, List<String>> oldPartitionsPerTopicMap = new HashMap<String, List<String>>();
-
+        /** 重均衡锁：当topic对应的订阅者或分区变更时，MateQ会重新均衡topic及对应的订阅者，重新均衡通过该锁来实现同步 */
         private final Lock rebalanceLock = new ReentrantLock();
-
-        /**
-         * 订阅的topic对应的broker,offset等信息
-         */
+        /** 订阅的topic对应的broker,offset等信息 */
         final ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Partition, TopicPartitionRegInfo>> topicRegistry = new ConcurrentHashMap<String, ConcurrentHashMap<Partition, TopicPartitionRegInfo>>();
-
-        /**
-         * 订阅信息，如最大传输大小，消息监听器等
-         */
+        /** topic的订阅信息，topic对应的监听器等 */
         private final ConcurrentHashMap<String/* topic */, SubscriberInfo> topicSubcriberRegistry;
-
+        /** 消费者配置信息 */
         private final ConsumerConfig consumerConfig;
-
+        /** 消费者抓取消息时初始索引（消息偏移量） */
         private final OffsetStorage offsetStorage;
-
+        /** 消息抓取管理器 */
         private final FetchManager fetchManager;
 
         private final Thread rebalanceThread;
 
         private volatile boolean stopped = false;
-
+        /** 表示当前的broker */
         Set<Broker> oldBrokerSet = new HashSet<Broker>();
-
+        /** 表示当前的MQ集群 */
         private Cluster oldCluster = new Cluster();
+        /** 当消费者变更时（zk上消费者信息改变时），在往该队列添加一个{@link #REBALANCE_EVT}字节 */
+        private final BlockingQueue<Byte> rebalanceEvents = new ArrayBlockingQueue<Byte>(10);
+        /** 表示消费者的变更事件 */
+        private final Byte REBALANCE_EVT = (byte) 1;
 
 
         public ZKLoadRebalanceListener(final FetchManager fetchManager,
@@ -444,9 +454,44 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             this.rebalanceThread = new Thread(this);
         }
 
-
         public void start() {
             this.rebalanceThread.start();
+        }
+
+        /**
+         * 当消费者被创建，并注册到zk后，会调用该线程方法
+         */
+        @Override
+        public void run() {
+            while (!this.stopped) {
+                try {
+                    Byte evt = this.rebalanceEvents.take();
+                    // 不为空说明zk上注册的消费者有变更
+                    if (evt != null) {
+                        this.dropDuplicatedEvents();
+                        this.syncedRebalance();
+                    }
+                }
+                catch (InterruptedException e) {
+                    // continue;
+                }
+                catch (Throwable e) {
+                    log.error("Rebalance failed.", e);
+                }
+            }
+
+        }
+
+        /**
+         * 当前子节点改变时，触发该监听方法
+         *
+         * @param parentPath        父节点路径
+         * @param currentChilds     子节点列表
+         * @throws Exception
+         */
+        @Override
+        public void handleChildChange(final String parentPath, final List<String> currentChilds) throws Exception {
+            this.rebalanceEvents.put(this.REBALANCE_EVT);
         }
 
         public void stop() {
@@ -461,6 +506,36 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         }
 
         /**
+         * 根据consumerId获取订阅的topic列表
+         *
+         * @param consumerId
+         * @return Map<topic, consumerId>
+         * @throws Exception
+         */
+        public Map<String, String> getConsumerPerTopic(final String consumerId) throws Exception {
+            final List<String> topics = this.getTopics(consumerId);
+            final Map<String/* topic */, String/* consumerId */> rt = new HashMap<String, String>();
+            for (final String topic : topics) {
+                rt.put(topic, consumerId);
+            }
+            return rt;
+        }
+
+        /**
+         * Returns current topic-partitions info.
+         *
+         * @since 1.4.4
+         * @return
+         */
+        public Map<String/* topic */, Set<Partition>> getTopicPartitions() {
+            Map<String, Set<Partition>> rt = new HashMap<String, Set<Partition>>();
+            for (Map.Entry<String, ConcurrentHashMap<Partition, TopicPartitionRegInfo>> entry : this.topicRegistry.entrySet()) {
+                rt.put(entry.getKey(), entry.getValue().keySet());
+            }
+            return rt;
+        }
+
+        /**
          * 更新offset到zk
          */
         private void commitOffsets() {
@@ -470,21 +545,6 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         private TopicPartitionRegInfo initTopicPartitionRegInfo(final String topic, final String group, final Partition partition, final long offset) {
             this.offsetStorage.initOffset(topic, group, partition, offset);
             return new TopicPartitionRegInfo(topic, partition, offset);
-        }
-
-        /**
-         * Returns current topic-partitions info.
-         * 
-         * @since 1.4.4
-         * @return
-         */
-        public Map<String/* topic */, Set<Partition>> getTopicPartitions() {
-            Map<String, Set<Partition>> rt = new HashMap<String, Set<Partition>>();
-            for (Map.Entry<String, ConcurrentHashMap<Partition, TopicPartitionRegInfo>> entry : this.topicRegistry
-                    .entrySet()) {
-                rt.put(entry.getKey(), entry.getValue().keySet());
-            }
-            return rt;
         }
 
         List<TopicPartitionRegInfo> getTopicPartitionRegInfos() {
@@ -509,35 +569,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             return this.offsetStorage.load(topic, this.consumerConfig.getGroup(), partition);
         }
 
-        private final BlockingQueue<Byte> rebalanceEvents = new ArrayBlockingQueue<Byte>(10);
-
-        private final Byte REBALANCE_EVT = (byte) 1;
-
-        @Override
-        public void handleChildChange(final String parentPath, final List<String> currentChilds) throws Exception {
-            this.rebalanceEvents.put(this.REBALANCE_EVT);
-        }
-
-        @Override
-        public void run() {
-            while (!this.stopped) {
-                try {
-                    Byte evt = this.rebalanceEvents.take();
-                    if (evt != null) {
-                        this.dropDuplicatedEvents();
-                        this.syncedRebalance();
-                    }
-                }
-                catch (InterruptedException e) {
-                    // continue;
-                }
-                catch (Throwable e) {
-                    log.error("Rebalance failed.", e);
-                }
-            }
-
-        }
-
+        // 删除掉重复的事件
         private void dropDuplicatedEvents() {
             Byte evt = null;
             int count = 0;
@@ -549,7 +581,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                 log.info("Drop " + count + " duplicated rebalance events");
             }
         }
-
+        // 使用同步的方式重新平衡
         boolean syncedRebalance() throws InterruptedException, Exception {
             this.rebalanceLock.lock();
             try {
@@ -606,8 +638,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         protected void updateFetchRunner(final Cluster cluster) throws Exception {
             this.fetchManager.resetFetchState();
             final Set<Broker> newBrokers = new HashSet<Broker>();
-            for (final Map.Entry<String/* topic */, ConcurrentHashMap<Partition, TopicPartitionRegInfo>> entry : this.topicRegistry
-                    .entrySet()) {
+            for (final Map.Entry<String/* topic */, ConcurrentHashMap<Partition, TopicPartitionRegInfo>> entry : this.topicRegistry.entrySet()) {
                 final String topic = entry.getKey();
                 for (final Map.Entry<Partition, TopicPartitionRegInfo> partEntry : entry.getValue().entrySet()) {
                     final Partition partition = partEntry.getKey();
@@ -618,12 +649,10 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                         newBrokers.add(broker);
                         final SubscriberInfo subscriberInfo = this.topicSubcriberRegistry.get(topic);
                         // 添加fetch请求
-                        this.fetchManager.addFetchRequest(new FetchRequest(broker, 0L, info, subscriberInfo
-                            .getMaxSize()));
+                        this.fetchManager.addFetchRequest(new FetchRequest(broker, 0L, info, subscriberInfo.getMaxSize()));
                     }
                     else {
-                        log.error("Could not find broker for broker id " + partition.getBrokerId()
-                            + ", it should not happen.");
+                        log.error("Could not find broker for broker id " + partition.getBrokerId() + ", it should not happen.");
                     }
                 }
             }
@@ -632,6 +661,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                 int times = 0;
                 NotifyRemotingException ne = null;
                 while (times++ < 3) {
+                    // 通信层客户端连接到MQ服务器
                     ConsumerZooKeeper.this.remotingClient.connectWithRef(newOne.getZKString(), this);
                     try {
                         ConsumerZooKeeper.this.remotingClient.awaitReadyInterrupt(newOne.getZKString(), 4000);
@@ -659,13 +689,29 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             this.fetchManager.startFetchRunner();
         }
 
+        /**
+         * 当topic对应的订阅者或分区变更时，MateQ会重新均衡topic及对应的订阅者
+         *
+         * 重新均衡时需要做如下几步：
+         * 1、fetchManager.stopFetchRunner() 消息抓取器停止抓取消息
+         * 2、关闭连接到MQ的服务的客户端
+         * 3、将当前的offset更新到zk
+         * 4、updateFetchRunner() 更新消息抓取理的fetch线程和fetch请求，然后连接到新的broker，最后再启动消息抓取器去抓取消息
+         *
+         *
+         * @return
+         * @throws InterruptedException
+         * @throws Exception
+         */
         boolean rebalance() throws InterruptedException, Exception {
-
-            final Map<String/* topic */, String/* consumerId */> myConsumerPerTopicMap =
-                    this.getConsumerPerTopic(this.consumerIdString);
+            // 获取这个consumer订阅的topic
+            final Map<String/* topic */, String/* consumerId */> myConsumerPerTopicMap = this.getConsumerPerTopic(this.consumerIdString);
+            // 获取所有broker集群信息
             final Cluster cluster = ConsumerZooKeeper.this.metaZookeeper.getCluster();
+
             Map<String/* topic */, List<String>/* consumer list */> consumersPerTopicMap = null;
             try {
+                // 获取指定分组订阅的topic到订阅者之间的映射关系
                 consumersPerTopicMap = this.getConsumersPerTopic(this.group);
             }
             catch (final NoNodeException e) {
@@ -679,12 +725,12 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                 return false;
             }
 
-            final Map<String, List<String>> partitionsPerTopicMap =
-                    this.getPartitionStringsForTopics(myConsumerPerTopicMap);
+            // 获取zk上注册的topic到partition映射的map. 包括master和slave的所有partitions
+            final Map<String, List<String>> partitionsPerTopicMap = this.getPartitionStringsForTopics(myConsumerPerTopicMap);
 
-            final Map<String/* topic */, String/* consumer id */> relevantTopicConsumerIdMap =
-                    this.getRelevantTopicMap(myConsumerPerTopicMap, partitionsPerTopicMap,
-                        this.oldPartitionsPerTopicMap, consumersPerTopicMap, this.oldConsumersPerTopicMap);
+            // 获取有变更的topic跟consumer集合
+            final Map<String/* topic */, String/* consumer id */> relevantTopicConsumerIdMap = this.getRelevantTopicMap(myConsumerPerTopicMap, partitionsPerTopicMap, this.oldPartitionsPerTopicMap, consumersPerTopicMap, this.oldConsumersPerTopicMap);
+
             // 没有变更，无需平衡
             if (relevantTopicConsumerIdMap.size() <= 0) {
                 // 处理主备情况,topic分区和消费者没有变化,但主备的其中一台挂了,
@@ -700,11 +746,11 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                     this.oldCluster = cluster;
                 }
                 else {
-                    log.warn("Consumer " + this.consumerIdString + " with " + consumersPerTopicMap
-                        + " doesn't need to be rebalanced.");
+                    log.warn("Consumer " + this.consumerIdString + " with " + consumersPerTopicMap + " doesn't need to be rebalanced.");
                 }
                 return true;
             }
+
             log.warn("Stopping fetch runners");
             this.fetchManager.stopFetchRunner();
             // closed all connections to old brokers.
@@ -716,8 +762,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                 final String topic = entry.getKey();
                 final String consumerId = entry.getValue();
 
-                final ZKGroupTopicDirs topicDirs =
-                        ConsumerZooKeeper.this.metaZookeeper.new ZKGroupTopicDirs(topic, this.group);
+                final ZKGroupTopicDirs topicDirs = ConsumerZooKeeper.this.metaZookeeper.new ZKGroupTopicDirs(topic, this.group);
                 // 当前该topic的订阅者
                 final List<String> curConsumers = consumersPerTopicMap.get(topic);
                 // 当前该topic的分区
@@ -739,8 +784,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                 }
 
                 // 根据负载均衡策略获取这个consumer对应的partition列表
-                final List<String> newParts =
-                        this.loadBalanceStrategy.getPartitions(topic, consumerId, curConsumers, curPartitions);
+                final List<String> newParts = this.loadBalanceStrategy.getPartitions(topic, consumerId, curConsumers, curPartitions);
 
                 // 查看当前这个topic的分区列表，查看是否有变更
                 ConcurrentHashMap<Partition, TopicPartitionRegInfo> partRegInfos = this.topicRegistry.get(topic);
@@ -779,7 +823,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
 
             return true;
         }
-
+        // 关闭连接到MQ的服务的客户端
         private void closeOldBrokersConnections() throws NotifyRemotingException {
             for (Broker old : this.oldBrokerSet) {
                 ConsumerZooKeeper.this.remotingClient.closeWithRef(old.getZKString(), this, false);
@@ -791,6 +835,12 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             return !this.oldCluster.equals(cluster);
         }
 
+        /**
+         * 获取zk上注册的topic到partition映射的map. 包括master和slave的所有partitions
+         *
+         * @param myConsumerPerTopicMap
+         * @return
+         */
         protected Map<String, List<String>> getPartitionStringsForTopics(final Map<String, String> myConsumerPerTopicMap) {
             return ConsumerZooKeeper.this.metaZookeeper.getPartitionStringsForSubTopics(myConsumerPerTopicMap.keySet());
         }
@@ -904,17 +954,23 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         /**
          * 返回有变更的topic跟consumer集合
          * 
-         * @param myConsumerPerTopicMap
-         * @param newPartMap
-         * @param oldPartMap
-         * @param newConsumerMap
-         * @param oldConsumerMap
+         * @param myConsumerPerTopicMap Map<消费者, 消费者订阅的topic>
+         * @param newPartMap            变更后：Map<topic, topic的可用分区>
+         * @param oldPartMap            变更前：Map<topic, topic的可用分区>
+         * @param newConsumerMap        变更后：Map<topic, topic的订阅者>
+         * @param oldConsumerMap        变更前：Map<topic, topic的订阅者>
          * @return
          */
-        private Map<String, String> getRelevantTopicMap(final Map<String, String> myConsumerPerTopicMap,
-            final Map<String, List<String>> newPartMap, final Map<String, List<String>> oldPartMap,
-            final Map<String, List<String>> newConsumerMap, final Map<String, List<String>> oldConsumerMap) {
+        private Map<String, String> getRelevantTopicMap(
+                final Map<String, String> myConsumerPerTopicMap,
+                final Map<String, List<String>> newPartMap,
+                final Map<String, List<String>> oldPartMap,
+                final Map<String, List<String>> newConsumerMap,
+                final Map<String, List<String>> oldConsumerMap) {
+
+            // Map<topic, topic的订阅者>
             final Map<String, String> relevantTopicThreadIdsMap = new HashMap<String, String>();
+
             for (final Map.Entry<String, String> entry : myConsumerPerTopicMap.entrySet()) {
                 final String topic = entry.getKey();
                 final String consumerId = entry.getValue();
@@ -926,8 +982,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             }
             return relevantTopicThreadIdsMap;
         }
-
-
+        // 比较两个集合里的元素是否一样
         private boolean listEquals(final List<String> list1, final List<String> list2) {
             if (list1 == null && list2 != null) {
                 return false;
@@ -947,8 +1002,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
          * @param group
          * @return
          * @throws Exception
-         * @throws NoNodeException
-         *             多个consumer同时在负载均衡时,可能会抛出NoNodeException
+         * @throws NoNodeException 多个consumer同时在负载均衡时,可能会抛出NoNodeException
          */
         protected Map<String, List<String>> getConsumersPerTopic(final String group) throws Exception, NoNodeException {
             final List<String> consumers =
@@ -976,15 +1030,6 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                 Collections.sort(entry.getValue());
             }
             return consumersPerTopicMap;
-        }
-
-        public Map<String, String> getConsumerPerTopic(final String consumerId) throws Exception {
-            final List<String> topics = this.getTopics(consumerId);
-            final Map<String/* topic */, String/* consumerId */> rt = new HashMap<String, String>();
-            for (final String topic : topics) {
-                rt.put(topic, consumerId);
-            }
-            return rt;
         }
 
         /**

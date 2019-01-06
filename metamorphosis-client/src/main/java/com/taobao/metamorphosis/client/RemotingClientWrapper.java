@@ -96,11 +96,24 @@ public class RemotingClientWrapper implements RemotingClient {
         this.remotingClient.awaitReadyInterrupt(url);
     }
 
+    /**
+     * 连接服务器
+     *
+     * @param url
+     * @throws NotifyRemotingException
+     */
     @Override
     public void connect(String url) throws NotifyRemotingException {
         this.connect(url, 1);
     }
 
+    /**
+     * 连接服务器
+     *
+     * @param url
+     * @param connCount
+     * @throws NotifyRemotingException
+     */
     @Override
     public void connect(String url, int connCount) throws NotifyRemotingException {
         this.connectWithRef(url, connCount, null);
@@ -149,7 +162,7 @@ public class RemotingClientWrapper implements RemotingClient {
     }
 
     /**
-     * Whether to enable loopback connection for metaq client, default is false.
+     * 是否为metaq客户端启用环回连接，默认为false。
      */
     private static final boolean ENABLE_LOOPBACK_CONNECTION = Boolean.valueOf(System.getProperty(
         "metaq.client.loopback.connection.enable", "false"));

@@ -27,8 +27,6 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 /**
  * 表示一个分区
  *
- *
- *
  * @author boyan
  * @Date 2011-4-26
  * 

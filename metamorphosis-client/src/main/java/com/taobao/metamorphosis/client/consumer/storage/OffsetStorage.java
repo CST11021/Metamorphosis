@@ -67,7 +67,7 @@ import com.taobao.metamorphosis.cluster.Partition;
 public interface OffsetStorage {
 
     /**
-     * 初始化offset
+     * 初始化指定topic下分区的offset
      *
      * @param topic
      * @param group
@@ -77,7 +77,7 @@ public interface OffsetStorage {
     public void initOffset(String topic, String group, Partition partition, long offset);
 
     /**
-     * 保存offset到存储
+     * 将group下，所有topic及对应分区的offset保存起来
      * 
      * @param group     消费者组名
      * @param infoList  消费者订阅的消息分区信息列表

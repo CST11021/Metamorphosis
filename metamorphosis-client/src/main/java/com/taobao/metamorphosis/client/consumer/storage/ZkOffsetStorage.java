@@ -32,7 +32,7 @@ import com.taobao.metamorphosis.utils.ZkUtils;
 
 
 /**
- * 基于zk的offset存储器
+ * 基于zk的offset存储器，该类实现了ZkClientChangedListener接口，当新的zkClient建立的时候，会调用该接口方法
  * 
  * @author boyan
  * @Date 2011-4-28

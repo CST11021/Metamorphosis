@@ -68,10 +68,10 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
 
     static final Log log = LogFactory.getLog(FetchRequestRunner.class);
 
-    /** 用于与MQ服务器通讯的客户端 */
+    //** 用于与MQ服务器通讯的客户端 */
     private final RemotingClientWrapper remotingClient;
 
-    /** 客户端配置信息 */
+    //** 客户端配置信息 */
     private final ConsumerConfig consumerConfig;
 
     private final ConsumerZooKeeper consumerZooKeeper;
