@@ -150,12 +150,11 @@ metamorphosis-example里面有详细的使用例子，包括：
 
 ```
 用于创建异步单向发送消息的会话工厂. 
-* 
-* 使用场景: 
-*      对于发送可靠性要求不那么高,但要求提高发送效率和降低对宿主应用的影响，提高宿主应用的稳定性.
-*      例如,收集日志或用户行为信息等场景.
-* 注意:
-*      发送消息后返回的结果中不包含准确的messageId,partition,offset,这些值都是-1
+使用场景: 
+	对于发送可靠性要求不那么高,但要求提高发送效率和降低对宿主应用的影响，提高宿主应用的稳定性.
+	例如,收集日志或用户行为信息等场景.
+注意:
+	发送消息后返回的结果中不包含准确的messageId,partition,offset,这些值都是-1
 ```
 
 * XAMessageSessionFactory
@@ -174,15 +173,21 @@ metamorphosis-example里面有详细的使用例子，包括：
 
 
 
-#待处理的问题
 
-1. MetaZookeeper这个类里下面这些zk路径的作用及含义：
 
-2. ```java
-   public final String metaRoot;
-   public final String consumersPath;
-   public final String brokerIdsPath;
-   public final String brokerTopicsPath;
-   public final String brokerTopicsPubPath;
-   public final String brokerTopicsSubPath;
-   ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

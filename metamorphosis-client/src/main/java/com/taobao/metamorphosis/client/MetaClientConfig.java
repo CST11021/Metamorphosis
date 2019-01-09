@@ -26,7 +26,7 @@ import com.taobao.metamorphosis.utils.DiamondUtils;
 import com.taobao.metamorphosis.utils.ZkUtils.ZKConfig;
 
 /**
- * MQ的客户端配置
+ * MQ的客户端的配置
  */
 public class MetaClientConfig implements Serializable {
 
@@ -43,7 +43,7 @@ public class MetaClientConfig implements Serializable {
      */
     Properties partitionsInfo;
 
-    /** MQ服务器的连接信息，如果有设置，则使用设置的url并连接指定的MQ服务器，否则使用zk发现服务器 */
+    /** MQ服务器的连接信息，如果有设置，则客户端会使用设置的url连接指定的MQ服务器，否则使用zk发现服务器 */
     protected String serverUrl;
 
     /** 从diamond获取partitions配置的dataId，默认为"metamorphosis.partitions" */

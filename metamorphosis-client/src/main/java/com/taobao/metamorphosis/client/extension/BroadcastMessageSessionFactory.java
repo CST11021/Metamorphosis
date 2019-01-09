@@ -35,8 +35,7 @@ public interface BroadcastMessageSessionFactory extends MessageSessionFactory {
     /**
      * 创建广播方式接收的消息消费者，offset将存储在本地
      * 
-     * @param consumerConfig
-     *            消费者配置
+     * @param consumerConfig    消费者配置
      * 
      * @return
      * */

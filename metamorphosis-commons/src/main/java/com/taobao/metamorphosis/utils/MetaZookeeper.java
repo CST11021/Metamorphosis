@@ -211,7 +211,7 @@ public class MetaZookeeper {
     /**
      * 返回发布了指定的topic的所有master brokers
      * @param topic
-     * @return
+     * @return Map<brokerId, broker节点数据字符串如meta://host:port>
      */
     public Map<Integer, String> getMasterBrokersByTopic(final String topic) {
         final Map<Integer, String> ret = new TreeMap<Integer, String>();

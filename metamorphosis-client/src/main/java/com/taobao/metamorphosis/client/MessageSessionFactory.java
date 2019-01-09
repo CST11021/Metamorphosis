@@ -61,11 +61,9 @@ public interface MessageSessionFactory extends Shutdownable {
     public TopicBrowser createTopicBrowser(String topic, int maxSize, long timeout, TimeUnit timeUnit);
 
     /**
-     * Returns a topic browser to iterate all messages under the topic from all
-     * alive brokers.
+     * Returns a topic browser to iterate all messages under the topic from all alive brokers.
      *
-     * @param topic
-     *            the topic
+     * @param topic the topic
      * @since 1.4.5
      * @return topic browser
      * @see #createTopicBrowser(String, int, long, TimeUnit)

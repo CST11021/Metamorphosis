@@ -57,10 +57,9 @@ public class MetaBroadcastMessageSessionFactory extends MetaMessageSessionFactor
             throw new InvalidConsumerConfigException("Blank group");
         }
 
-        return this.createConsumer(updateGroupForBroadcast(consumerConfig), this.newLocalOffsetStorage(),
-            recoverManager);
+        return this.createConsumer(updateGroupForBroadcast(consumerConfig), this.newLocalOffsetStorage(), recoverManager);
     }
-
+    // 创建一个LocalOffsetStorage对象，广播方式的topic的offset会保存在客户端本地
     private LocalOffsetStorage newLocalOffsetStorage() {
         try {
             return new LocalOffsetStorage();

@@ -64,6 +64,7 @@ public class ZkOffsetStorage implements OffsetStorage, ZkClientChangedListener {
         if (this.zkClient == null || infoList == null || infoList.isEmpty()) {
             return;
         }
+
         for (final TopicPartitionRegInfo info : infoList) {
             final String topic = info.getTopic();
             final ZKGroupTopicDirs topicDirs = this.metaZookeeper.new ZKGroupTopicDirs(topic, group);
@@ -80,11 +81,11 @@ public class ZkOffsetStorage implements OffsetStorage, ZkClientChangedListener {
                 // 更新完毕，设置为false
                 info.setModified(false);
             }
+
             try {
                 // 存储到zk里的数据为msgId-offset
                 // 原始只有offset，从1.4开始修改为msgId-offset,为了实现同步复制
-                ZkUtils.updatePersistentPath(this.zkClient, topicDirs.consumerOffsetDir + "/"
-                        + info.getPartition().toString(), msgId + "-" + newOffset);
+                ZkUtils.updatePersistentPath(this.zkClient, topicDirs.consumerOffsetDir + "/" + info.getPartition().toString(), msgId + "-" + newOffset);
             }
             catch (final Throwable t) {
                 log.error("exception during commitOffsets", t);

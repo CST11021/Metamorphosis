@@ -67,7 +67,7 @@ import com.taobao.metamorphosis.utils.ZkUtils.ZKConfig;
 
 
 /**
- * Consumer与Zookeeper交互
+ * Consumer与Zookeeper交互：将消费者注册到zk上，或从zk上注销消费者
  * 
  * @author boyan
  * @Date 2011-4-26
@@ -80,15 +80,15 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
 
     static final int MAX_N_RETRIES = 7;
 
-    //** zk配置 */
+    /** zk配置 */
     private final ZKConfig zkConfig;
-    //** ZK客户端，用于与zk交互 */
+    /** ZK客户端，用于与zk交互 */
     protected ZkClient zkClient;
-    //** 通讯客户端，用于MQ服务器通讯 */
+    /** 通讯客户端，用于MQ服务器通讯 */
     private final RemotingClientWrapper remotingClient;
-    // 用于获取broken注册在zk上的信息
+    /** 用于获取broken注册在zk上的信息 */
     protected final MetaZookeeper metaZookeeper;
-    // 保存消息抓取器对应的ZKLoadRebalanceListener
+    /** 保存消息抓取器对应的ZKLoadRebalanceListener */
     protected final ConcurrentHashMap<FetchManager, FutureTask<ZKLoadRebalanceListener>> consumerLoadBalanceListeners = new ConcurrentHashMap<FetchManager, FutureTask<ZKLoadRebalanceListener>>();
 
     public ConsumerZooKeeper(final MetaZookeeper metaZookeeper, final RemotingClientWrapper remotingClient, final ZkClient zkClient, final ZKConfig zkConfig) {
@@ -119,6 +119,11 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
 
     }
 
+    /**
+     * 将当前消息抓取器抓取的消息偏移量保存到zk
+     *
+     * @param fetchManager
+     */
     public void commitOffsets(final FetchManager fetchManager) {
         final ZKLoadRebalanceListener listener = this.getBrokerConnectionListener(fetchManager);
         if (listener != null) {
@@ -249,6 +254,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                 long offset = loadBalanceListener.consumerConfig.getOffset();
                 if (loadBalanceListener.consumerConfig.isAlwaysConsumeFromMaxOffset()) {
                     offset = Long.MAX_VALUE;
+
                 }
                 final TopicPartitionRegInfo regInfo = new TopicPartitionRegInfo(topic, partition, offset);
                 topicPartRegInfoMap.put(partition, regInfo);
@@ -547,8 +553,14 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             return new TopicPartitionRegInfo(topic, partition, offset);
         }
 
+        /**
+         * 返回所有被订阅的topic的所有分区
+         *
+         * @return
+         */
         List<TopicPartitionRegInfo> getTopicPartitionRegInfos() {
             final List<TopicPartitionRegInfo> rt = new ArrayList<TopicPartitionRegInfo>();
+            // 遍历所有被订阅的topic的所有分区
             for (final ConcurrentHashMap<Partition, TopicPartitionRegInfo> subMap : this.topicRegistry.values()) {
                 final Collection<TopicPartitionRegInfo> values = subMap.values();
                 if (values != null) {

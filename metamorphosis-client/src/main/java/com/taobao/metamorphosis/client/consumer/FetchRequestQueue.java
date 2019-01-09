@@ -36,7 +36,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 class FetchRequestQueue {
 
-    /** 用于保存从MQ服务器抓取的消息 */
+    /** 用于保存从MQ服务器抓取消息的请求 */
     private final LinkedList<FetchRequest> queue = new LinkedList<FetchRequest>();
 
     /** 队列的显式锁 */

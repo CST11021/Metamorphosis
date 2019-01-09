@@ -55,7 +55,7 @@ import com.taobao.metamorphosis.utils.StatConstants;
 
 
 /**
- * 消息消费者基类：消息会话工厂默认使用SimpleMessageConsumer消费者
+ * 消息消费者基类：消息会话工厂默认使用SimpleMessageConsumer消费者，目前也只有SimpleMessageConsumer一个消费者实现
  * 
  * @author boyan
  * @Date 2011-4-23
@@ -68,12 +68,11 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
 
     static final Log log = LogFactory.getLog(FetchRequestRunner.class);
 
-    //** 用于与MQ服务器通讯的客户端 */
+    /** 用于与MQ服务器通讯的客户端 */
     private final RemotingClientWrapper remotingClient;
-
-    //** 客户端配置信息 */
+    /** 消费者的配置信息 */
     private final ConsumerConfig consumerConfig;
-
+    /**  */
     private final ConsumerZooKeeper consumerZooKeeper;
 
     private final ProducerZooKeeper producerZooKeeper;
@@ -137,6 +136,7 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
                 new Runnable() {
                     @Override
                     public void run() {
+                        // 消息抓取器从MQ服务器抓取消息后，会将抓取消息的offset保存到zk，这里使用定时的方式保存到zk
                         SimpleMessageConsumer.this.consumerZooKeeper.commitOffsets(SimpleMessageConsumer.this.fetchManager);
                     }
                 },

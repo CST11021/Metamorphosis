@@ -42,7 +42,7 @@ public class AsyncConsumer {
         // 1、初始化客户端配置
         MetaClientConfig config = initMetaConfig();
 
-        // 2、创建消息会话工厂
+        // 2、创建消息会话工厂：一般会话工厂会使用单例来创建
         final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(config);
 
         // 3、创建消费者

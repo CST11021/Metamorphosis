@@ -25,7 +25,7 @@ import com.taobao.metamorphosis.consumer.MessageIterator;
 
 
 /**
- * 订阅消息的注册信息
+ * 订阅消息的分区信息
  * 
  * @author boyan
  * @Date 2011-4-26
@@ -33,11 +33,17 @@ import com.taobao.metamorphosis.consumer.MessageIterator;
  */
 public class TopicPartitionRegInfo implements Serializable {
     static final long serialVersionUID = -1L;
-    private String topic;
+
+    /** 表示一个分区 */
     private Partition partition;
+
+    /** 该分区所在的topic */
+    private String topic;
+
+    /** 该分区的offset，每次消费一个消费后，该offset就会增加 TODO whz 后面要看下该offset的实际数据是什么，是增加还是减少 */
     private final AtomicLong offset;
-    // 存储上一次消费的messageId,为了同步复制功能实现
-    // added by boyan
+
+    /** 存储上一次消费的messageId,为了同步复制功能实现 added by boyan */
     private long messageId = -1L;
 
     private boolean modified;

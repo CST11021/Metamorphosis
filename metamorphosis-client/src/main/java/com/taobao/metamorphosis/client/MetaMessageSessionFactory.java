@@ -210,6 +210,11 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
     }
 
 
+
+    // -------------- 创建生产者 --------------
+
+
+
     @Override
     @Deprecated
     public MessageProducer createProducer(final PartitionSelector partitionSelector, final boolean ordered) {
