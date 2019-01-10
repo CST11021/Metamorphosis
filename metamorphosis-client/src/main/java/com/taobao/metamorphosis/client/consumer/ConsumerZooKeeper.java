@@ -208,7 +208,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                     public ZKLoadRebalanceListener call() throws Exception {
                         // 消费者在zk上的路径信息
                         final ZKGroupDirs dirs = ConsumerZooKeeper.this.metaZookeeper.new ZKGroupDirs(consumerConfig.getGroup());
-                        // 获取消费的id，如果有配置消费者的id，则使用使用配置的id，否则使用uuid生成器
+                        // 获取消费者实例的id，如果有配置消费者的id，则使用使用配置的id，否则使用uuid生成器
                         final String consumerUUID = ConsumerZooKeeper.this.getConsumerUUID(consumerConfig);
                         final String consumerUUIDString = consumerConfig.getGroup() + "_" + consumerUUID;
 
@@ -237,8 +237,8 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         // 获取所有被订阅的topic
         final String topicString = this.getTopicsString(loadBalanceListener.topicSubcriberRegistry);
 
+        // 直连MQ服务的模式
         if (this.zkClient == null) {
-            // 直连模式
             loadBalanceListener.fetchManager.stopFetchRunner();
             loadBalanceListener.fetchManager.resetFetchState();
 
@@ -250,12 +250,16 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                     topicPartRegInfoMap = new ConcurrentHashMap<Partition, TopicPartitionRegInfo>();
                     loadBalanceListener.topicRegistry.put(topic, topicPartRegInfoMap);
                 }
+
+
                 final Partition partition = new Partition(loadBalanceListener.consumerConfig.getPartition());
                 long offset = loadBalanceListener.consumerConfig.getOffset();
+
+                // 判断每次订阅是否从最新位置开始消费,如果为true，表示每次启动都从最新位置开始消费,通常在测试的时候可以设置为true
                 if (loadBalanceListener.consumerConfig.isAlwaysConsumeFromMaxOffset()) {
                     offset = Long.MAX_VALUE;
-
                 }
+
                 final TopicPartitionRegInfo regInfo = new TopicPartitionRegInfo(topic, partition, offset);
                 topicPartRegInfoMap.put(partition, regInfo);
                 // 创建一个消息抓取的请求，并添加到本地队列中
@@ -270,11 +274,12 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             }
             loadBalanceListener.fetchManager.startFetchRunner();
         }
+        // 常规模式：通过zk服务发现
         else {
             for (int i = 0; i < MAX_N_RETRIES; i++) {
                 // 注册consumer id
                 ZkUtils.makeSurePersistentPathExists(this.zkClient, dirs.consumerRegistryDir);
-                // 创建一个数据节点
+                // 创建一个数据节点：/meta/consumers/分组名/ids/消费者的id标识
                 ZkUtils.createEphemeralPathExpectConflict(this.zkClient, dirs.consumerRegistryDir + "/" + loadBalanceListener.consumerIdString, topicString);
                 // 监视同一个分组的consumer列表是否有变化
                 this.zkClient.subscribeChildChanges(dirs.consumerRegistryDir, loadBalanceListener);

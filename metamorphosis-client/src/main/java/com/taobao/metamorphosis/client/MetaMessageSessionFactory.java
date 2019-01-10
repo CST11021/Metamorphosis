@@ -167,7 +167,7 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
                 throw new NetworkException("Create remoting client failed", e);
             }
 
-            // 3、连接mateq服务器（如果有设置，则使用设置的url并连接，否则使用zk发现服务器）
+            // 3、连接mateq服务器（如果有设置，则使用设置的url并连接指定MQ服务器，否则使用zk发现服务器）
             if (this.metaClientConfig.getServerUrl() != null) {
                 this.connectServer(this.metaClientConfig);
             } else {
@@ -576,6 +576,11 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         this.children.remove(child);
     }
 
+    /**
+     * 创建消费者的负载均衡策略对象
+     * @param consumerConfig
+     * @return
+     */
     protected LoadBalanceStrategy createLoadBalanceStrategy(final ConsumerConfig consumerConfig) {
         switch (consumerConfig.getLoadBalanceStrategyType()) {
             case DEFAULT:

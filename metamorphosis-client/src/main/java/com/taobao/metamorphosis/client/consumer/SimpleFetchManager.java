@@ -345,7 +345,7 @@ public class SimpleFetchManager implements FetchManager {
         }
 
         /**
-         * 消息消费失败时，会调用该方法，将消息重新放回消息抓取的请求队列中，一遍后续重新从队列中获取，并进行重新消费
+         * 将消息抓取的请求添加队列中
          * @param request
          */
         private void reAddFetchRequest2Queue(final FetchRequest request) {

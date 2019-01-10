@@ -213,6 +213,9 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         SubscriberInfo info = this.topicSubcriberRegistry.get(topic);
         if (info == null) {
             info = new SubscriberInfo(messageListener, filter, maxSize);
+            // putIfAbsent方法：
+            //      如果传入key对应的value已经存在，就返回存在的value，不进行替换；
+            //      如果不存在，就添加key和value，返回null。
             final SubscriberInfo oldInfo = this.topicSubcriberRegistry.putIfAbsent(topic, info);
             if (oldInfo != null) {
                 throw new MetaClientException("Topic=" + topic + " has been subscribered");
