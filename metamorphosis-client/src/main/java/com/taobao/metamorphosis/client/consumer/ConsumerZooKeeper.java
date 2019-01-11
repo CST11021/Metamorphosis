@@ -277,7 +277,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         // 常规模式：通过zk服务发现
         else {
             for (int i = 0; i < MAX_N_RETRIES; i++) {
-                // 注册consumer id
+                // 在zk上创建保存consumer id的目录
                 ZkUtils.makeSurePersistentPathExists(this.zkClient, dirs.consumerRegistryDir);
                 // 创建一个数据节点：/meta/consumers/分组名/ids/消费者的id标识
                 ZkUtils.createEphemeralPathExpectConflict(this.zkClient, dirs.consumerRegistryDir + "/" + loadBalanceListener.consumerIdString, topicString);
