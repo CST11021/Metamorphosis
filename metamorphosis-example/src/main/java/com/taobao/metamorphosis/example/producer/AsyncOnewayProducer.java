@@ -7,6 +7,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import com.taobao.metamorphosis.Message;
+import com.taobao.metamorphosis.client.MessageSessionFactory;
+import com.taobao.metamorphosis.client.MetaClientConfig;
+import com.taobao.metamorphosis.client.MetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.extension.AsyncMessageSessionFactory;
 import com.taobao.metamorphosis.client.extension.AsyncMetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.producer.MessageProducer;
@@ -34,10 +37,21 @@ import com.taobao.metamorphosis.example.Help;
  */
 public class AsyncOnewayProducer {
     public static void main(final String[] args) throws Exception {
-        final String topic = "meta-test";
-        final AsyncMessageSessionFactory sessionFactory = new AsyncMetaMessageSessionFactory(initMetaConfig());
+
+        // 1、初始化客户端配置
+        MetaClientConfig config = initMetaConfig();
+
+        // 2、创建消息会话工厂：一般会话工厂会使用单例来创建
+        final AsyncMetaMessageSessionFactory sessionFactory = new AsyncMetaMessageSessionFactory(config);
+
+        // 3、创建生产者
         final MessageProducer producer = sessionFactory.createAsyncProducer();
+
+        // 4、发布topic
+        final String topic = "meta-test";
         producer.publish(topic);
+
+        // 5、发送消息
         Help.sendMessage(producer, topic, new SendMessageCallback() {
 
             @Override

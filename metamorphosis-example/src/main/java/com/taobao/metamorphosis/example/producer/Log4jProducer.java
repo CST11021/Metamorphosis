@@ -11,8 +11,8 @@ import org.apache.commons.logging.LogFactory;
  */
 
 public class Log4jProducer {
-    static final Log log = LogFactory.getLog("testLog");
 
+    static final Log log = LogFactory.getLog("testLog");
 
     public static void main(final String[] args) {
         log.info("just a test");

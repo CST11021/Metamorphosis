@@ -222,8 +222,14 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
             throw new IllegalArgumentException("Null partitionSelector");
         }
 
-        return this.addChild(new SimpleMessageProducer(this, this.remotingClient, partitionSelector,
-                this.producerZooKeeper, this.sessionIdGenerator.generateId()));
+        return this.addChild(
+                new SimpleMessageProducer(
+                        this,
+                        this.remotingClient,
+                        partitionSelector,
+                        this.producerZooKeeper,
+                        this.sessionIdGenerator.generateId())
+        );
     }
     @Override
     public MessageProducer createProducer(final PartitionSelector partitionSelector) {

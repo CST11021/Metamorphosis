@@ -47,22 +47,24 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 public class OrderedProducer {
     public static void main(final String[] args) throws Exception {
 
+        // 1、初始化客户端配置
         final MetaClientConfig metaClientConfig = initMetaConfig();
-
         // 设置分区分布情况,要跟服务端对应
         final Properties partitionsInfo = new Properties();
         partitionsInfo.put("topic.num.exampleTopic1", "0:4;1:4");
         metaClientConfig.setPartitionsInfo(partitionsInfo);
 
-        // New session factory,强烈建议使用单例
+        // 2、创建消息会话工厂：一般会话工厂会使用单例来创建
         final OrderedMessageSessionFactory sessionFactory = new OrderedMetaMessageSessionFactory(metaClientConfig);
 
-        // 这里使用自定义的分区选择器
+        // 3、创建生产者，这里使用自定义的分区选择器
         final MessageProducer producer = sessionFactory.createProducer(new CustomPartitionSelector());
 
+        // 4、发布topic
         final String topic = "meta-test";
         producer.publish(topic);
 
+        // 5、发送消息
         Help.sendMessage(producer, topic);
     }
 

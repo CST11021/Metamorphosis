@@ -4,7 +4,7 @@ import com.taobao.metamorphosis.Message;
 
 
 /**
- * A filter to filter messages for special consumer group.
+ * 用于消费者过滤消息，在某些场景下你可能只想消费一个topic下满足一定要求的消息
  * 
  * @since 1.4.6
  * @author dennis<killme2008@gmail.com>

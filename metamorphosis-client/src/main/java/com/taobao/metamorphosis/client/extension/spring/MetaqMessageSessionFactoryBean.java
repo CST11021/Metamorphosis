@@ -19,7 +19,6 @@ public class MetaqMessageSessionFactoryBean extends AbstractMetaqMessageSessionF
         return this.sessionFactory;
     }
 
-
     @Override
     public Class<?> getObjectType() {
         return MessageSessionFactory.class;
