@@ -70,12 +70,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
     }
 
-    /**
-     * broker变更监听：当producer broker列表更改时，它将通知此侦听器
-     *
-     * @author apple
-     *
-     */
+    /** broker变更监听：当producer broker列表更改时，它将通知此侦听器 */
     public static interface BrokerChangeListener {
         /**
          * called when broker list changed.
@@ -261,13 +256,20 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
     }
 
+    /**
+     * 发布topic
+     *
+     * @param topic     topic
+     * @param ref       生产者对象
+     */
     public void publishTopic(final String topic, final Object ref) {
         if (this.topicConnectionListeners.get(topic) != null) {
             this.addRef(topic, ref);
             return;
         }
-        final FutureTask<BrokerConnectionListener> task =
-                new FutureTask<BrokerConnectionListener>(new Callable<BrokerConnectionListener>() {
+
+        final FutureTask<BrokerConnectionListener> task = new FutureTask<BrokerConnectionListener>(
+                new Callable<BrokerConnectionListener>() {
                     @Override
                     public BrokerConnectionListener call() throws Exception {
                         final BrokerConnectionListener listener = new BrokerConnectionListener(topic);
