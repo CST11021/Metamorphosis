@@ -44,7 +44,7 @@ public class ZkUtils {
 
     /**
      * make sure a persiste.nt path exists in ZK. Create the path if not exist.
-     * 确保ZK中存在指定的路径。如果不存在，请创建路径
+     * 确保ZK中存在指定的路径。如果不存在，则创建路径
      *
      * @param client    zk客户端
      * @param path      节点路径

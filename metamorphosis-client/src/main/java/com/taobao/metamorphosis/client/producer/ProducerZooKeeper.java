@@ -52,7 +52,12 @@ import com.taobao.metamorphosis.utils.ZkUtils;
 
 /**
  * Producer和zk的交互：
- * 
+ *
+ * 1、生产者发布topic的原理：
+ * 当生产者发布topic时，会在{@link #topicConnectionListeners}注册topic对应的监听器，这样当多个生产者实例发布topic时
+ * 生产者只需关注将topic注册到zk上，然后各自的生产者实例会通过zk的监听机制处理对应的注册事件，通过该机制来解耦topic发布与处理的发布事件的耦合性
+ *
+ *
  * @author boyan
  * @Date 2011-4-26
  */
@@ -61,8 +66,10 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
     static final Log log = LogFactory.getLog(ProducerZooKeeper.class);
 
     public static class BrokersInfo {
-        final Map<Integer/* broker id */, String/* server url */> oldBrokerStringMap;
-        final Map<String/* topic */, List<Partition>/* partition list */> oldTopicPartitionMap;
+        /** Map<broker id,  server url>*/
+        final Map<Integer, String> oldBrokerStringMap;
+        /** Map<topic, partition list>*/
+        final Map<String, List<Partition>> oldTopicPartitionMap;
         public BrokersInfo(final Map<Integer, String> oldBrokerStringMap, final Map<String, List<Partition>> oldTopicPartitionMap) {
             super();
             this.oldBrokerStringMap = oldBrokerStringMap;
@@ -82,12 +89,16 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
 
     final class BrokerConnectionListener implements IZkChildListener {
 
+        /** 表示发布的topic */
         final String topic;
 
+        /** 更新broker信息时用的锁 */
         final Lock lock = new ReentrantLock();
 
+        /** 当生产者对象实例发布topic时，会将topic保存在该集合里 */
         final Set<Object> references = Collections.synchronizedSet(new HashSet<Object>());
 
+        /** TreeMap<brokerId, serverUrl>; HashMap<topic, partitionList> */
         volatile BrokersInfo brokersInfo = new BrokersInfo(new TreeMap<Integer, String>(), new HashMap<String, List<Partition>>());
 
         public BrokerConnectionListener(final String topic) {
@@ -120,8 +131,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
                 topics.add(this.topic);
                 final Map<String, List<Partition>> newTopicPartitionMap =
                         ProducerZooKeeper.this.metaZookeeper.getPartitionsForTopicsFromMaster(topics);
-                log.warn("Begin receiving broker changes for topic " + this.topic + ",broker ids:"
-                        + newTopicPartitionMap);
+                log.warn("Begin receiving broker changes for topic " + this.topic + ",broker ids:" + newTopicPartitionMap);
 
                 // 判断broker是否改变
                 final boolean changed = !this.brokersInfo.oldBrokerStringMap.equals(newBrokerStringMap);
@@ -187,9 +197,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
     /** Map<topic, topic的生产者> */
     private final ConcurrentHashMap<String, CopyOnWriteArraySet<BrokerChangeListener>> brokerChangeListeners = new ConcurrentHashMap<String, CopyOnWriteArraySet<BrokerChangeListener>>();
 
-
-
-
     public ProducerZooKeeper(final MetaZookeeper metaZookeeper, final RemotingClientWrapper remotingClient, final ZkClient zkClient, final MetaClientConfig metaClientConfig) {
         super();
         this.metaZookeeper = metaZookeeper;
@@ -197,9 +204,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         this.zkClient = zkClient;
         this.metaClientConfig = metaClientConfig;
     }
-
-
-
 
     @Override
     public void onZkClientChanged(final ZkClient newClient) {
@@ -263,17 +267,21 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
      * @param ref       生产者对象
      */
     public void publishTopic(final String topic, final Object ref) {
+        // 判断是否注册过该topic监听
         if (this.topicConnectionListeners.get(topic) != null) {
             this.addRef(topic, ref);
             return;
         }
 
+        // 创建topic监听器
         final FutureTask<BrokerConnectionListener> task = new FutureTask<BrokerConnectionListener>(
                 new Callable<BrokerConnectionListener>() {
                     @Override
                     public BrokerConnectionListener call() throws Exception {
                         final BrokerConnectionListener listener = new BrokerConnectionListener(topic);
+                        // 当生产者直连某台MQ服务器时，该zkClient会为null
                         if (ProducerZooKeeper.this.zkClient != null) {
+                            // 订阅zk上发布的topic的分区路径，监听该分区路径的变更情况
                             ProducerZooKeeper.this.publishTopicInternal(topic, listener);
                         }
                         listener.references.add(ref);
@@ -282,8 +290,12 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
 
                 });
 
+        // 注册topic监听器
         final FutureTask<BrokerConnectionListener> existsTask = this.topicConnectionListeners.putIfAbsent(topic, task);
+
+        // 如果existsTask为null说明之前没有发布过该topic
         if (existsTask == null) {
+            // 使用异步的方式的来执行，主线程无需等待
             task.run();
         }
         else {
@@ -291,13 +303,12 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
     }
 
-    private void addRef(final String topic, final Object ref) {
-        BrokerConnectionListener listener = this.getBrokerConnectionListener(topic);
-        if (!listener.references.contains(ref)) {
-            listener.references.add(ref);
-        }
-    }
-
+    /**
+     * 注销topic
+     *
+     * @param topic
+     * @param ref       注销topic的生产者
+     */
     public void unPublishTopic(String topic, Object ref) {
         BrokerConnectionListener listener = this.getBrokerConnectionListener(topic);
         if (listener != null) {
@@ -311,6 +322,90 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
                     listener.dispose();
                 }
             }
+        }
+    }
+
+    /**
+     * 设置默认topic并发布
+     *
+     * @param topic
+     */
+    public synchronized void setDefaultTopic(final String topic, Object ref) {
+        if (this.defaultTopic != null && !this.defaultTopic.equals(topic)) {
+            throw new IllegalStateException("Default topic has been setup already:" + this.defaultTopic);
+        }
+        this.defaultTopic = topic;
+        this.publishTopic(topic, ref);
+    }
+
+    /**
+     * 根据topic和partition寻找broker url，当生产者给MQ服务器发送消息时，会调动该方法，选择消息发送给那台broker
+     *
+     * @param topic
+     * @param partition
+     * @return 选中的broker的url
+     */
+    public String selectBroker(final String topic, final Partition partition) {
+        // 如果是直连模式，则直接从配置读取broker的url
+        if (this.metaClientConfig.getServerUrl() != null) {
+            return this.metaClientConfig.getServerUrl();
+        }
+
+        if (partition != null) {
+            final BrokerConnectionListener brokerConnectionListener = this.getBrokerConnectionListener(topic);
+            if (brokerConnectionListener != null) {
+                final BrokersInfo brokersInfo = brokerConnectionListener.brokersInfo;
+                return brokersInfo.oldBrokerStringMap.get(partition.getBrokerId());
+            }
+            else {
+                return this.selectDefaultBroker(topic, partition);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 根据topic和message选择一个分区，当生产者发送消息非MQ服务器时会调用该方法
+     *
+     * @param topic                 生产者发送消息的所属topic
+     * @param message               生产者发送给MQ服务器的消息对象
+     * @param partitionSelector     分区选择器
+     * @return 选中的分区
+     */
+    public Partition selectPartition(final String topic, final Message message, final PartitionSelector partitionSelector) throws MetaClientException {
+        boolean oldReadOnly = message.isReadOnly();
+        try {
+            message.setReadOnly(true);
+            if (this.metaClientConfig.getServerUrl() != null) {
+                return Partition.RandomPartiton;
+            }
+            final BrokerConnectionListener brokerConnectionListener = this.getBrokerConnectionListener(topic);
+            if (brokerConnectionListener != null) {
+                final BrokersInfo brokersInfo = brokerConnectionListener.brokersInfo;
+                return partitionSelector.getPartition(topic, brokersInfo.oldTopicPartitionMap.get(topic), message);
+            }
+            else {
+                return this.selectDefaultPartition(topic, message, partitionSelector, null);
+            }
+        }
+        finally {
+            message.setReadOnly(oldReadOnly);
+        }
+    }
+
+
+
+
+    /**
+     * 添加生产者实例
+     *
+     * @param topic
+     * @param ref
+     */
+    private void addRef(final String topic, final Object ref) {
+        BrokerConnectionListener listener = this.getBrokerConnectionListener(topic);
+        if (!listener.references.contains(ref)) {
+            listener.references.add(ref);
         }
     }
 
@@ -332,9 +427,21 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         return set;
     }
 
+    /**
+     * 订阅zk上发布的topic的分区路径，监听该分区路径的变更情况
+     *
+     * @param topic
+     * @param listener
+     * @throws Exception
+     * @throws NotifyRemotingException
+     * @throws InterruptedException
+     */
     private void publishTopicInternal(final String topic, final BrokerConnectionListener listener) throws Exception, NotifyRemotingException, InterruptedException {
+        // 获取发布的topic的分区路径
         final String partitionPath = this.metaZookeeper.brokerTopicsPubPath + "/" + topic;
+        // 确保ZK中存在指定的路径，如果不存在，则创建路径
         ZkUtils.makeSurePersistentPathExists(ProducerZooKeeper.this.zkClient, partitionPath);
+        // 订阅zk上保存的topic分区的路径节点
         ProducerZooKeeper.this.zkClient.subscribeChildChanges(partitionPath, listener);
         // 第一次要同步等待就绪
         listener.syncedUpdateBrokersInfo();
@@ -387,19 +494,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
     }
 
     /**
-     * 设置默认topic并发布
-     * 
-     * @param topic
-     */
-    public synchronized void setDefaultTopic(final String topic, Object ref) {
-        if (this.defaultTopic != null && !this.defaultTopic.equals(topic)) {
-            throw new IllegalStateException("Default topic has been setup already:" + this.defaultTopic);
-        }
-        this.defaultTopic = topic;
-        this.publishTopic(topic, ref);
-    }
-
-    /**
      * 
      * 选择指定broker内的某个分区，用于事务内发送消息，此方法仅用于local transaction
      * 
@@ -435,30 +529,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
     }
 
     /**
-     * 根据partition寻找broker url
-     * 
-     * @param topic
-     * @param partition
-     * @return 选中的broker的url
-     */
-    public String selectBroker(final String topic, final Partition partition) {
-        if (this.metaClientConfig.getServerUrl() != null) {
-            return this.metaClientConfig.getServerUrl();
-        }
-        if (partition != null) {
-            final BrokerConnectionListener brokerConnectionListener = this.getBrokerConnectionListener(topic);
-            if (brokerConnectionListener != null) {
-                final BrokersInfo brokersInfo = brokerConnectionListener.brokersInfo;
-                return brokersInfo.oldBrokerStringMap.get(partition.getBrokerId());
-            }
-            else {
-                return this.selectDefaultBroker(topic, partition);
-            }
-        }
-        return null;
-    }
-
-    /**
      * 从defaultTopic中选择broker
      * 
      * @param topic
@@ -469,6 +539,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         if (this.defaultTopic == null) {
             return null;
         }
+
         final BrokerConnectionListener brokerConnectionListener = this.getBrokerConnectionListener(this.defaultTopic);
         if (brokerConnectionListener != null) {
             final BrokersInfo brokersInfo = brokerConnectionListener.brokersInfo;
@@ -476,34 +547,6 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
         else {
             return null;
-        }
-    }
-
-    /**
-     * 根据topic和message选择分区
-     * 
-     * @param topic
-     * @param message
-     * @return 选中的分区
-     */
-    public Partition selectPartition(final String topic, final Message message, final PartitionSelector partitionSelector) throws MetaClientException {
-        boolean oldReadOnly = message.isReadOnly();
-        try {
-            message.setReadOnly(true);
-            if (this.metaClientConfig.getServerUrl() != null) {
-                return Partition.RandomPartiton;
-            }
-            final BrokerConnectionListener brokerConnectionListener = this.getBrokerConnectionListener(topic);
-            if (brokerConnectionListener != null) {
-                final BrokersInfo brokersInfo = brokerConnectionListener.brokersInfo;
-                return partitionSelector.getPartition(topic, brokersInfo.oldTopicPartitionMap.get(topic), message);
-            }
-            else {
-                return this.selectDefaultPartition(topic, message, partitionSelector, null);
-            }
-        }
-        finally {
-            message.setReadOnly(oldReadOnly);
         }
     }
 
