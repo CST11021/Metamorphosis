@@ -61,6 +61,7 @@ public class RecoverStorageManager extends AbstractRecoverManager {
     /** Map<topic, FutureTask<Store>>*/
     private final ConcurrentHashMap<String, FutureTask<Store>> topicStoreMap = new ConcurrentHashMap<String, FutureTask<Store>>();
 
+    /** ${home}/.meta_recover 这是一个隐藏目录*/
     public static final String META_RECOVER_STORE_PATH = System.getProperty(
             "meta.recover.path", System.getProperty("user.home") + File.separator + ".meta_recover");
 

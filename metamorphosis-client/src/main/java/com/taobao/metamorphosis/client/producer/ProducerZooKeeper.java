@@ -54,8 +54,12 @@ import com.taobao.metamorphosis.utils.ZkUtils;
  * Producer和zk的交互：
  *
  * 1、生产者发布topic的原理：
- * 当生产者发布topic时，会在{@link #topicConnectionListeners}注册topic对应的监听器，这样当多个生产者实例发布topic时
- * 生产者只需关注将topic注册到zk上，然后各自的生产者实例会通过zk的监听机制处理对应的注册事件，通过该机制来解耦topic发布与处理的发布事件的耦合性
+ * 当生产者发布topic时，会在zk注册topic的路径，然后通过{@link #topicConnectionListeners}注册topic路径的子节点变更的监听器，注意topic
+ * 发布只是在zk上创建topic路径，并不会触发这里的子节点监听。
+ *
+ * 2、topic分区：
+ * mateq中，每个topic对应多个分区，这样当多个topic分区变更时，mateq客户端（包括消费者和生产者）只需关注将topic对应的分区信息注册到zk上，
+ * 然后各自的客户端实例会通过zk的监听机制处理对应的注册事件，通过该机制来解耦topic分区变更事件的耦合性
  *
  *
  * @author boyan
@@ -107,7 +111,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
 
         /**
-         * 处理broker增减
+         *  处理broker增减
          */
         @Override
         public void handleChildChange(final String parentPath, final List<String> currentChilds) throws Exception {
@@ -115,7 +119,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         }
 
         /**
-         * 同步更新broker信息
+         * 同步更新broker信息，每次topic发布的时候也会来调用该方法
          *
          * @throws NotifyRemotingException
          * @throws InterruptedException
@@ -428,7 +432,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
     }
 
     /**
-     * 订阅zk上发布的topic的分区路径，监听该分区路径的变更情况
+     * 订阅zk上发布的topic的分区路径，监听该分区路径的子节点变更情况，注意topic发布只是在zk上创建topic路径，并不会触发这里的子节点监听
      *
      * @param topic
      * @param listener

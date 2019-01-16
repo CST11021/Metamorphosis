@@ -25,7 +25,8 @@ import com.taobao.metamorphosis.client.Shutdownable;
 
 
 /**
- * 消费端的Recover管理器：当消息被过滤器拦截后会调用拒绝策略处理消息，此时会调用{@link #append(String, Message)}将消息保存到 RecoverManager 管理器
+ * 消费端的Recover管理器：当消息被过滤器拦截后会调用拒绝策略处理消息，此时会调用{@link #append(String, Message)}将消息保存到 RecoverManager 管理器，
+ * RecoverManager会将消费失败的消息保存在客户端本地，当消费者启动的时候会重新加载本地的消息（之前消费失败的消息）进行重新消费这些消息。
  * 
  * @author 无花
  * @since 2011-10-31 下午3:40:04
@@ -40,7 +41,7 @@ public interface RecoverManager extends Shutdownable {
     public boolean isStarted();
 
     /**
-     * 启动recover
+     * 启动recover，当消费者启动的时候会调用该方法，该方法将recover管理中消息进行重新消费
      * 
      * @param metaClientConfig
      */

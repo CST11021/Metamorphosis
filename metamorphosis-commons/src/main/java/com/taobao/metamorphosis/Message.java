@@ -35,10 +35,14 @@ import com.taobao.metamorphosis.cluster.Partition;
 public class Message implements Serializable {
     static final long serialVersionUID = -1L;
     private long id;
+    /** 消息所属的topic */
     private String topic;
+    /** 消息体数据 */
     private byte[] data;
+    /** 消息属性（当生产者给MQ服务器发送消息时，该字段可以为空） */
     private String attribute;
     private int flag;
+    /** 该消息要发送的分区 */
     private Partition partition;
     // added by dennis<killme2008@gmail.com>,2012-06-14
     private transient boolean readOnly;
