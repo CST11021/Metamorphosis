@@ -107,6 +107,7 @@ public class RecoverStorageManager extends AbstractRecoverManager {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
+                // 从本地recover消息，并重新进行消费
                 RecoverStorageManager.this.recover();
 
             }
@@ -189,6 +190,9 @@ public class RecoverStorageManager extends AbstractRecoverManager {
         }
     }
 
+    /**
+     * 从本地recover消息，并重新进行消费
+     */
     private void recover() {
         for (final Map.Entry<String, FutureTask<Store>> entry : this.topicStoreMap.entrySet()) {
             this.threadPoolExecutor.execute(new Runnable() {

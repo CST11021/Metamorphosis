@@ -47,7 +47,7 @@ public interface FetchManager {
     public void resetFetchState();
 
     /**
-     * Returns current fetch requests count.
+     * 获取当前抓取请求的个数
      *
      * @since 1.4.4
      * @return
@@ -55,7 +55,7 @@ public interface FetchManager {
     public int getFetchRequestCount();
 
     /**
-     * 添加fetch请求到队列中
+     * 添加一个fetch请求对象到队列中
      * 
      * @param request
      */

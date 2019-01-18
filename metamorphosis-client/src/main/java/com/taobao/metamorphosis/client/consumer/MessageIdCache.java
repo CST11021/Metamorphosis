@@ -10,7 +10,7 @@ package com.taobao.metamorphosis.client.consumer;
 public interface MessageIdCache {
 
     /**
-     * Added key value to cache
+     * 添加一个key到缓存
      * 
      * @param key
      * @param exists

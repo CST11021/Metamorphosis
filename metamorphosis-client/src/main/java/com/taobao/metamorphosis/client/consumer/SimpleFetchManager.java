@@ -60,7 +60,7 @@ public class SimpleFetchManager implements FetchManager {
     /** 统计抓取请求的次数 */
     private volatile int fetchRequestCount;
 
-    /** 表示抓取消息的请求队列 */
+    /** 用于保存抓取消息的请求队列 */
     private FetchRequestQueue requestQueue;
 
     /** 消费端配置 */
@@ -243,6 +243,7 @@ public class SimpleFetchManager implements FetchManager {
                 final MessageIterator iterator = SimpleFetchManager.this.consumer.fetch(request, -1, null);
                 final MessageListener listener = SimpleFetchManager.this.consumer.getMessageListener(request.getTopic());
                 final ConsumerMessageFilter filter = SimpleFetchManager.this.consumer.getMessageFilter(request.getTopic());
+                // 通知消息监听器处理消息
                 this.notifyListener(request, iterator, listener, filter, SimpleFetchManager.this.consumer.getConsumerConfig().getGroup());
             }
             catch (final MetaClientException e) {
@@ -334,6 +335,7 @@ public class SimpleFetchManager implements FetchManager {
                         log.error(
                                 "MessageListener线程池繁忙，无法处理消息,topic=" + request.getTopic() + ",partition="
                                         + request.getPartition(), e);
+                        // MessageListener线程池繁忙，无法处理消息的时候会将消息重新放回消息队列中
                         this.reAddFetchRequest2Queue(request);
                     }
 
@@ -507,6 +509,15 @@ public class SimpleFetchManager implements FetchManager {
             }
         }
 
+        /**
+         * 判断客户端是否消息这个消息
+         *
+         * @param request   消息抓取的请求
+         * @param filter    消息过滤器
+         * @param group     消费者分组
+         * @param msg       消息对象
+         * @return
+         */
         private boolean isAcceptable(final FetchRequest request, final ConsumerMessageFilter filter, final String group, final Message msg) {
             if (filter == null) {
                 return true;

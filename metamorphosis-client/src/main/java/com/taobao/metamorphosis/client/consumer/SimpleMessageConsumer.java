@@ -342,6 +342,8 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
                     new GetCommand(fetchRequest.getTopic(), this.consumerConfig.getGroup(),
                         fetchRequest.getPartition(), currentOffset, fetchRequest.getMaxSize(),
                         OpaqueGenerator.getNextOpaque());
+
+
             final ResponseCommand response = this.remotingClient.invokeToGroup(serverUrl, getCmd, timeout, timeUnit);
             if (response instanceof DataCommand) {
                 final DataCommand dataCmd = (DataCommand) response;
