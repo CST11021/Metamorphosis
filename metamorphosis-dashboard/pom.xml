@@ -103,6 +103,13 @@
         </repository>
     </repositories>
     <dependencies>
+        <!--内部依赖-->
+        <dependency>
+            <groupId>com.taobao.metamorphosis</groupId>
+            <artifactId>metamorphosis-server</artifactId>
+            <version>1.4.6.3-SNAPSHOT</version>
+        </dependency>
+
         <dependency>
             <groupId>org.clojure</groupId>
             <artifactId>clojure</artifactId>
@@ -148,11 +155,8 @@
             <artifactId>ring.velocity</artifactId>
             <version>0.1.2</version>
         </dependency>
-        <dependency>
-            <groupId>com.taobao.metamorphosis</groupId>
-            <artifactId>metamorphosis-server</artifactId>
-            <version>1.4.6.3-SNAPSHOT</version>
-        </dependency>
+
+        <!--测试-->
         <dependency>
             <groupId>ring-mock</groupId>
             <artifactId>ring-mock</artifactId>
