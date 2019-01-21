@@ -247,6 +247,7 @@ public class SimpleFetchManager implements FetchManager {
                 this.notifyListener(request, iterator, listener, filter, SimpleFetchManager.this.consumer.getConsumerConfig().getGroup());
             }
             catch (final MetaClientException e) {
+                // 当消费失败时，会将该抓取的请求重新放回到队列里，然后重新发起抓取消息的请求
                 this.updateDelay(request);
                 this.LogAddRequest(request, e);
             }
@@ -261,10 +262,12 @@ public class SimpleFetchManager implements FetchManager {
 
         /**
          * 消息消费异常时会调用该方法，该方法会添加对应的处理异常日志，并将消息重新放回抓取队列中，进行重新消费
+         *
          * @param request
          * @param e
          */
         private void LogAddRequest(final FetchRequest request, final Throwable e) {
+            // 注意：这里的消费失败是指获取消息的时候失败，而不是消费者处理消息的时候失败
             if (e instanceof MetaClientException
                     && e.getCause() instanceof NotifyRemotingException
                     && e.getMessage().contains("无可用连接")) {
@@ -315,6 +318,7 @@ public class SimpleFetchManager implements FetchManager {
          */
         private void notifyListener(final FetchRequest request, final MessageIterator it, final MessageListener listener, final ConsumerMessageFilter filter, final String group) {
             if (listener != null) {
+                // 如果消费者配置了线程池任务来处理消息的话，则走线程池处理
                 if (listener.getExecutor() != null) {
                     try {
                         listener.getExecutor().execute(new Runnable() {
@@ -536,8 +540,17 @@ public class SimpleFetchManager implements FetchManager {
             }
         }
 
+        /**
+         * 判断同一条消息在处理失败情况下，是否超过了最大重试消费次数
+         *
+         * @param request
+         * @param it
+         * @return
+         */
         private boolean processWhenRetryTooMany(final FetchRequest request, final MessageIterator it) {
+            // 同一条消息在处理失败情况下最大重试消费次数，默认3次，超过就跳过这条消息并调用RejectConsumptionHandler处理
             if (SimpleFetchManager.this.isRetryTooMany(request)) {
+
                 try {
                     final Message couldNotProecssMsg = it.next();
                     MessageAccessor.setPartition(couldNotProecssMsg, request.getPartitionObject());
@@ -564,6 +577,7 @@ public class SimpleFetchManager implements FetchManager {
                 request.setDelay(0);
                 this.reAddFetchRequest2Queue(request);
                 return true;
+
             }
             else {
                 return false;
@@ -628,6 +642,8 @@ public class SimpleFetchManager implements FetchManager {
 
         /**
          * 当消费失败时，调用该方法，来重置该请求的延迟时间（消息抓取请求是存放在延迟队列里的）
+         * 当消费失败时，会将该抓取的请求重新放回到队列里，然后重新发起抓取消息的请求
+         *
          * @param request
          */
         private void updateDelay(final FetchRequest request) {

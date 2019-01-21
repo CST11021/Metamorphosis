@@ -60,7 +60,7 @@ public interface InnerConsumer {
     public ConsumerConfig getConsumerConfig();
 
     /**
-     * 处理无法被客户端消费的消息
+     * 无法被消费者处理的消息，会调用该方法
      * 
      * @param message
      * @throws IOException

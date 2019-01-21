@@ -31,21 +31,17 @@ public class AvailablePartitionNumException extends MetaClientException {
 
     private static final long serialVersionUID = 8087499474643513774L;
 
-
     public AvailablePartitionNumException() {
         super();
     }
-
 
     public AvailablePartitionNumException(String message, Throwable cause) {
         super(message, cause);
     }
 
-
     public AvailablePartitionNumException(String message) {
         super(message);
     }
-
 
     public AvailablePartitionNumException(Throwable cause) {
         super(cause);

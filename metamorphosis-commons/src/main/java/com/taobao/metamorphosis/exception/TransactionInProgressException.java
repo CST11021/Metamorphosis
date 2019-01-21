@@ -24,30 +24,23 @@ package com.taobao.metamorphosis.exception;
  * 
  */
 public class TransactionInProgressException extends MetaClientException {
-    static final long serialVersionUID = -1L;
 
+    static final long serialVersionUID = -1L;
 
     public TransactionInProgressException() {
         super();
-
     }
-
 
     public TransactionInProgressException(final String message, final Throwable cause) {
         super(message, cause);
-
     }
-
 
     public TransactionInProgressException(final String message) {
         super(message);
-
     }
-
 
     public TransactionInProgressException(final Throwable cause) {
         super(cause);
-
     }
 
 }

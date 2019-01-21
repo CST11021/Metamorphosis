@@ -447,6 +447,8 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
     }
 
     /**
+     * 放弃策略：重复消费失败会放弃处理这条消息
+     *
      * Created with IntelliJ IDEA. User: dennis (xzhuang@avos.com)
      * Date: 13-2-5
      * Time: 上午11:29
@@ -461,6 +463,7 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
     }
 
     /**
+     * 本地恢复政策：重复消费失败会缓存到本地，下次消费者重启时，从本地恢复消息进行重复消费
      *
      * Created with IntelliJ IDEA. User: dennis (xzhuang@avos.com)
      * Date: 13-2-5
