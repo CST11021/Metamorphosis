@@ -338,26 +338,22 @@ public class BrokerCommandProcessor implements CommandProcessor {
 
         // 如果分区被关闭,禁止读数据 --wuhua
         if (this.metaConfig.isClosedPartition(topic, request.getPartition())) {
-            log.warn("can not get message for topic=" + topic + " from partition " + request.getPartition()
-                + ",it closed,");
-            return new BooleanCommand(HttpStatus.Forbidden, "Partition[" + this.metaConfig.getBrokerId() + "-"
-                    + request.getPartition() + "] has been closed", request.getOpaque());
+            log.warn("can not get message for topic=" + topic + " from partition " + request.getPartition() + ",it closed,");
+            return new BooleanCommand(HttpStatus.Forbidden, "Partition[" + this.metaConfig.getBrokerId() + "-" + request.getPartition() + "] has been closed", request.getOpaque());
         }
 
         final MessageStore store = this.storeManager.getMessageStore(topic, request.getPartition());
         if (store == null) {
             this.statsManager.statsGetMiss(topic, group, 1);
-            return new BooleanCommand(HttpStatus.NotFound, "The topic `" + topic + "` in partition `"
-                    + request.getPartition() + "` is not exists", request.getOpaque());
+            return new BooleanCommand(HttpStatus.NotFound, "The topic `" + topic + "` in partition `" + request.getPartition() + "` is not exists", request.getOpaque());
         }
+
         if (request.getMaxSize() <= 0) {
-            return new BooleanCommand(HttpStatus.BadRequest, "Bad request,invalid max size:" + request.getMaxSize(),
-                request.getOpaque());
+            return new BooleanCommand(HttpStatus.BadRequest, "Bad request,invalid max size:" + request.getMaxSize(), request.getOpaque());
         }
+
         try {
-            final MessageSet set =
-                    store.slice(request.getOffset(),
-                        Math.min(this.metaConfig.getMaxTransferSize(), request.getMaxSize()));
+            final MessageSet set = store.slice(request.getOffset(), Math.min(this.metaConfig.getMaxTransferSize(), request.getMaxSize()));
             ConsumerMessageFilter filter = this.consumerFilterManager.findFilter(topic, group);
             if (set != null) {
                 if (zeroCopy && filter == null) {
