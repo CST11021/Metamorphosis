@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 
 import com.taobao.metamorphosis.Message;
 import com.taobao.metamorphosis.client.MessageSessionFactory;
+import com.taobao.metamorphosis.client.MetaClientConfig;
 import com.taobao.metamorphosis.client.MetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.producer.MessageProducer;
 
@@ -38,11 +39,16 @@ import com.taobao.metamorphosis.client.producer.MessageProducer;
  */
 public class TransactionProducer {
     public static void main(final String[] args) throws Exception {
-        // New session factory,强烈建议使用单例
-        final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(initMetaConfig());
-        // create producer,强烈建议使用单例
+        // 1、初始化客户端配置
+        MetaClientConfig config = initMetaConfig();
+
+        // 2、创建消息会话工厂：一般会话工厂会使用单例来创建
+        final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(config);
+
+        // 3、创建消息生产者
         final MessageProducer producer = sessionFactory.createProducer();
-        // publish topic
+
+        // 4、发布topic,将topic注册到zk
         final String topic = "meta-test";
         producer.publish(topic);
 
@@ -68,13 +74,11 @@ public class TransactionProducer {
                 // 提交
                 producer.commit();
 
-            }
-            catch (final Exception e) {
+            } catch (final Exception e) {
                 producer.rollback();
             }
         }
     }
-
 
     private static String readLine(final BufferedReader reader) throws IOException {
         System.out.println("Type message to send:");
