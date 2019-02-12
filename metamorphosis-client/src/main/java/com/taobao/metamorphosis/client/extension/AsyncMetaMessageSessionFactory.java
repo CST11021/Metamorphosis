@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,7 +29,7 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 
 /**
  * 用于创建异步单向发送消息的会话工厂.
- * 
+ *
  * @author 无花
  * @since 2011-10-21 下午2:29:55
  */
@@ -40,69 +40,43 @@ public class AsyncMetaMessageSessionFactory extends MetaMessageSessionFactory im
         super(metaClientConfig);
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.extension.AsyncMessageSessionFactory#
-     * createAsyncProducer()
-     */
     @Override
     public AsyncMessageProducer createAsyncProducer() {
         return this.createAsyncProducer(new RoundRobinPartitionSelector());
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.extension.AsyncMessageSessionFactory#
-     * createAsyncProducer
-     * (com.taobao.metamorphosis.client.producer.PartitionSelector)
-     */
     @Override
     public AsyncMessageProducer createAsyncProducer(PartitionSelector partitionSelector) {
         return this.createAsyncProducer(partitionSelector, 0);
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.extension.AsyncMessageSessionFactory#
-     * createAsyncProducer
-     * (com.taobao.metamorphosis.client.producer.PartitionSelector, int)
-     */
     @Override
     public AsyncMessageProducer createAsyncProducer(PartitionSelector partitionSelector, int slidingWindowSize) {
         return this.createAsyncProducer(partitionSelector, slidingWindowSize, null);
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.client.extension.AsyncMessageSessionFactory#
-     * createAsyncProducer
-     * (com.taobao.metamorphosis.client.producer.PartitionSelector,
-     * com.taobao.metamorphosis
-     * .client.extension.producer.AsyncMessageProducer.IgnoreMessageProcessor)
-     */
     @Override
-    public AsyncMessageProducer createAsyncProducer(PartitionSelector partitionSelector,
-            IgnoreMessageProcessor processor) {
+    public AsyncMessageProducer createAsyncProducer(PartitionSelector partitionSelector, IgnoreMessageProcessor processor) {
         return this.createAsyncProducer(partitionSelector, 0, processor);
     }
 
-
-    private AsyncMessageProducer createAsyncProducer(PartitionSelector partitionSelector, int slidingWindowSize,
-            IgnoreMessageProcessor processor) {
-        return new AsyncMetaMessageProducer(this, this.remotingClient, partitionSelector, this.producerZooKeeper,
-            this.sessionIdGenerator.generateId(), slidingWindowSize, processor);
+    /**
+     * 创建异步单向的消息生产者
+     *
+     * @param partitionSelector 分区选择器
+     * @param slidingWindowSize 控制发送流量的滑动窗口大小,4k数据占窗口的一个单位,参考值:窗口大小为20000比较合适. 小于0则用默认值20000.窗口开得太大可能导致OOM风险
+     * @param processor         设置发送失败和超过流控消息的处理器,用户可以自己接管这些消息如何处理
+     * @return
+     */
+    private AsyncMessageProducer createAsyncProducer(PartitionSelector partitionSelector, int slidingWindowSize, IgnoreMessageProcessor processor) {
+        return new AsyncMetaMessageProducer(
+                this,
+                this.remotingClient,
+                partitionSelector,
+                this.producerZooKeeper,
+                this.sessionIdGenerator.generateId(),
+                slidingWindowSize,
+                processor);
     }
 
 }

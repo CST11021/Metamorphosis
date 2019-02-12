@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,26 +16,6 @@
  *   wuhua <wq163@163.com> , boyan <killme2008@gmail.com>
  */
 package com.taobao.metamorphosis.client.extension.producer;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import com.taobao.common.store.Store;
 import com.taobao.common.store.journal.JournalStore;
@@ -52,11 +32,23 @@ import com.taobao.metamorphosis.utils.codec.impl.Hessian1Deserializer;
 import com.taobao.metamorphosis.utils.codec.impl.Hessian1Serializer;
 import com.taobao.metamorphosis.utils.codec.impl.JavaDeserializer;
 import com.taobao.metamorphosis.utils.codec.impl.JavaSerializer;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
  * 消息缓存在本地磁盘,并定期或手动recover
- * 
+ *
  * @author 无花
  * @since 2011-8-8 上午10:40:56
  */
@@ -83,7 +75,7 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
     private final IdWorker idWorker = new IdWorker(0);
 
     public static final String DEFAULT_META_LOCALMESSAGE_PATH = System.getProperty("meta.localmessage.path",
-        System.getProperty("user.home") + File.separator + ".meta_localmessage");
+            System.getProperty("user.home") + File.separator + ".meta_localmessage");
 
     public String META_LOCALMESSAGE_PATH;
 
@@ -101,7 +93,7 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
 
 
     public LocalMessageStorageManager(final MetaClientConfig metaClientConfig, final String path,
-            final MessageRecoverer messageRecoverer) {
+                                      final MessageRecoverer messageRecoverer) {
         super();
         this.META_LOCALMESSAGE_PATH = StringUtils.isNotBlank(path) ? path : DEFAULT_META_LOCALMESSAGE_PATH;
         this.messageRecoverer = messageRecoverer;
@@ -109,19 +101,17 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
         if (this.META_LOCALMESSAGE_CODEC_TYPE.equals("java")) {
             this.serializer = new JavaSerializer();
             this.deserializer = new JavaDeserializer();
-        }
-        else if (this.META_LOCALMESSAGE_CODEC_TYPE.equals("hessian1")) {
+        } else if (this.META_LOCALMESSAGE_CODEC_TYPE.equals("hessian1")) {
             this.serializer = new Hessian1Serializer();
             this.deserializer = new Hessian1Deserializer();
-        }
-        else {
+        } else {
             throw new UnknowCodecTypeException(this.META_LOCALMESSAGE_CODEC_TYPE);
         }
 
         // 跟接收消息的RecoverThreadCount一样
         this.threadPoolExecutor =
                 new ThreadPoolExecutor(metaClientConfig.getRecoverThreadCount(),
-                    metaClientConfig.getRecoverThreadCount(), 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(
+                        metaClientConfig.getRecoverThreadCount(), 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(
                         100), new NamedThreadFactory("SendRecover-thread"), new ThreadPoolExecutor.CallerRunsPolicy());
 
         this.makeDataDir();
@@ -178,8 +168,7 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
                     }
                 }
             }
-        }
-        else {
+        } else {
             log.warn("messageRecoverer还未设置");
         }
     }
@@ -187,13 +176,12 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
 
     /**
      * 触发恢复一个主题一个分区的消息,可多次调用(保证对某主题的恢复任务最多只有一个在运行)
-     * 
+     *
      * @param topic
      * @param partition
-     * @param recoverer
-     *            恢复出来的消息的处理器
+     * @param recoverer 恢复出来的消息的处理器
      * @return 是否真正提交了恢复任务
-     * */
+     */
     @Override
     public boolean recover(final String topic, final Partition partition, final MessageRecoverer recoverer) {
 
@@ -208,11 +196,9 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
                     final Store store = LocalMessageStorageManager.this.getOrCreateStore(topic, partition);
 
                     this.innerRecover(store, recoverer, count, name);
-                }
-                catch (final Throwable e) {
+                } catch (final Throwable e) {
                     log.error("SendRecover发送消息恢复失败,name=" + name, e);
-                }
-                finally {
+                } finally {
                     log.info("SendRecover执行完毕移除发送恢复任务,name=" + name + ",恢复消息" + count.get() + "条");
                     LocalMessageStorageManager.this.topicRecoverTaskMap.remove(name);
                 }
@@ -221,7 +207,7 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
 
 
             private void innerRecover(final Store store, final MessageRecoverer recoverer, final AtomicLong count,
-                    final String name) throws IOException, Exception {
+                                      final String name) throws IOException, Exception {
                 final Iterator<byte[]> it = store.iterator();
                 while (it.hasNext()) {
                     final byte[] key = it.next();
@@ -234,8 +220,7 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
                         if (count.get() % 20000 == 0) {
                             log.info("SendRecover " + name + "已恢复消息条数:" + count.get());
                         }
-                    }
-                    catch (final IOException e) {
+                    } catch (final IOException e) {
                         log.error("SendRecover remove message failed", e);
                     }
                 }
@@ -246,8 +231,7 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
         if (ret == null) {
             this.threadPoolExecutor.submit(recoverTask);
             return true;
-        }
-        else {
+        } else {
             if (log.isDebugEnabled()) {
                 log.debug("SendRecover发送恢复任务正在运行,不需要重新启动,name=" + name);
             }
@@ -269,8 +253,7 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
         FutureTask<Store> task = this.topicStoreMap.get(name);
         if (task != null) {
             return this.getStore(name, task);
-        }
-        else {
+        } else {
             task = new FutureTask<Store>(new Callable<Store>() {
 
                 @Override
@@ -302,8 +285,7 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
     private Store getStore(final String topic, final FutureTask<Store> task) {
         try {
             return task.get();
-        }
-        catch (final Throwable t) {
+        } catch (final Throwable t) {
             log.error("获取topic=" + topic + "对应的store失败", t);
             throw new GetRecoverStorageErrorException("获取topic=" + topic + "对应的store失败", t);
         }
@@ -327,8 +309,7 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
             final Store store = this.getStore(name, task);
             try {
                 store.close();
-            }
-            catch (final IOException e) {
+            } catch (final IOException e) {
                 // ignore
             }
         }
@@ -351,8 +332,7 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
         final FutureTask<Store> task = this.topicStoreMap.get(name);
         if (task != null) {
             return this.getStore(name, task).size();
-        }
-        else {
+        } else {
             return 0;
         }
     }

@@ -82,6 +82,7 @@ public class MetaZookeeper {
 
     public MetaZookeeper(final ZkClient zkClient, final String root) {
         this.zkClient = zkClient;
+        // metaRootÄ¬ÈÏÎª£º/meta
         this.metaRoot = this.normalize(root);
         this.consumersPath = this.metaRoot + "/consumers";
         this.brokerIdsPath = this.metaRoot + "/brokers/ids";

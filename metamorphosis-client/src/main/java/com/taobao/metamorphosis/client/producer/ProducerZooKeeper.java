@@ -99,7 +99,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         /** 更新broker信息时用的锁 */
         final Lock lock = new ReentrantLock();
 
-        /** 当生产者对象实例发布topic时，会将topic保存在该集合里 */
+        /** 当生产者对象实例发布topic时，会将生产者对象的引用保存在该集合里 */
         final Set<Object> references = Collections.synchronizedSet(new HashSet<Object>());
 
         /** TreeMap<brokerId, serverUrl>; HashMap<topic, partitionList> */
@@ -127,7 +127,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         void syncedUpdateBrokersInfo() throws NotifyRemotingException, InterruptedException {
             this.lock.lock();
             try {
-                // 获取Map<brokerId, broker节点数据字符串如meta://host:port>
+                // 获取可以保存该topic消息的MQ服务器列表：Map<brokerId, broker节点数据字符串如meta://host:port>
                 final Map<Integer, String> newBrokerStringMap = ProducerZooKeeper.this.metaZookeeper.getMasterBrokersByTopic(this.topic);
 
                 // 返回master的topic到partition映射的map
@@ -140,14 +140,14 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
                 // 判断broker是否改变
                 final boolean changed = !this.brokersInfo.oldBrokerStringMap.equals(newBrokerStringMap);
 
-                // Close old brokers;
+                // 生产者断开与所有MQ服务器的连接
                 for (final Map.Entry<Integer, String> oldEntry : this.brokersInfo.oldBrokerStringMap.entrySet()) {
                     final String oldBrokerString = oldEntry.getValue();
                     ProducerZooKeeper.this.remotingClient.closeWithRef(oldBrokerString, this, false);
                     log.warn("Closed " + oldBrokerString);
                 }
 
-                // Connect to new brokers
+                // 生产者与MQ服务器建立连接
                 for (final Map.Entry<Integer, String> newEntry : newBrokerStringMap.entrySet()) {
                     final String newBrokerString = newEntry.getValue();
                     ProducerZooKeeper.this.remotingClient.connectWithRef(newBrokerString, this);
@@ -161,8 +161,10 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
                     log.warn("Connected to " + newBrokerString);
                 }
 
-                // Set the new brokers info.
+                // 重新设置MQ服务器的消息
                 this.brokersInfo = new BrokersInfo(newBrokerStringMap, newTopicPartitionMap);
+
+                // 如果topic对应的MQ服务器发生变更,则执行所有监听了该topic的监听器
                 if (changed) {
                     ProducerZooKeeper.this.notifyBrokersChange(this.topic);
                 }
@@ -369,7 +371,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
     }
 
     /**
-     * 根据topic和message选择一个分区，当生产者发送消息非MQ服务器时会调用该方法
+     * 根据topic和message选择一个分区，当生产者发送消息给MQ服务器时会调用该方法
      *
      * @param topic                 生产者发送消息的所属topic
      * @param message               生产者发送给MQ服务器的消息对象
@@ -441,7 +443,7 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
      * @throws InterruptedException
      */
     private void publishTopicInternal(final String topic, final BrokerConnectionListener listener) throws Exception, NotifyRemotingException, InterruptedException {
-        // 获取发布的topic的分区路径
+        // 获取发布的topic的分区路径：/meta/brokers/topics-pub/${topic}
         final String partitionPath = this.metaZookeeper.brokerTopicsPubPath + "/" + topic;
         // 确保ZK中存在指定的路径，如果不存在，则创建路径
         ZkUtils.makeSurePersistentPathExists(ProducerZooKeeper.this.zkClient, partitionPath);

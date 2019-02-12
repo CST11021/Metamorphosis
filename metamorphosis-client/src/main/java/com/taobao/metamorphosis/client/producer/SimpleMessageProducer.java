@@ -196,7 +196,7 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
 
 
 
-    // 主要方法
+    // 异步发送消息
     @Override
     public void sendMessage(final Message message, final SendMessageCallback cb, final long time, final TimeUnit unit) {
         try {
@@ -259,7 +259,7 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         this.sendMessage(message, cb, DEFAULT_OP_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
-
+    // 同步发送消息
     @Override
     public SendResult sendMessage(final Message message, final long timeout, final TimeUnit unit) throws MetaClientException, InterruptedException {
         this.checkState();
@@ -569,25 +569,25 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
         final String resultStr = resp.getErrorMsg();
 
         switch (resp.getCode()) {
-        case HttpStatus.Success: {
-            // messageId partition offset
-            final String[] tmps = RESULT_SPLITER.split(resultStr);
-            // 成功，设置消息id，消息id由服务器产生
-            MessageAccessor.setId(message, Long.parseLong(tmps[0]));
-            final Partition serverPart = new Partition(partition.getBrokerId(), Integer.parseInt(tmps[1]));
-            MessageAccessor.setPartition(message, serverPart);
-            // 记录本次发送信息，仅用于事务消息
-            this.logLastSentInfo(serverUrl);
-            return new SendResult(true, serverPart, Long.parseLong(tmps[2]), null);
-        }
-        case HttpStatus.Forbidden: {
-            if (log.isDebugEnabled()) {
-                log.debug(resultStr);
+            case HttpStatus.Success: {
+                // messageId partition offset
+                final String[] tmps = RESULT_SPLITER.split(resultStr);
+                // 成功，设置消息id，消息id由服务器产生
+                MessageAccessor.setId(message, Long.parseLong(tmps[0]));
+                final Partition serverPart = new Partition(partition.getBrokerId(), Integer.parseInt(tmps[1]));
+                MessageAccessor.setPartition(message, serverPart);
+                // 记录本次发送信息，仅用于事务消息
+                this.logLastSentInfo(serverUrl);
+                return new SendResult(true, serverPart, Long.parseLong(tmps[2]), null);
             }
-            return new SendResult(false, null, -1, String.valueOf(HttpStatus.Forbidden));
-        }
-        default:
-            return new SendResult(false, null, -1, resultStr);
+            case HttpStatus.Forbidden: {
+                if (log.isDebugEnabled()) {
+                    log.debug(resultStr);
+                }
+                return new SendResult(false, null, -1, String.valueOf(HttpStatus.Forbidden));
+            }
+            default:
+                return new SendResult(false, null, -1, resultStr);
         }
     }
 

@@ -41,6 +41,13 @@ import com.taobao.metamorphosis.example.XATransactionTemplate;
 
 /**
  * 发送者参与分布式事务的简单例子，基于atomikos
+ *
+ * 有关于atomikos分布式事务可以参考：https://www.jianshu.com/p/86b4ab4f2d18
+ *
+ * XA是啥？
+ * XA是由X/Open组织提出的分布式事务的架构（或者叫协议）。XA架构主要定义了（全局）事务管理器（Transaction Manager）和（局部）资源管理器（Resource Manager）之间的接口。XA接口是双向的系统接口，在事务管理器（Transaction Manager）以及一个或多个资源管理器（Resource Manager）之间形成通信桥梁。也就是说，在基于XA的一个事务中，我们可以针对多个资源进行事务管理，例如一个系统访问多个数据库，或即访问数据库、又访问像消息中间件这样的资源。这样我们就能够实现在多个数据库和消息中间件直接实现全部提交、或全部取消的事务。XA规范不是java的规范，而是一种通用的规范，
+ * 目前各种数据库、以及很多消息中间件都支持XA规范。
+ * JTA是满足XA规范的、用于Java开发的规范。所以，当我们说，使用JTA实现分布式事务的时候，其实就是说，使用JTA规范，实现系统内多个数据库、消息中间件等资源的事务。
  * 
  * @author boyan(boyan@taobao.com)
  * @date 2011-8-26

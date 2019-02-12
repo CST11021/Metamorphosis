@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,6 +17,12 @@
  */
 package com.taobao.metamorphosis.client.extension.producer;
 
+import com.taobao.common.store.Store;
+import com.taobao.metamorphosis.Message;
+import com.taobao.metamorphosis.client.MetaClientConfig;
+import com.taobao.metamorphosis.client.extension.storage.MessageStore;
+import com.taobao.metamorphosis.cluster.Partition;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -24,16 +30,10 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 
-import com.taobao.common.store.Store;
-import com.taobao.metamorphosis.Message;
-import com.taobao.metamorphosis.client.MetaClientConfig;
-import com.taobao.metamorphosis.client.extension.storage.MessageStore;
-import com.taobao.metamorphosis.cluster.Partition;
-
 
 /**
  * 针对顺序消息做了特殊处理的LocalMessageStorageManager
- * 
+ *
  * @author 无花
  * @since 2011-10-27 下午3:21:32
  */
@@ -63,8 +63,7 @@ public class OrderedLocalMessageStorageManager extends LocalMessageStorageManage
                     this.recover(topic, partition, this.messageRecoverer);
                 }
             }
-        }
-        else {
+        } else {
             log.warn("messageRecoverer还未设置");
         }
     }
@@ -72,13 +71,12 @@ public class OrderedLocalMessageStorageManager extends LocalMessageStorageManage
 
     /**
      * 触发恢复一个主题一个分区的消息,可多次调用(保证对某主题的恢复任务最多只有一个在运行)
-     * 
+     *
      * @param topic
      * @param partition
-     * @param recoverer
-     *            恢复出来的消息的处理器
+     * @param recoverer 恢复出来的消息的处理器
      * @return 是否真正提交了恢复任务
-     * */
+     */
     @Override
     public boolean recover(final String topic, final Partition partition, final MessageRecoverer recoverer) {
 
@@ -109,17 +107,14 @@ public class OrderedLocalMessageStorageManager extends LocalMessageStorageManage
 
                     count = this.innerRecover(store, recoverer);
                     log.info("SendRecover topic=" + name + "恢复消息" + count + "条");
-                }
-                catch (Throwable e) {
+                } catch (Throwable e) {
                     log.error("SendRecover发送消息恢复失败,topic=" + name, e);
-                }
-                finally {
+                } finally {
                     log.info("SendRecover执行完毕移除发送恢复任务,topic=" + name);
                     OrderedLocalMessageStorageManager.this.topicRecoverTaskMap.remove(name);
                 }
                 return true;
             }
-
 
             private int innerRecover(Store store, final MessageRecoverer recoverer) throws IOException, Exception {
                 Iterator<byte[]> it = store.iterator();
@@ -132,8 +127,7 @@ public class OrderedLocalMessageStorageManager extends LocalMessageStorageManage
                     try {
                         store.remove(key);
                         count++;
-                    }
-                    catch (IOException e) {
+                    } catch (IOException e) {
                         log.error("SendRecover remove message failed", e);
                     }
                 }
@@ -145,8 +139,7 @@ public class OrderedLocalMessageStorageManager extends LocalMessageStorageManage
         if (ret == null) {
             this.threadPoolExecutor.submit(recoverTask);
             return true;
-        }
-        else {
+        } else {
             if (log.isDebugEnabled()) {
                 log.debug("SendRecover发送恢复任务正在运行,不需要重新启动,topic=" + topic);
             }

@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,44 +17,53 @@
  */
 package com.taobao.metamorphosis.client.extension.producer;
 
-import java.util.concurrent.TimeUnit;
-
 import com.taobao.metamorphosis.Message;
 import com.taobao.metamorphosis.client.producer.SendResult;
 import com.taobao.metamorphosis.cluster.Partition;
 import com.taobao.metamorphosis.exception.MetaClientException;
 
+import java.util.concurrent.TimeUnit;
+
 
 /**
- * 
+ * 有序的消息发送器
+ *
  * @author 无花
  * @since 2011-8-9 下午6:12:01
  */
-
 class OrderedMessageSender {
-    private final OrderedMessageProducer producer;
 
+    private final OrderedMessageProducer producer;
 
     OrderedMessageSender(OrderedMessageProducer producer) {
         this.producer = producer;
     }
 
-
-    SendResult sendMessage(Message message, long timeout, TimeUnit unit) throws MetaClientException,
-            InterruptedException {
+    /**
+     * 先获取分区信息，如果获取失败，则将消息保存到本地；如果分区信息获取成功，则先将本地消息恢复，直到全部恢复完成为止，才发送消息，
+     * 注意，如果本地消息太多的话，也会先将消息保存在本地
+     *
+     * @param message
+     * @param timeout
+     * @param unit
+     * @return
+     * @throws MetaClientException
+     * @throws InterruptedException
+     */
+    SendResult sendMessage(Message message, long timeout, TimeUnit unit) throws MetaClientException, InterruptedException {
         int maxRecheck = 3;
         int check = 1;
-        for (;;) {
+        for (; ; ) {
             SelectPartitionResult result = this.trySelectPartition(message);
 
-            // 可用分区不正常
+            // 可用分区不正常，会将消息保存到本地
             if (!result.isPartitionWritable()) {
                 return this.producer.saveMessageToLocal(message, result.getSelectedPartition(), timeout, unit);
             }
             // 可用分区正常
             else {
-                int localMessageCount =
-                        this.producer.getLocalMessageCount(message.getTopic(), result.getSelectedPartition());
+                // 统计保存在本地消息数量
+                int localMessageCount = this.producer.getLocalMessageCount(message.getTopic(), result.getSelectedPartition());
                 if (localMessageCount > 0) {
                     this.producer.tryRecoverMessage(message.getTopic(), result.getSelectedPartition());
                 }
@@ -62,8 +71,7 @@ class OrderedMessageSender {
                 if (localMessageCount <= 0) {
                     // 本地存的消息条数为空,本次消息发送到服务端
                     return this.producer.sendMessageToServer(message, timeout, unit, true);
-                }
-                else if (localMessageCount > 0 && localMessageCount <= 20) {
+                } else if (localMessageCount > 0 && localMessageCount <= 20) {
                     // 本地存的消息只有少量几条,停顿一下等待本地消息被恢复,`再继续检查状态,
                     // 最多检查maxRecheck次 本地消息还没被恢复完,存本地并退出.
                     if (check >= maxRecheck) {
@@ -71,19 +79,24 @@ class OrderedMessageSender {
                     }
                     Thread.sleep(100L);
 
-                }
-                else {
+                } else {
                     // 本地存的消息还有很多,继续写本地
                     return this.producer.saveMessageToLocal(message, result.getSelectedPartition(), timeout, unit);
                 }
 
             }
             check++;
-        }// end for
+        }// end for 直到本地的所有消息都恢复为止
 
     }
 
-
+    /**
+     * 根据消息选择一个分区
+     *
+     * @param message
+     * @return
+     * @throws MetaClientException
+     */
     private SelectPartitionResult trySelectPartition(Message message) throws MetaClientException {
         SelectPartitionResult result = new SelectPartitionResult();
         try {
@@ -93,14 +106,12 @@ class OrderedMessageSender {
             }
             result.setSelectedPartition(partition);
             result.setPartitionWritable(true);
-        }
-        catch (AvailablePartitionNumException e) {
+        } catch (AvailablePartitionNumException e) {
             String msg = e.getMessage();
             String partitionStr = msg.substring(msg.indexOf("[") + 1, msg.indexOf("]"));
             result.setSelectedPartition(new Partition(partitionStr));
             result.setPartitionWritable(false);
-        }
-        catch (MetaClientException e) {
+        } catch (MetaClientException e) {
             throw e;
         }
         return result;
