@@ -388,14 +388,15 @@ public class BrokerZooKeeper implements PropertyChangeListener {
      * 注册topic和分区信息到zk
      * 
      * @param topic
-     * @param force
+     * @param force     是否强制注册到zk
+     *                  当为false时，如果之前该topic已经注册到zk，则无需再重复注册；
+     *                  当为true时，如果topic配置发生变更，则就将topic注销，然后重新注册到zk。
      *
      * @throws Exception
      */
     public void registerTopicInZk(final String topic, boolean force) throws Exception {
         if (force) {
-            // This block is not synchronized,because we don't force to register
-            // topics frequently except reloading config file.
+            // This block is not synchronized,because we don't force to register topics frequently except reloading config file.
             TopicConfig oldConfig = this.cloneTopicConfigs.get(topic);
             TopicConfig newConfig = this.config.getTopicConfig(topic);
             if (this.compareTopicConfigs(newConfig, oldConfig)) {

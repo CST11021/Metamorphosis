@@ -192,13 +192,19 @@ public class BrokerCommandProcessor implements CommandProcessor {
 
     /** 消息存储管理器 */
     protected MessageStoreManager storeManager;
+    /** 用于管理处理get和put请求的线程池 */
     protected ExecutorsManager executorsManager;
+    /** 统计管理器 */
     protected StatsManager statsManager;
+    /** 服务端的远程通信对象 */
     protected RemotingServer remotingServer;
+    /** MateQ服务器端配置 */
     protected MetaConfig metaConfig;
     /** 用于生产全局唯一的消息ID */
     protected IdWorker idWorker;
+    /** Broker与ZK交互，注册（或注销）broker和topic等信息到zk */
     protected BrokerZooKeeper brokerZooKeeper;
+    /** 消费者的消息过滤管理器 */
     protected ConsumerFilterManager consumerFilterManager;
 
     /**
@@ -244,7 +250,6 @@ public class BrokerCommandProcessor implements CommandProcessor {
 
     }
 
-
     @Override
     public void processPutCommand(final PutCommand request, final SessionContext sessionContext, final PutCallback cb) {
 
@@ -275,13 +280,14 @@ public class BrokerCommandProcessor implements CommandProcessor {
 
             // 获取消息要保存的分区索引
             partition = this.getPartition(request);
+            // 根据topic和分区获取对应的消息存储器
             final MessageStore store = this.storeManager.getOrCreateMessageStore(request.getTopic(), partition);
             // 如果是动态添加的topic，需要注册到zk
             this.brokerZooKeeper.registerTopicInZk(request.getTopic(), false);
             // 设置唯一的消息id
             final long messageId = this.idWorker.nextId();
-            store.append(messageId, request,
-                new StoreAppendCallback(partition, partitionString, request, messageId, cb));
+            // 将消息保存到消息存储器，后续由消息存储器回写到磁盘
+            store.append(messageId, request, new StoreAppendCallback(partition, partitionString, request, messageId, cb));
         }
         catch (final Exception e) {
             this.statsManager.statsPutFailed(request.getTopic(), partitionString, 1);
