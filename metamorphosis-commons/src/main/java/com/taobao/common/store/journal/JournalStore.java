@@ -67,9 +67,9 @@ import com.taobao.common.store.util.Util;
 public class JournalStore implements Store, JournalStoreMBean {
 
     private final Log log = LogFactory.getLog(JournalStore.class);
-
-    public static final int FILE_SIZE = 1024 * 1024 * 64; // 20M
-    // public static final int ONE_DAY = 1000 * 60 * 60 * 24;
+    // 20M
+    public static final int FILE_SIZE = 1024 * 1024 * 64;
+    // ∞ÎÃÏ£¨µ•Œª∫¡√Î
     public static final int HALF_DAY = 1000 * 60 * 60 * 12;
     protected static final int DEFAULT_MAX_BATCH_SIZE = 1024 * 1024 * 4;
     private final String path;

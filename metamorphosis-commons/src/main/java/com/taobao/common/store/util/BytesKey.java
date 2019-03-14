@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +23,7 @@ import java.io.Serializable;
 /**
  * 由于byte[]作为map的key时，会造成每次的key都不一样，所以必须封装一下。 <br />
  * 该类就是封装了byte[]
- * 
+ *
  * @author dogun (yuexuqiang at gmail.com)
  */
 public class BytesKey implements Serializable {
@@ -47,8 +47,7 @@ public class BytesKey implements Serializable {
     }
 
     /**
-     * @param data
-     *            the data to set
+     * @param data the data to set
      */
     public void setData(final byte[] data) {
         this.data = data;

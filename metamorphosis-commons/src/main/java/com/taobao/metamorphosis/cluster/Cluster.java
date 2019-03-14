@@ -24,7 +24,16 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 表示Broker集群
+ * 表示Broker集群：
+ *
+ * 集群的部署方式主要有下面2种：
+ *
+ *      Broker Clusters 模式：实现负载均衡，多个broker之间同步消息，已达到服务器负载的可能。
+ *      Master Slave 模式：实现高可用，当主服务器宕机时，备用服务器可以立即补充，以保证服务的继续。
+ *
+ * Master Slave只能实现高可用性，不能实现负载均衡。
+ * Broker Cluster 只能实现负载均衡，不能实现高可用性。
+ * Master Slave和Broker Cluster 结合使用可以实现高可用和负载均衡
  * 
  * @author boyan
  * @Date 2011-4-25
@@ -34,8 +43,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Cluster {
 
-    /** Map<borkerId>, Set<Broker>> */
-    private final ConcurrentHashMap<Integer/* broker id */, Set<Broker>> brokers = new ConcurrentHashMap<Integer, Set<Broker>>();
+    /** Map<borkerId>, Set<Broker>> 这里的key为master的brokerId*/
+    private final ConcurrentHashMap<Integer, Set<Broker>> brokers = new ConcurrentHashMap<Integer, Set<Broker>>();
 
     transient private final static Random random = new Random();
 
@@ -57,7 +66,7 @@ public class Cluster {
     }
 
     /**
-     * 随机获取一个broker
+     * 随机获取一个broker，但优先返回master
      * @param id
      * @return
      */
@@ -69,7 +78,7 @@ public class Cluster {
         if (set.size() == 1) {
             return (Broker) set.toArray()[0];
         }
-        // prefer master.
+        // prefer master.优先返回master
         for (Broker broker : set) {
             if (!broker.isSlave()) {
                 return broker;

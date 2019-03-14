@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,30 +17,22 @@
  */
 package com.taobao.common.store.memory;
 
+import com.taobao.common.store.Store;
+import com.taobao.common.store.util.BytesKey;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.taobao.common.store.Store;
-import com.taobao.common.store.util.BytesKey;
-
 
 /**
- * 
- * 
  * @author dogun (yuexuqiang at gmail.com)
- * 
  */
 public class MemStore implements Store {
 
     private final Map<BytesKey, byte[]> datas = new ConcurrentHashMap<BytesKey, byte[]>();
 
-    /**
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#add(byte[], byte[])
-     */
     @Override
     public void add(final byte[] key, final byte[] data) throws IOException {
         this.datas.put(new BytesKey(key), data);
@@ -57,21 +49,11 @@ public class MemStore implements Store {
         return null != this.datas.remove(new BytesKey(key));
     }
 
-    /**
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#get(byte[])
-     */
     @Override
     public byte[] get(final byte[] key) throws IOException {
         return this.datas.get(new BytesKey(key));
     }
 
-    /**
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#iterator()
-     */
     @Override
     public Iterator<byte[]> iterator() throws IOException {
         final Iterator<BytesKey> it = this.datas.keySet().iterator();
@@ -99,31 +81,16 @@ public class MemStore implements Store {
         };
     }
 
-    /**
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#remove(byte[])
-     */
     @Override
     public boolean remove(final byte[] key) throws IOException {
         return null != this.datas.remove(new BytesKey(key));
     }
 
-    /**
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#size()
-     */
     @Override
     public int size() {
         return this.datas.size();
     }
 
-    /**
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.common.store.Store#update(byte[], byte[])
-     */
     @Override
     public boolean update(final byte[] key, final byte[] data) throws IOException {
         this.datas.put(new BytesKey(key), data);

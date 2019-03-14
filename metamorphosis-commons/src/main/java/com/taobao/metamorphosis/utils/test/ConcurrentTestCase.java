@@ -47,14 +47,12 @@ public class ConcurrentTestCase {
         this.task = task;
     }
 
-
     public ConcurrentTestCase(int threadCount, ConcurrentTestTask task) {
         super();
         this.threadCount = threadCount;
         this.repeatCount = 1;
         this.task = task;
     }
-
 
     public void start() {
         this.barrier = new CyclicBarrier(this.threadCount + 1, this.watch);
@@ -72,33 +70,24 @@ public class ConcurrentTestCase {
     }
 
 
+    public long getDurationInMillis() {
+        return this.watch.getDurationInMillis();
+    }
+    public long getDurationInNano() {
+        return this.watch.getDurationInNano();
+    }
     public int getThreadCount() {
         return this.threadCount;
     }
-
-
     public void setThreadCount(int threadCount) {
         this.threadCount = threadCount;
     }
-
-
     public ConcurrentTestTask getTask() {
         return this.task;
     }
-
-
     public void setTask(ConcurrentTestTask task) {
         this.task = task;
     }
 
-
-    public long getDurationInMillis() {
-        return this.watch.getDurationInMillis();
-    }
-
-
-    public long getDurationInNano() {
-        return this.watch.getDurationInNano();
-    }
 
 }
