@@ -51,7 +51,7 @@ public class SimpleFetchManager implements FetchManager {
     /** 用于标识抓取消息的管理是否关闭 */
     private volatile boolean shutdown = false;
 
-    /** 表示抓取消息的线程，线程数取决于{@link ConsumerConfig#fetchRunnerCount}配置，默认cpu个数 */
+    /** 表示抓取消息的线程，线程数取决于{@link ConsumerConfig#fetchRunnerCount}配置，默认cpu个数，该线程对象是对{@link FetchRequestRunner}的封装 */
     private Thread[] fetchThreads;
 
     /** 表示从MQ服务器拉取消息进行消费的线程列表 */
@@ -166,6 +166,11 @@ public class SimpleFetchManager implements FetchManager {
         }
     }
 
+    /**
+     * 判断同一条消息是否超过了最大的重试消费次数，默认3次，超过会跳过这条消息并调用RejectConsumptionHandler处理
+     * @param request
+     * @return
+     */
     boolean isRetryTooMany(final FetchRequest request) {
         return request.getRetries() > this.consumerConfig.getMaxFetchRetries();
     }

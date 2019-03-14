@@ -215,6 +215,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                         //
                         final ZKLoadRebalanceListener loadBalanceListener = new ZKLoadRebalanceListener(fetchManager, dirs, consumerUUIDString, consumerConfig, offsetStorage, topicSubcriberRegistry, loadBalanceStrategy);
                         loadBalanceListener.start();
+                        // 注册消费者，并启用异步线程开始发起抓取消息的请求
                         return ConsumerZooKeeper.this.registerConsumerInternal(loadBalanceListener);
                     }
                 });
@@ -234,7 +235,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
     // 注册消费者，并开始发起抓取消息的请求
     protected ZKLoadRebalanceListener registerConsumerInternal(final ZKLoadRebalanceListener loadBalanceListener) throws UnknownHostException, InterruptedException, Exception {
         final ZKGroupDirs dirs = this.metaZookeeper.new ZKGroupDirs(loadBalanceListener.consumerConfig.getGroup());
-        // 获取所有被订阅的topic
+        // 获取所有被订阅的topic，用逗号分隔
         final String topicString = this.getTopicsString(loadBalanceListener.topicSubcriberRegistry);
 
         // 直连MQ服务的模式
