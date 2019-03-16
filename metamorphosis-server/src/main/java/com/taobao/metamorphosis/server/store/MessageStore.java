@@ -261,10 +261,8 @@ public class MessageStore extends Thread implements Closeable {
 
     private volatile String desc;
 
-
-    public MessageStore(final String topic, final int partition, final MetaConfig metaConfig, final DeletePolicy deletePolicy) throws IOException {
-        this(topic, partition, metaConfig, deletePolicy, 0);
-    }
+    /** 校验分区目录下的消息文件时，对其进行加锁 */
+    private final ReentrantLock writeLock = new ReentrantLock();
 
     /**
      *
@@ -312,6 +310,10 @@ public class MessageStore extends Thread implements Closeable {
             this.start();
         }
     }
+    public MessageStore(final String topic, final int partition, final MetaConfig metaConfig, final DeletePolicy deletePolicy) throws IOException {
+        this(topic, partition, metaConfig, deletePolicy, 0);
+    }
+
 
     /**
      * 该线程方法用于将消息存储管理器中的消息保存到磁盘
@@ -599,8 +601,10 @@ public class MessageStore extends Thread implements Closeable {
         }
     }
 
-    /** 校验分区目录下的消息文件时，对其进行加锁 */
-    private final ReentrantLock writeLock = new ReentrantLock();
+
+
+
+    // 将消息保存到消息存储器
 
     /**
      * 将消息保存到消息存储管理器，当客户端put消息到MQ服务器时，会调用该方法，将消息存储到消息存储器
@@ -612,7 +616,18 @@ public class MessageStore extends Thread implements Closeable {
     public void append(final long msgId, final PutCommand req, final AppendCallback cb) {
         this.appendBuffer(MessageUtils.makeMessageBuffer(msgId, req), cb);
     }
-
+    /**
+     * Append多个消息，返回写入的位置
+     *
+     * @param msgIds
+     * @param putCmds
+     * @param cb
+     *
+     * @return
+     */
+    public void append(final List<Long> msgIds, final List<PutCommand> putCmds, final AppendCallback cb) {
+        this.appendBuffer(MessageUtils.makeMessageBuffer(msgIds, putCmds), cb);
+    }
     /**
      * 这里比较好的设计是采用回调的方式来，对于异步写入实现就变得非常容易，AppendCallback返回的是消息成功写入的位置Location(起始位置和消
      * 息长度)，该Location并不是相对于当前Segment的开始位置0，而是相对于当前Segment给定的值(对应文件命名值即为给定的值)，以后查询消息的
@@ -642,8 +657,7 @@ public class MessageStore extends Thread implements Closeable {
                 this.mayBeFlush(1);
                 // 判断segments的可变segment是否要指向下一个segment
                 this.mayBeRoll();
-                // offset:表示消息存入消息存储器（MessageStore）的位置
-                // remainning:保存的消息数据的大小
+                // offset:表示消息存入消息存储器（MessageStore）的位置；remainning:保存的消息数据的大小
                 location = Location.create(offset, remainning);
             }
             catch (final IOException e) {
@@ -657,21 +671,6 @@ public class MessageStore extends Thread implements Closeable {
                     cb.appendComplete(location);
                 }
             }
-        }
-    }
-
-    /**
-     * 消息文件异步写入内存的包装类
-     */
-    private static class WriteRequest {
-        public final ByteBuffer buf;
-        public final AppendCallback cb;
-        public Location result;
-
-        public WriteRequest(final ByteBuffer buf, final AppendCallback cb) {
-            super();
-            this.buf = buf;
-            this.cb = cb;
         }
     }
 
@@ -697,18 +696,7 @@ public class MessageStore extends Thread implements Closeable {
 
 
 
-    /**
-     * Append多个消息，返回写入的位置
-     * 
-     * @param msgIds
-     * @param putCmds
-     * @param cb
-     *
-     * @return
-     */
-    public void append(final List<Long> msgIds, final List<PutCommand> putCmds, final AppendCallback cb) {
-        this.appendBuffer(MessageUtils.makeMessageBuffer(msgIds, putCmds), cb);
-    }
+
 
     /**
      * 重放事务操作，如果消息没有存储成功，则重新存储，并返回新的位置
@@ -978,5 +966,21 @@ public class MessageStore extends Thread implements Closeable {
         }
         }
         return null;
+    }
+
+
+    /**
+     * 消息文件异步写入内存的包装类
+     */
+    private static class WriteRequest {
+        public final ByteBuffer buf;
+        public final AppendCallback cb;
+        public Location result;
+
+        public WriteRequest(final ByteBuffer buf, final AppendCallback cb) {
+            super();
+            this.buf = buf;
+            this.cb = cb;
+        }
     }
 }

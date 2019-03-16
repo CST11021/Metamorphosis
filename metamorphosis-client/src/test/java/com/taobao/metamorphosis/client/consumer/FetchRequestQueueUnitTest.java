@@ -93,6 +93,8 @@ public class FetchRequestQueueUnitTest {
     public void concurrentTest() {
         final AtomicInteger counter = new AtomicInteger();
         final AtomicBoolean shutdown = new AtomicBoolean(false);
+
+        // 每间隔一秒打印一次统计当前执行的任务数和队列的当前大小
         new Thread() {
             @Override
             public void run() {
@@ -103,15 +105,21 @@ public class FetchRequestQueueUnitTest {
                     catch (final InterruptedException e) {
 
                     }
-                    System.out.println(counter.get() + " " + FetchRequestQueueUnitTest.this.fetchRequestQueue.size()
-                        + " ");
+                    System.out.println(counter.get() + " " + FetchRequestQueueUnitTest.this.fetchRequestQueue.size() + " ");
                 }
             }
 
         }.start();
 
+        // 500个线程，每个线程重复执行10000次
         final ConcurrentTestCase testCase = new ConcurrentTestCase(500, 10000, new ConcurrentTestTask() {
 
+            /**
+             * 执行的任务
+             * @param index 线程索引号
+             * @param times 次数
+             * @throws Exception
+             */
             @Override
             public void run(final int index, final int times) throws Exception {
                 FetchRequestQueueUnitTest.this.fetchRequestQueue.offer(new FetchRequest(times % 3));
@@ -125,6 +133,7 @@ public class FetchRequestQueueUnitTest {
             }
         });
         testCase.start();
+
         assertEquals(5000000, counter.get());
         assertEquals(0, this.fetchRequestQueue.size());
         System.out.println(testCase.getDurationInMillis());

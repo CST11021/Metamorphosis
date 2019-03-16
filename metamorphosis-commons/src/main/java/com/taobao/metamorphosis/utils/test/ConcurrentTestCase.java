@@ -30,13 +30,16 @@ import java.util.concurrent.CyclicBarrier;
  */
 
 public class ConcurrentTestCase {
+    // 线程数
     private int threadCount;
+    // 每个线程执行的次数
     private final int repeatCount;
 
     private CyclicBarrier barrier;
 
     private ConcurrentTestTask task;
 
+    // 开始并发执行所有线程任务的开关
     private final ClockWatch watch = new ClockWatch();
 
 
@@ -55,11 +58,16 @@ public class ConcurrentTestCase {
     }
 
     public void start() {
+
         this.barrier = new CyclicBarrier(this.threadCount + 1, this.watch);
+
+        // 准备好所有线程，并让他们准备好等待开始执行
         for (int i = 0; i < this.threadCount; i++) {
             new Thread(new ConcurrentTestRunner(this.barrier, this.task, this.repeatCount, i)).start();
         }
+
         try {
+            // 所有的线程都准备好了，让他们开始执行
             this.watch.start();
             this.barrier.await();
             this.barrier.await();

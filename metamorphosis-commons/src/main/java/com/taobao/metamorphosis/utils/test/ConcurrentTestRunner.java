@@ -26,12 +26,16 @@ import java.util.concurrent.CyclicBarrier;
  */
 
 public class ConcurrentTestRunner implements Runnable {
+    // 栏栅，大家都共用一个栏栅对象
     private CyclicBarrier barrier;
 
+    // 表示线程执行的任务
     private ConcurrentTestTask task;
 
+    // 每个线程重复执行的次数
     private int repeatCount;
 
+    // 表示线程的ID
     private int index;
 
 

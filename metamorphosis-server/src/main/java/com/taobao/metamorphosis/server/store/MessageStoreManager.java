@@ -94,10 +94,11 @@ public class MessageStoreManager implements Service {
         }
     }
 
-    /** Map<topic, Map<partition, MessageStore>> 用于存储消息 */
-    private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>> stores = new ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>>();
     /** MQ相关配置 */
     private final MetaConfig metaConfig;
+
+    /** Map<topic, Map<partition, MessageStore>> 用于存储消息 */
+    private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>> stores = new ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>>();
 
     /** 定时将消息保存到磁盘的线程池 */
     private ScheduledThreadPoolExecutor scheduledExecutorService;
@@ -111,6 +112,7 @@ public class MessageStoreManager implements Service {
     /** topic的正则校验，只有匹配了集合中的正则表达式才是合法的topic */
     private final Set<Pattern> topicsPatSet = new HashSet<Pattern>();
 
+    /** 保存每个topic的UnflushInterval参数及对应的定时任务 */
     private final ConcurrentHashMap<Integer, ScheduledFuture<?>> unflushIntervalMap = new ConcurrentHashMap<Integer, ScheduledFuture<?>>();
 
     /** 表示用于定时删除消息文件的任务执行器 */
@@ -154,6 +156,9 @@ public class MessageStoreManager implements Service {
         this.scheduleFlushTask();
 
     }
+
+
+
 
     @Override
     public void init() {
@@ -204,11 +209,36 @@ public class MessageStoreManager implements Service {
         this.stores.clear();
     }
 
+
+    // 将消息保存到磁盘的定时任务
+
+    /** 初始化定时线程池 */
+    private void initScheduler() {
+        // 根据定时flush时间间隔分类,计算定时线程池大小,并初始化
+        final Set<Integer> tmpSet = new HashSet<Integer>();
+        for (final String topic : this.metaConfig.getTopics()) {
+            final int unflushInterval = this.metaConfig.getTopicConfig(topic).getUnflushInterval();
+            tmpSet.add(unflushInterval);
+        }
+        this.scheduledExecutorService = new ScheduledThreadPoolExecutor(tmpSet.size() + 5);
+
+        try {
+            if (DirectSchedulerFactory.getInstance().getAllSchedulers().isEmpty()) {
+                DirectSchedulerFactory.getInstance().createVolatileScheduler(this.metaConfig.getQuartzThreadCount());
+            }
+            this.scheduler = DirectSchedulerFactory.getInstance().getScheduler();
+        }
+        catch (final SchedulerException e) {
+            throw new ServiceStartupException("Initialize quartz scheduler failed", e);
+        }
+    }
+
     /**
      * 根据flush时间间隔分类，分别提交定时任务（将消息保存到磁盘的任务）
      */
     private void scheduleFlushTask() {
         log.info("Begin schedule flush task...");
+        // 用于保存每个topic的UnflushInterval参数
         final Set<Integer> newUnflushIntervals = new HashSet<Integer>();
         for (final String topic : this.metaConfig.getTopics()) {
             newUnflushIntervals.add(this.metaConfig.getTopicConfig(topic).getUnflushInterval());
@@ -241,29 +271,71 @@ public class MessageStoreManager implements Service {
             }
         }
 
+        // 用于删除已经取消的全部任务，便于资源回收
         this.scheduledExecutorService.purge();
         log.info("Schedule flush task finished. CorePoolSize=" + this.scheduledExecutorService.getCorePoolSize()
             + ",current pool size=" + this.scheduledExecutorService.getPoolSize());
     }
 
-    /** 初始化定时线程池 */
-    private void initScheduler() {
-        // 根据定时flush时间间隔分类,计算定时线程池大小,并初始化
-        final Set<Integer> tmpSet = new HashSet<Integer>();
-        for (final String topic : this.metaConfig.getTopics()) {
-            final int unflushInterval = this.metaConfig.getTopicConfig(topic).getUnflushInterval();
-            tmpSet.add(unflushInterval);
-        }
-        this.scheduledExecutorService = new ScheduledThreadPoolExecutor(tmpSet.size() + 5);
 
-        try {
-            if (DirectSchedulerFactory.getInstance().getAllSchedulers().isEmpty()) {
-                DirectSchedulerFactory.getInstance().createVolatileScheduler(this.metaConfig.getQuartzThreadCount());
+    // 定时删除消息文件的任务执行器
+
+    /**
+     * 启动定时删除消息文件的任务执行器
+     */
+    private void startScheduleDeleteJobs() {
+        // 表示：什么时间执行什么任务
+        final Map<String/* deleteWhen */, JobInfo> jobs = new HashMap<String, MessageStoreManager.JobInfo>();
+
+        // 1、构建执行任务
+        for (final String topic : this.getAllTopics()) {
+            final TopicConfig topicConfig = this.metaConfig.getTopicConfig(topic);
+            final String deleteWhen = topicConfig != null ? topicConfig.getDeleteWhen() : this.metaConfig.getDeleteWhen();
+
+            JobInfo jobInfo = jobs.get(deleteWhen);
+            if (jobInfo == null) {
+                final JobDetail job = newJob(DeleteJob.class).build();
+                job.getJobDataMap().put(DeleteJob.TOPICS, new HashSet<String>());
+                job.getJobDataMap().put(DeleteJob.STORE_MGR, this);
+                final Trigger trigger = newTrigger().withSchedule(cronSchedule(deleteWhen)).forJob(job).build();
+                jobInfo = new JobInfo(job, trigger);
+                jobs.put(deleteWhen, jobInfo);
             }
-            this.scheduler = DirectSchedulerFactory.getInstance().getScheduler();
+            // 添加本topic
+            ((Set<String>) jobInfo.job.getJobDataMap().get(DeleteJob.TOPICS)).add(topic);
+        }
+
+        // 2、遍历任务列表，启动定时任务（启动quartz job）
+        for (final JobInfo jobInfo : jobs.values()) {
+            try {
+                this.scheduler.scheduleJob(jobInfo.job, jobInfo.trigger);
+            }
+            catch (final SchedulerException e) {
+                throw new ServiceStartupException("Schedule delete job failed", e);
+            }
+        }
+        try {
+            this.scheduler.start();
         }
         catch (final SchedulerException e) {
-            throw new ServiceStartupException("Initialize quartz scheduler failed", e);
+            throw new ServiceStartupException("Start scheduler failed", e);
+        }
+    }
+
+    /**
+     * 重启定时删除消息文件的任务执行器
+     */
+    private void rescheduleDeleteJobs() {
+        if (this.scheduler != null) {
+            try {
+                log.info("Begin clear delete jobs...");
+                scheduler.clear();
+
+                startScheduleDeleteJobs();
+                log.info("Reschedule delete jobs successful !");
+            } catch (final SchedulerException e) {
+                log.error("Reschedule delete jobs failed", e);
+            }
         }
     }
 
@@ -274,50 +346,8 @@ public class MessageStoreManager implements Service {
         this.deletePolicySelector = new DeletePolicySelector(this.metaConfig);
     }
 
-    /**
-     * 创建校验topic合法性的正则表达式
-     */
-    private void makeTopicsPatSet() {
-        for (String topic : this.metaConfig.getTopics()) {
-            topic = topic.replaceAll("\\*", ".*");
-            this.topicsPatSet.add(Pattern.compile(topic));
-        }
-    }
 
-    /**
-     * topic的文件删除策略选择器
-     * @author wuhua
-     */
-    static class DeletePolicySelector {
-
-        /** Map<topic, DeletePolicy> */
-        private final Map<String, DeletePolicy> deletePolicyMap = new HashMap<String, DeletePolicy>();
-
-        DeletePolicySelector(final MetaConfig metaConfig) {
-            for (final String topic : metaConfig.getTopics()) {
-                final TopicConfig topicConfig = metaConfig.getTopicConfig(topic);
-                // 如果topicConfig没有配置，则使用全局配置
-                final String deletePolicy = topicConfig != null ? topicConfig.getDeletePolicy() : metaConfig.getDeletePolicy();
-                this.deletePolicyMap.put(topic, DeletePolicyFactory.getDeletePolicy(deletePolicy));
-            }
-        }
-
-        /**
-         * 获取指定topic的文件删除策略
-         * @param topic             topic名称
-         * @param defaultPolicy     默认策略
-         * @return
-         */
-        DeletePolicy select(final String topic, final DeletePolicy defaultPolicy) {
-            final DeletePolicy deletePolicy = this.deletePolicyMap.get(topic);
-            return deletePolicy != null ? deletePolicy : defaultPolicy;
-        }
-    }
-
-    /** Map<topic, Map<partition, MessageStore>> */
-    public Map<String, ConcurrentHashMap<Integer, MessageStore>> getMessageStores() {
-        return Collections.unmodifiableMap(this.stores);
-    }
+    // 统计消息数量
 
     /** 统计消息数量 */
     public long getTotalMessagesCount() {
@@ -335,42 +365,9 @@ public class MessageStoreManager implements Service {
         return rt;
     }
 
-    /** 统计topic数量 */
-    public int getTopicCount() {
-        List<String> topics = this.metaConfig.getTopics();
-        int count = this.stores.size();
-        for (String topic : topics) {
-            if (!this.stores.containsKey(topic)) {
-                count++;
-            }
-        }
-        return count;
-    }
 
-    /**
-     * 根据配置返回所有消息存储在磁盘的目录，不同的topic，不通的分区都有对应的目录
-     * @param metaConfig
-     * @return
-     * @throws IOException
-     */
-    private Set<File> getDataDirSet(final MetaConfig metaConfig) throws IOException {
-        final Set<String> paths = new HashSet<String>();
-        // 公共的消息存储路径
-        paths.add(metaConfig.getDataPath());
 
-        // topic data path
-        for (final String topic : metaConfig.getTopics()) {
-            final TopicConfig topicConfig = metaConfig.getTopicConfig(topic);
-            if (topicConfig != null) {
-                paths.add(topicConfig.getDataPath());
-            }
-        }
-        final Set<File> fileSet = new HashSet<File>();
-        for (final String path : paths) {
-            fileSet.add(this.getDataDir(path));
-        }
-        return fileSet;
-    }
+    // 将消息管理器中的消息保存到本地磁盘
 
     /**
      * 将消息管理器中的消息保存到本地磁盘
@@ -532,6 +529,87 @@ public class MessageStoreManager implements Service {
     }
 
     /**
+     * 根据配置返回所有消息存储在磁盘的目录，不同的topic，不通的分区都有对应的目录
+     * @param metaConfig
+     * @return
+     * @throws IOException
+     */
+    private Set<File> getDataDirSet(final MetaConfig metaConfig) throws IOException {
+        final Set<String> paths = new HashSet<String>();
+        // 公共的消息存储路径
+        paths.add(metaConfig.getDataPath());
+
+        // topic data path
+        for (final String topic : metaConfig.getTopics()) {
+            final TopicConfig topicConfig = metaConfig.getTopicConfig(topic);
+            if (topicConfig != null) {
+                paths.add(topicConfig.getDataPath());
+            }
+        }
+        final Set<File> fileSet = new HashSet<File>();
+        for (final String path : paths) {
+            fileSet.add(this.getDataDir(path));
+        }
+        return fileSet;
+    }
+
+
+
+    // topic相关
+
+    /**
+     * 获取所有的topic:
+     * 1、配置文件中的配置topic
+     * 2、消息关系中的topic
+     * @return
+     */
+    public Set<String> getAllTopics() {
+        final Set<String> rt = new TreeSet<String>();
+        rt.addAll(this.metaConfig.getTopics());
+        rt.addAll(this.getMessageStores().keySet());
+        return rt;
+    }
+
+    /** 统计topic数量 */
+    public int getTopicCount() {
+        List<String> topics = this.metaConfig.getTopics();
+        int count = this.stores.size();
+        for (String topic : topics) {
+            if (!this.stores.containsKey(topic)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * 判断是不是合法的topic
+     * @param topic
+     * @return
+     */
+    boolean isLegalTopic(final String topic) {
+        for (final Pattern pat : this.topicsPatSet) {
+            if (pat.matcher(topic).matches()) {
+                return true;
+            }
+        }
+        return false;
+
+    }
+
+    /**
+     * 创建校验topic合法性的正则表达式
+     */
+    private void makeTopicsPatSet() {
+        for (String topic : this.metaConfig.getTopics()) {
+            topic = topic.replaceAll("\\*", ".*");
+            this.topicsPatSet.add(Pattern.compile(topic));
+        }
+    }
+
+    // 分区相关
+
+    /**
      * 返回指定topic的一个随机分区
      * @param topic
      * @return
@@ -550,95 +628,10 @@ public class MessageStoreManager implements Service {
         return topicConfig != null ? topicConfig.getNumPartitions() : this.metaConfig.getNumPartitions();
     }
 
-    /**
-     * 启动定时删除消息文件的任务执行器
-     */
-    private void rescheduleDeleteJobs() {
-        if (this.scheduler != null) {
-            try {
-                log.info("Begin clear delete jobs...");
-                scheduler.clear();
 
-                startScheduleDeleteJobs();
-                log.info("Reschedule delete jobs successful !");
-            } catch (final SchedulerException e) {
-                log.error("Reschedule delete jobs failed", e);
-            }
-        }
-    }
 
-    /**
-     * 启动定时删除消息文件的任务执行器
-     */
-    private void startScheduleDeleteJobs() {
-        // 表示：什么时间执行什么任务
-        final Map<String/* deleteWhen */, JobInfo> jobs = new HashMap<String, MessageStoreManager.JobInfo>();
 
-        // 1、构建执行任务
-        for (final String topic : this.getAllTopics()) {
-            final TopicConfig topicConfig = this.metaConfig.getTopicConfig(topic);
-            final String deleteWhen =
-                    topicConfig != null ? topicConfig.getDeleteWhen() : this.metaConfig.getDeleteWhen();
-                    JobInfo jobInfo = jobs.get(deleteWhen);
-                    if (jobInfo == null) {
-
-                        final JobDetail job = newJob(DeleteJob.class).build();
-                        job.getJobDataMap().put(DeleteJob.TOPICS, new HashSet<String>());
-                        job.getJobDataMap().put(DeleteJob.STORE_MGR, this);
-                        final Trigger trigger = newTrigger().withSchedule(cronSchedule(deleteWhen)).forJob(job).build();
-                        jobInfo = new JobInfo(job, trigger);
-                        jobs.put(deleteWhen, jobInfo);
-
-                    }
-                    // 添加本topic
-                    ((Set<String>) jobInfo.job.getJobDataMap().get(DeleteJob.TOPICS)).add(topic);
-        }
-
-        // 2、遍历任务列表，启动定时任务（启动quartz job）
-        for (final JobInfo jobInfo : jobs.values()) {
-            try {
-                this.scheduler.scheduleJob(jobInfo.job, jobInfo.trigger);
-            }
-            catch (final SchedulerException e) {
-                throw new ServiceStartupException("Schedule delete job failed", e);
-            }
-        }
-        try {
-            this.scheduler.start();
-        }
-        catch (final SchedulerException e) {
-            throw new ServiceStartupException("Start scheduler failed", e);
-        }
-    }
-
-    /**
-     * 用于封装删除消息文件的任务信息
-     */
-    private static class JobInfo {
-
-        public final JobDetail job;
-        public final Trigger trigger;
-
-        public JobInfo(final JobDetail job, final Trigger trigger) {
-            super();
-            this.job = job;
-            this.trigger = trigger;
-        }
-
-    }
-
-    /**
-     * 获取所有的topic:
-     * 1、配置文件中的配置topic
-     * 2、消息关系中的topic
-     * @return
-     */
-    public Set<String> getAllTopics() {
-        final Set<String> rt = new TreeSet<String>();
-        rt.addAll(this.metaConfig.getTopics());
-        rt.addAll(this.getMessageStores().keySet());
-        return rt;
-    }
+    // 获取消息存储器MessageStore
 
     /**
      * 根据topic和partition获取一个分区实例，如果没有则返回null
@@ -740,18 +733,58 @@ public class MessageStoreManager implements Service {
         return messageStore;
     }
 
+    /** Map<topic, Map<partition, MessageStore>> */
+    public Map<String, ConcurrentHashMap<Integer, MessageStore>> getMessageStores() {
+        return Collections.unmodifiableMap(this.stores);
+    }
+
+
+
     /**
-     * 判断是不是合法的topic
-     * @param topic
-     * @return
+     * topic的文件删除策略选择器
+     * @author wuhua
      */
-    boolean isLegalTopic(final String topic) {
-        for (final Pattern pat : this.topicsPatSet) {
-            if (pat.matcher(topic).matches()) {
-                return true;
+    static class DeletePolicySelector {
+
+        /** Map<topic, DeletePolicy> */
+        private final Map<String, DeletePolicy> deletePolicyMap = new HashMap<String, DeletePolicy>();
+
+        DeletePolicySelector(final MetaConfig metaConfig) {
+            for (final String topic : metaConfig.getTopics()) {
+                final TopicConfig topicConfig = metaConfig.getTopicConfig(topic);
+                // 如果topicConfig没有配置，则使用全局配置
+                final String deletePolicy = topicConfig != null ? topicConfig.getDeletePolicy() : metaConfig.getDeletePolicy();
+                this.deletePolicyMap.put(topic, DeletePolicyFactory.getDeletePolicy(deletePolicy));
             }
         }
-        return false;
+
+        /**
+         * 获取指定topic的文件删除策略
+         * @param topic             topic名称
+         * @param defaultPolicy     默认策略
+         * @return
+         */
+        DeletePolicy select(final String topic, final DeletePolicy defaultPolicy) {
+            final DeletePolicy deletePolicy = this.deletePolicyMap.get(topic);
+            return deletePolicy != null ? deletePolicy : defaultPolicy;
+        }
+    }
+
+    /**
+     * 用于封装删除消息文件的任务信息
+     */
+    private static class JobInfo {
+
+        public final JobDetail job;
+        public final Trigger trigger;
+
+        public JobInfo(final JobDetail job, final Trigger trigger) {
+            super();
+            this.job = job;
+            this.trigger = trigger;
+        }
 
     }
+
+
 }

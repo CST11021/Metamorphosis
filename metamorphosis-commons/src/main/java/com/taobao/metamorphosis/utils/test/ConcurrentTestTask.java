@@ -30,10 +30,8 @@ package com.taobao.metamorphosis.utils.test;
 public interface ConcurrentTestTask {
     /**
      * 
-     * @param index
-     *            线程索引号
-     * @param times
-     *            次数
+     * @param index 线程索引号（线程ID）
+     * @param times 当前重复执行的次数
      * @throws Exception TODO
      */
     public void run(int index, int times) throws Exception;
