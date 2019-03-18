@@ -379,9 +379,9 @@ public class SimpleFetchManager implements FetchManager {
          * </li>
          * </ul>
          *
-         * @param request
-         * @param it
-         * @param listener
+         * @param request       消费抓取消息的请求
+         * @param it            表示每次从服务端抓取消息的集合，一次抓取多个
+         * @param listener      表示处理消息对应的监听器
          */
         private void receiveMessages(final FetchRequest request, final MessageIterator it, final MessageListener listener, final ConsumerMessageFilter filter, final String group) {
             if (it != null && it.hasNext()) {

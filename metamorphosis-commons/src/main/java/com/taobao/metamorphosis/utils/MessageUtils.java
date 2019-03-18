@@ -27,12 +27,18 @@ import com.taobao.metamorphosis.exception.InvalidMessageException;
 import com.taobao.metamorphosis.network.ByteUtils;
 import com.taobao.metamorphosis.network.PutCommand;
 
-
+/**
+ * 消息解析工具
+ */
 public final class MessageUtils {
 
+    // MQ会根据当前的偏移量解析出一个消息，然后在设置下一消息的偏移量，即对应这里的newOffset
     public final static class DecodedMessage {
+        // 表示下一消息的偏移量
         public final int newOffset;
+        // 表示当前解析出来的消息
         public final Message message;
+        // 表示当前解析出来的消息的字节数据
         public final ByteBuffer buf;
 
 
@@ -108,11 +114,11 @@ public final class MessageUtils {
 
 
     /**
-     * 从binary数据中解出消息
+     * 从binary数据中解析出消息
      * 
-     * @param topic
-     * @param data
-     * @param offset
+     * @param topic     topic
+     * @param data      消息数据（包含多个消息）
+     * @param offset    消息的偏移量，从0开始。比如：当offset=0时，表示返回data中的第一个消息
      * @return
      * @throws InvalidMessageException
      */
@@ -147,19 +153,23 @@ public final class MessageUtils {
         // 获取payload
         final byte[] payload = new byte[payLoadLen];
         System.arraycopy(data, payLoadOffset, payload, 0, payLoadLen);
+
         final Message msg = new Message(topic, payload);
         MessageAccessor.setFlag(msg, flag);
         msg.setAttribute(attribute);
         MessageAccessor.setId(msg, id);
-        return new DecodedMessage(payLoadOffset + payLoadLen, msg, ByteBuffer.wrap(data, offset, payLoadOffset
-            + payLoadLen - offset));
+        return new DecodedMessage(
+                payLoadOffset + payLoadLen,
+                msg,
+                ByteBuffer.wrap(data, offset, payLoadOffset + payLoadLen - offset)
+        );
     }
 
 
     /**
      * 校验checksum
      * 
-     * @param msg
+     * @param offset
      * @param checksum
      */
     public static final void vailidateMessage(final int offset, final int msgLen, final int checksum, final byte[] data)

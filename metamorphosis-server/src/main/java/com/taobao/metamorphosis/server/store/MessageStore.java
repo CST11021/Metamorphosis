@@ -133,6 +133,11 @@ public class MessageStore extends Thread implements Closeable {
      *
      */
     static class SegmentList {
+        /**
+         * 使用AtomicReference来修饰Segment[]的原因是：当多个线程同时往contents追加消息时，可能导致并发问题，我们知道JVM的线程模型规定，
+         * 线程与线程间的通信必须通过主内存同步来实现，比如：线程A和线程B同时写入时，可能线程A写入的数据会被B覆盖，因为线程A写入的线程A中
+         * contents的副本，当线程A写入后，还没有同步给主内存时，线程B又写入contents，此时就会倒是并发问题
+         */
         AtomicReference<Segment[]> contents = new AtomicReference<Segment[]>();
 
         public SegmentList(final Segment[] s) {
@@ -203,19 +208,6 @@ public class MessageStore extends Thread implements Closeable {
         }
 
         /**
-         * 获取最后一个
-         *
-         * @return
-         */
-        public Segment last() {
-            final Segment[] copy = this.view();
-            if (copy.length > 0) {
-                return copy[copy.length - 1];
-            }
-            return null;
-        }
-
-        /**
          * 获取第一个
          *
          * @return
@@ -224,6 +216,19 @@ public class MessageStore extends Thread implements Closeable {
             final Segment[] copy = this.view();
             if (copy.length > 0) {
                 return copy[0];
+            }
+            return null;
+        }
+
+        /**
+         * 获取最后一个
+         *
+         * @return
+         */
+        public Segment last() {
+            final Segment[] copy = this.view();
+            if (copy.length > 0) {
+                return copy[copy.length - 1];
             }
             return null;
         }
@@ -246,7 +251,7 @@ public class MessageStore extends Thread implements Closeable {
     private final MetaConfig metaConfig;
     /** 由于是多文件的存储方式，消费过的消息或过期消息需要删除从而腾出空间给新消息的，默认提供归档和过期删除的方式  */
     private final DeletePolicy deletePolicy;
-
+    /** 表示当前MessageStore内存中存储的消息数量，当每次flush消息到磁盘后，该值置为0 */
     private final AtomicInteger unflushed;
     /** 表示最后一次flush消息到磁盘的时间 */
     private final AtomicLong lastFlushTime;
@@ -897,6 +902,7 @@ public class MessageStore extends Thread implements Closeable {
             return null;
         }
         else {
+            // 截取切片文件的一部分，比如：现在有0.mate、1024.mate、2048.mate三个消息文件，消费者的offset和maxSize分别为1000、500
             return segment.fileMessageSet.slice(offset - segment.start, offset - segment.start + maxSize);
         }
     }

@@ -361,11 +361,13 @@ public class BrokerCommandProcessor implements CommandProcessor {
         try {
             final MessageSet set = store.slice(request.getOffset(), Math.min(this.metaConfig.getMaxTransferSize(), request.getMaxSize()));
             ConsumerMessageFilter filter = this.consumerFilterManager.findFilter(topic, group);
+
             if (set != null) {
                 if (zeroCopy && filter == null) {
                     set.write(request, ctx);
                     return null;
                 }
+                // 如果配置消息过滤器
                 else {
                     // refer to the code of line 440 in MessageStore
                     // create two copies of byte array including the byteBuffer
@@ -407,6 +409,8 @@ public class BrokerCommandProcessor implements CommandProcessor {
                     return new DataCommand(bytes, request.getOpaque(), true);
                 }
             }
+
+            // 这种情况就是：请求的偏移量大于实际的最大值，比如：metaq有0.meta、1024.meta和2048.meta三个消息文件，但是请求的offset>1024
             else {
                 this.statsManager.statsGetMiss(topic, group, 1);
                 this.statsManager.statsGetFailed(topic, group, 1);
@@ -419,9 +423,11 @@ public class BrokerCommandProcessor implements CommandProcessor {
                     log.info("offset[" + requestOffset + "] is exceeded,tell the client real max offset: " + maxOffset
                         + ",topic=" + topic + ",group=" + group);
                     this.statsManager.statsOffset(topic, group, 1);
+                    // 让消费者重新调整offset
                     return new BooleanCommand(HttpStatus.Moved, String.valueOf(maxOffset), request.getOpaque());
                 }
                 else {
+                    // 提示消费者没有找的消息
                     return new BooleanCommand(HttpStatus.NotFound, "Could not find message at position "
                             + requestOffset, request.getOpaque());
                 }

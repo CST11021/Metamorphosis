@@ -28,6 +28,7 @@ import com.taobao.metamorphosis.utils.MessageUtils;
 
 /**
  * 消息迭代器，解析传输过来的数据
+ * 消费者每次从MQ拉取消息后，都会封装为一个MessageIterator对象，该对象表示一连串的连续消息集合，也就是说消费者每次从服务拉取消息都是批量拉取的
  * 
  * @author boyan
  * @Date 2011-4-20
@@ -35,10 +36,13 @@ import com.taobao.metamorphosis.utils.MessageUtils;
  */
 public class MessageIterator {
     private final String topic;
+    // 表示一次拉取的所有的消息数据
     private final byte[] data;
-    // 当前迭代的偏移量，不包括发起请求的偏移量在内
+    // 表示当前迭代的偏移量，默认从0开始
     private int offset;
+    // 表示当前偏移量对应的消息对象，比如偏移量是0，则该对象表示第一个消息对象
     private Message message;
+    // 表示当前偏移量对应的消息字节
     private ByteBuffer currentMsgBuf;
 
 
@@ -93,20 +97,26 @@ public class MessageIterator {
         throw new UnsupportedOperationException("Unsupported remove");
     }
 
+    /**
+     * 获取当前消息的字节数据
+     * @return
+     */
     public ByteBuffer getCurrentMsgBuf() {
         return this.currentMsgBuf;
     }
+    // 获取消息集合的长度
     public int getDataLength() {
         return this.data != null ? this.data.length : 0;
     }
-    public void setOffset(final int offset) {
-        this.offset = offset;
-    }
+    // 获取上一个消息(这里是相对于偏移量的)
     public Message getPrevMessage() {
         return this.message;
     }
     public int getOffset() {
         return this.offset;
+    }
+    public void setOffset(final int offset) {
+        this.offset = offset;
     }
 
     @Override

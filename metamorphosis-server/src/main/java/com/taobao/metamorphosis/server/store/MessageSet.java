@@ -43,6 +43,12 @@ public interface MessageSet {
      */
     public MessageSet slice(long offset, long limit) throws IOException;
 
+    /**
+     * 根据请求将MQ服务器保存的消息内容，写到socket，并通过gecko返回给消费者
+     *
+     * @param getCommand    消费从服务器拉取消息的请求
+     * @param ctx           session上下文，通过该对象获取IO通道，mq通过写入该通道返回给消费者
+     */
     public void write(GetCommand getCommand, SessionContext ctx);
 
     /**
