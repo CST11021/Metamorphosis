@@ -398,6 +398,7 @@ public class SimpleFetchManager implements FetchManager {
 
                 // 尝试多次无法解析出获取的数据，可能需要增大maxSize
                 if (SimpleFetchManager.this.isRetryTooManyForIncrease(request) && it != null && it.getDataLength() > 0) {
+                    // 将抓取请求的maxSize扩大为原来的1倍
                     request.increaseMaxSize();
                     log.warn("警告，第" + request.getRetries() + "次无法拉取topic=" + request.getTopic() + ",partition="
                             + request.getPartitionObject() + "的消息，递增maxSize=" + request.getMaxSize() + " Bytes");

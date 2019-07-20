@@ -40,6 +40,7 @@ import com.taobao.metamorphosis.client.extension.MetaBroadcastMessageSessionFact
  */
 
 public class BroadcastAsyncConsumer {
+
     public static void main(final String[] args) throws Exception {
         // 1、初始化客户端配置
         MetaClientConfig config = initMetaConfig();

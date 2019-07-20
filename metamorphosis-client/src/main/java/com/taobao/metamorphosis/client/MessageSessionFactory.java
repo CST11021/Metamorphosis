@@ -114,15 +114,6 @@ public interface MessageSessionFactory extends Shutdownable {
     @Deprecated
     public MessageProducer createProducer(PartitionSelector partitionSelector, boolean ordered);
 
-
-
-
-
-
-
-
-
-
     // ---------
     // 创建消息者
     // ---------
@@ -134,6 +125,7 @@ public interface MessageSessionFactory extends Shutdownable {
      * @return
      */
     public MessageConsumer createConsumer(ConsumerConfig consumerConfig);
+
     /**
      * 创建消息消费者，使用指定的offset存储器
      *
@@ -142,18 +134,6 @@ public interface MessageSessionFactory extends Shutdownable {
      * @return
      */
     public MessageConsumer createConsumer(ConsumerConfig consumerConfig, OffsetStorage offsetStorage);
-
-
-
-
-
-
-
-
-
-
-
-
 
     /**
      * Get statistics information from all brokers in this session factory.
@@ -198,12 +178,6 @@ public interface MessageSessionFactory extends Shutdownable {
      * @since 1.4.2
      */
     public StatsResult getStats(InetSocketAddress target, String item) throws InterruptedException;
-
-
-
-
-
-
 
 
     /**

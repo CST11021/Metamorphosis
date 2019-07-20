@@ -38,6 +38,7 @@ import com.taobao.metamorphosis.client.consumer.MessageListener;
  * 
  */
 public class AsyncConsumer {
+
     public static void main(final String[] args) throws Exception {
         // 1、初始化客户端配置
         MetaClientConfig config = initMetaConfig();

@@ -33,7 +33,9 @@
 
     <!-- 声明消费者订阅的topic -->
     <bean id = "testTopic" class="com.taobao.metamorphosis.client.extension.spring.MetaqTopic">
+        <!--设置topic所在的消费分组-->
         <property name="group" value="testGroup"/>
+        <!--设置消费的topic-->
         <property name="topic" value="test"/>
         <!-- max buffer size to fetch messages -->
         <property name="maxBufferSize" value="16384"/>

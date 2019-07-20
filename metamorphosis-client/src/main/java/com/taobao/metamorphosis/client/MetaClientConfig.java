@@ -52,7 +52,7 @@ public class MetaClientConfig implements Serializable {
     /** 从diamond获取partitions配置的group，默认为DEFAULT_GROUP */
     private final String diamondPartitionsGroup = "DEFAULT_GROUP";
 
-    /** recover本地消息的时间间隔 */
+    /** recover本地消息的时间间隔，这里为5分钟 */
     private long recoverMessageIntervalInMills = 5 * 60 * 1000L;
 
     /** recover的线程数量，默认是CPU个数 */

@@ -31,6 +31,7 @@ import com.taobao.metamorphosis.consumer.MessageIterator;
 
 /**
  * We don't use synchronous consumer in production.
+ * 在实际生产环境我们不适用同步的消费者
  * 
  * @Deprecated
  * @author apple

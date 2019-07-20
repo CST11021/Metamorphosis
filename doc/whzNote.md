@@ -1,5 +1,3 @@
-
-
 ## Metamorphosis介绍
 ​	Metamorphosis是一个高性能、高可用、可扩展的分布式消息中间件，思路起源于LinkedIn的Kafka，但并不是Kafka的一个Copy。具有消息存储顺序写、吞吐量大和支持本地和XA事务等特性，适用于大吞吐量、顺序消息、广播和日志数据传输等场景，目前在淘宝和支付宝有着广泛的应用。
 
@@ -183,7 +181,103 @@ zk.zkSyncTimeMs=5000
 
 
 
+###2.MetaQ客户端配置
 
+
+
+####2.1客户端的zk配置
+
+对应ZKConfig.java类，配置项如下：
+
+```java
+/** 表示根目录，默认为"/meta" */
+@Key(name = "zk.zkRoot")
+public String zkRoot = "/meta";
+/** 是否启用zookeeper（是否将broker相关配置注册到zk） */
+@Key(name = "zk.zkEnable")
+public boolean zkEnable = true;
+/** 表示连接zk的信息，例如：127.0.0.1:2181 */
+@Key(name = "zk.zkConnect")
+public String zkConnect;
+/** zk会话超时时间 */
+@Key(name = "zk.zkSessionTimeoutMs")
+public int zkSessionTimeoutMs = 30000;
+/** the max time that the client waits to establish a connection to zookeeper */
+@Key(name = "zk.zkConnectionTimeoutMs")
+public int zkConnectionTimeoutMs = 30000;
+/** 表示zk主从节点的数据同步时间，比如一个zk机器节点发生变化，则需要同步到其他节点，这里参数表示默认需要多长时间才能同步到其他节点 */
+@Key(name = "zk.zkSyncTimeMs")
+public int zkSyncTimeMs = 5000;
+```
+
+使用默认只配置，客户端只需指定zk服务器地址即可，即只需配置zkConnect参数。
+
+#### 2.2客户端公共配置
+
+```java
+/** MQ服务器的连接信息，如果有设置，则客户端会使用设置的url连接指定的MQ服务器，否则使用zk发现服务器 */
+protected String serverUrl;
+
+/** recover本地消息的时间间隔，这里为5分钟 */
+private long recoverMessageIntervalInMills = 5 * 60 * 1000L;
+
+/** recover的线程数量，默认是CPU个数 */
+private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
+```
+
+
+
+####2.3消费者配置
+
+```java
+/** MetaQ的消费者是以pull模型来从服务端拉取数据并消费，这个参数设置并行拉取的线程数，默认是CPU个数 */
+    private int fetchRunnerCount = Runtime.getRuntime().availableProcessors();
+    /** 当上一次没有抓取到的消息，抓取线程就会sleep，这里为设置sleep的最大时间，默认5秒，单位毫秒，测试的时候可以设置少点，不然会有消费延迟的现象 */
+    private long maxDelayFetchTimeInMills = 5000;
+    @Deprecated
+    private long maxDelayFetchTimeWhenExceptionInMills = 10000;
+    /** 同步抓取的请求超时，默认10秒，通常不需要修改此参数。 */
+    private long fetchTimeoutInMills = 10000;
+
+    /** 单个消费者的id，必须全局唯一，通常用于标识分组内的单个消费者，可不设置，系统会根据IP和时间戳自动生成 */
+    private String consumerId;
+    /** 表示消费端的消费分区，仅在直接连接服务器的时候(即消费指定服务上的消息)有效 */
+    private String partition;
+    /** 第一次消费开始位置的offset，默认都是从服务端的最早数据开始消费 */
+    private long offset = 0;
+    /** 表示该消费者所在分组，同一分组的消费者正常情况下不会接收重复消息，共同消费某一topic */
+    private String group;
+
+    /**
+     * 保存消费者已经消费的数据的offset的间隔时间，默认5秒，单位毫秒。
+     * 如果设置为更大的间隔，在故障和重启时间可能重复消费的消息更多；
+     * 如果设置为更小的间隔，可能给存储造成压力
+     */
+    private long commitOffsetPeriodInMills = 5000L;
+
+    /** 设置每次订阅topic是否从最新位置开始消费,如果为true，表示每次启动都从最新位置开始消费,通常在测试的时候可以设置为true。*/
+    private boolean alwaysConsumeFromMaxOffset = false;
+
+		// 重试次数配置
+
+    /** 同一条消息在处理失败情况下最大重试消费次数，默认3次，超过就跳过这条消息并调用RejectConsumptionHandler处理 */
+    private int maxFetchRetries = 3;
+    /**
+     * 消费者一次从MQ拉取多个消息并依次消费，当多个消息中存在一个比较大的消息体时，消费者可能尝试5次（取决于{@link #maxIncreaseFetchDataRetries}配置）
+     * 都无法解析出获取的数据时，这时抓取请求会自动将抓取单个消息的最大值扩大为原来的一倍，再次尝试解析，如果再次解析失败，则将该消息跳过这条消息并调用RejectConsumptionHandler处理
+     * 该配置是把消息处理失败重试跟拉取数据失败重试分开，因为有时不需要处理消费失败重试，但需要自增长拉取的数据量 */
+    private int maxIncreaseFetchDataRetries = 5;
+
+		// 负载均衡策略配置
+
+    /** 消费端的负载均衡策略，这里使用默认的负载均衡策略，尽量使得负载在所有consumer之间平均分配，consumer之间分配的分区数差距不大于1 */
+    private LoadBalanceStrategy.Type loadBalanceStrategyType = LoadBalanceStrategy.Type.DEFAULT;
+
+```
+
+#### 2.3生产者配置
+
+。。。
 
 
 
@@ -507,7 +601,7 @@ ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>> stores；
 
 ​		这里偏移量可以理解大约理解为消息体的大小，但是实际上比消息要大一点，每次从mq指定topic分区拉取消息时，都会指定拉取的起始索引开始，每个偏移量的步长大约等于消息体的大小，下一次拉取的时候指向下一个消息。
 
-​		~~一般消息文件的偏移量每次改变时都是偏移好几个消息体，因为消费者从服务端拉取消息，虽然每次只消费一个消息，但是从服务端拉取消息时（要再看下，消费者是否会一次拉取多个消息，并缓存下来）~~
+​		一般消息文件的偏移量每次改变时都是偏移好几个消息体，因为消费者从服务端拉取消息，虽然每次只消费一个消息，但是从服务端拉取消息时，消费者会一次拉取多个消息，并依次处理消息。
 
 
 
@@ -583,9 +677,15 @@ mysql存储需要传入JDBC数据源。
 
 #### #消费者消费异常会怎么样，消息是否会丢失，是否支持重试
 
+
+
 #### #消费者挂掉，会怎么样（或者说消息堆积会怎么样）
 
+
+
 #### #MQ是主动将消息推给消费者，还是消费者主动从MQ服务器拉取消息
+
+
 
 #### #消息存在MQ服务器太久没有被消费会怎么样
 
@@ -739,6 +839,10 @@ ConsumerConfig.setConsumeFromMaxOffset
 ​		MetaQ分为主/从服务器，一般生产者将消息保存到master的MQ服务器，消费者也从master消费消息，当Master永久故障时，可以将slave作为master启动。
 
 #### #消息的生产者支持的事务消息机制是什么？
+
+
+
+#### #生产者会push消息到slaver服务器吗
 
 
 
