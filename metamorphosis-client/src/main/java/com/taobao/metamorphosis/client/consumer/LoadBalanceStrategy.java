@@ -60,7 +60,7 @@ public interface LoadBalanceStrategy {
      * 
      * @param topic         分区topic
      * @param consumerId    消费者ID，消息消费者的唯一标识
-     * @param curConsumers  当前可以进行拉取消息消费的消费者
+     * @param curConsumers  当前可以进行拉取消息消费的消费者ID
      * @param curPartitions 当前的分区列表
      * 
      * @return 返回分区列表，即当前的消费者只消费从该接口返回的分区下的消息

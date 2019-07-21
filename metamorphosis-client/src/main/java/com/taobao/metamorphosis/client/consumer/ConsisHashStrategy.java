@@ -27,11 +27,13 @@ import java.util.TreeMap;
 
 
 /**
- * 基于一致性哈希的负载均衡策略：
+ * 基于一致性哈希的负载均衡策略
  *
  * <li>将所有consumer组织成一个环</li>
  * <li>将所有分区根据hash值插入到环上</li>
  * <li>获取指定consumer前面，前一个consumer之后的分区列表作为结果</li>
+ *
+ * ConsisHashStrategy可以减少机器变更带来的重新负载均衡，但是可能会造成消费分布的不均匀，暂时不推荐使用，一致性哈希原理请参考：https://www.jianshu.com/p/e968c081f563
  * 
  * @author boyan(boyan@taobao.com)
  * @date 2011-11-29
@@ -60,6 +62,16 @@ public class ConsisHashStrategy implements LoadBalanceStrategy {
         return md5.digest();
     }
 
+    /**
+     * 根据consumer id查找对应的分区列表
+     *
+     * @param topic         分区topic
+     * @param consumerId    消费者ID，消息消费者的唯一标识
+     * @param curConsumers  当前可以进行拉取消息消费的消费者ID
+     * @param curPartitions 当前的分区列表
+     *
+     * @return 返回分区列表，即当前的消费者只消费从该接口返回的分区下的消息
+     */
     @Override
     public List<String> getPartitions(final String topic, final String consumerId, final List<String> curConsumers, final List<String> curPartitions) {
 
@@ -77,6 +89,13 @@ public class ConsisHashStrategy implements LoadBalanceStrategy {
         return new ArrayList<String>(rt);
     }
 
+    /**
+     *
+     *
+     * @param consumerMap
+     * @param partition
+     * @return
+     */
     private String findConsumerByPartition(final TreeMap<Long, String> consumerMap, final String partition) {
         final Long hash = this.alg.hash(partition);
         Long target = hash;
@@ -100,6 +119,12 @@ public class ConsisHashStrategy implements LoadBalanceStrategy {
         return targetConsumer;
     }
 
+    /**
+     * 根据consumerId的哈希值给consumers排序
+     *
+     * @param curConsumers  curConsumerId列表
+     * @return 返回Map<hashValue, consumerId>
+     */
     private TreeMap<Long, String> buildConsumerMap(final List<String> curConsumers) {
         final TreeMap<Long/* hash */, String/* consumerId */> consumerMap = new TreeMap<Long, String>();
         for (final String consumer : curConsumers) {
