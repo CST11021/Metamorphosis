@@ -77,7 +77,7 @@ public class MetaZookeeper {
     public final String brokerTopicsPath;
     // 当topic发布完成后，会记录在该路径节点     added by dennis,sinace 1.4.3
     public final String brokerTopicsPubPath;
-    // 当topic被订阅后，会记录在该路径节点
+    // 当topic被订阅后，会记录在该路径节点，/meta/brokers/topics-sub
     public final String brokerTopicsSubPath;
 
     public MetaZookeeper(final ZkClient zkClient, final String root) {
@@ -497,9 +497,9 @@ public class MetaZookeeper {
 
         // 消费者路径，默认：/meta/consumers
         public String consumerDir = MetaZookeeper.this.consumersPath;
-        // 消费者分组路径，默认：/meta/consumers/ + 分组名
+        // 消费者分组路径，默认：/meta/consumers/ + ${分组名}
         public String consumerGroupDir;
-        // 消费者的id路径，例如：/meta/consumers/分组名/ids
+        // 消费者的id路径，例如：/meta/consumers/${分组名}/ids
         public String consumerRegistryDir;
 
         public ZKGroupDirs(final String group) {

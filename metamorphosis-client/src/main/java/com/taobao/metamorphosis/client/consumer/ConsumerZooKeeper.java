@@ -300,9 +300,11 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             for (int i = 0; i < MAX_N_RETRIES; i++) {
                 // 在zk上创建保存consumer id的目录
                 ZkUtils.makeSurePersistentPathExists(this.zkClient, dirs.consumerRegistryDir);
-                // 创建一个数据节点：/meta/consumers/分组名/ids/消费者的id标识
+                // 创建一个数据节点：/meta/consumers/${分组名}/ids/${消费者的id标识}
                 ZkUtils.createEphemeralPathExpectConflict(this.zkClient, dirs.consumerRegistryDir + "/" + loadBalanceListener.consumerIdString, topicString);
+
                 // 监视同一个分组的consumer列表是否有变化
+                // 监听"/meta/consumers/${分组名}/ids/"目录的节点变更情况
                 this.zkClient.subscribeChildChanges(dirs.consumerRegistryDir, loadBalanceListener);
 
                 // 监视订阅topic的分区是否有变化
@@ -423,6 +425,8 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
     /**
      * zookeeper的消费者负载平衡监听器，当消费者变更时，会重新分配哪些消费者消费对应topic下的分区消息
      * This is a internal class for consumer,you should not use it directly in your code.
+     *
+     * zk客户端通过 zkClient.subscribeChildChanges 方法来注册IZkChildListener事件
      * 
      * @author dennis<killme2008@gmail.com>
      * 
@@ -492,7 +496,8 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         }
 
         /**
-         * 当消费者被创建，并注册到zk后，会调用该线程方法
+         * 1、当消费者被创建，并注册到zk后，会调用该线程方法；
+         * 2、消费者被销毁后，也会调用该方法
          */
         @Override
         public void run() {
@@ -501,7 +506,9 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                     Byte evt = this.rebalanceEvents.take();
                     // 不为空说明zk上注册的消费者有变更
                     if (evt != null) {
+                        // 移除所有的变更事件
                         this.dropDuplicatedEvents();
+
                         this.syncedRebalance();
                     }
                 } catch (InterruptedException e) {
@@ -516,8 +523,11 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         /**
          * 当前子节点改变时，触发该监听方法
          *
-         * @param parentPath        父节点路径
-         * @param currentChilds     子节点列表
+         * @param parentPath        父节点路径，这里的父节点路径包含：
+         *                          ①/meta/consumers/${分组名}/ids/，该路径下保存多个ConsumerID，表示注册在zk上的consumer
+         *                          ②/meta/brokers/topics-sub/，该路径下报错多个topic，表示被订阅的topic
+         *
+         * @param currentChilds     子节点列表，这里可能是：消费者的id标识 或 被订阅的topic
          * @throws Exception
          */
         @Override
@@ -607,11 +617,12 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         }
 
         /**
-         * 删除掉重复的事件
+         * 删除掉重复的事件，这里是将 {@link #rebalanceEvents} 中所有的事件移除
          */
         private void dropDuplicatedEvents() {
             Byte evt = null;
             int count = 0;
+            // poll()：移除并返回头部的元素
             while ((evt = this.rebalanceEvents.poll()) != null) {
                 // poll out duplicated events.
                 count++;
@@ -636,23 +647,21 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                     boolean done;
                     try {
                         done = this.rebalance();
-                    }
-                    catch (InterruptedException e) {
+                    } catch (InterruptedException e) {
                         throw e;
-                    }
-                    catch (final Throwable e) {
+                    } catch (final Throwable e) {
                         // 发生了预料之外的异常,都重试一下,
                         // 有可能是多个机器consumer在同时rebalance造成的读取zk数据不一致,-- wuhua
                         log.warn("unexpected exception occured while try rebalancing", e);
                         done = false;
                     }
+
                     log.warn("end rebalancing consumer " + this.consumerIdString + " try #" + i);
 
                     if (done) {
                         log.warn("rebalance success.");
                         return true;
-                    }
-                    else {
+                    } else {
                         log.warn("rebalance failed,try #" + i);
                     }
 
