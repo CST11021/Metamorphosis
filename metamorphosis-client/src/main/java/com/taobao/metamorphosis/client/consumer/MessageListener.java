@@ -23,7 +23,7 @@ import com.taobao.metamorphosis.Message;
 
 
 /**
- * 异步消息监听器
+ * 异步消息监听器（消息处理器），consumer通过该接口来消费消息
  * 
  * @author boyan
  * @Date 2011-4-23

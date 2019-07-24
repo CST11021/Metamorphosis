@@ -1,4 +1,5 @@
 ## Metamorphosis介绍
+
 ​	Metamorphosis是一个高性能、高可用、可扩展的分布式消息中间件，思路起源于LinkedIn的Kafka，但并不是Kafka的一个Copy。具有消息存储顺序写、吞吐量大和支持本地和XA事务等特性，适用于大吞吐量、顺序消息、广播和日志数据传输等场景，目前在淘宝和支付宝有着广泛的应用。
 
 ###特征
@@ -36,16 +37,16 @@
 
 ### 架构示意
 
-<img src="http://static.oschina.net/uploads/space/2014/0121/194910_65cX_1409288.png" width=70%/>
+![image-20190722223749189](assets/image-20190722223749189.png)
 
 ​		从上图可以看出，有4个集群。其中，Broker集群存在MASTER-SLAVE结构。多台broker组成一个集群提供一些topic服务，生产者集群可以按照一定的路由规则往集群里某台broker的某个topic发送消息，消费者集群按照一定的路由规则拉取某台broker上的消息。
 
 ###总体结构
 
-<img src="img/MetaQ总体结构.png" width=60%/>
+<img src="assets/MetaQ总体结构.png" width=60%/>
 
 ###内部结构
-<img src="img/MetaQ内部结构.png" width=60%/>
+<img src="assets/MetaQ内部结构.png" width=60%/>
 
 ###源代码结构
 
@@ -282,49 +283,12 @@ private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
 
 
 
-## 生产者，Broker，消费者处理消息过程
-
-​		每个broker都可以配置一个或多个topic，一个topic可以有多个分区，但是在生产者看来，一个topic在所有broker上的所有分区组成一个分区列表来使用。
-
-​		在创建producer的时候，生产者会从zookeeper上获取publish的topic对应的broker和分区列表。生产者在通过zk获取分区列表之后，会按照brokerId和partition的顺序排列组织成一个有序的分区列表，发送的时候按照从头到尾循环往复的方式选择一个分区来发送消息。
-
-​		如果你想实现自己的负载均衡策略，可以实现相应的负载均衡策略接口。
-
-​		消息生产者发送消息后返回处理结果，结果分为成功，失败和超时。
-
-​		Broker在接收消息后，依次进行校验和检查，写入磁盘，向生产者返回处理结果。
-
-​		消费者在每次消费消息时，首先把offset加1，然后根据该偏移量找到相应的消息，然后开始消费。只有在成功消费一条消息后才会接着消费下一条。如果在消费某条消息失败（如异常），则会尝试重试消费这条消息，超过最大次数后仍然无法消费，则将消息存储在消费者的本地磁盘，由后台线程继续做重试，而主线程继续往后走，消费后续的消息。
-
-##Broker增加或减少时
-
-​		当broker server增加或减少时，client会重新进行负载均衡。Broker减少的瞬间，在负载均衡之前，已经发送到减少的那台broker但未到达服务器时，客户端将会捕获到发送异常，由业务决定如何处理，负载均衡之后将正常发送到其他服务器上。
-
-
-
-**什么场景下适合使用异步单向和log4j发送**
-
-1. 对于发送可靠性要求不那么高,但要求提高发送效率和降低对宿主应用的影响，提高宿主应用的稳定性.
-2. 不在乎发送结果成功与否。
-3. 从逻辑和耗时上几乎不对业务系统产生影响
 
 
 
 
 
-
-
-消息put到MQ服务器时，如果事先没有配置topic，则该topic是动态的topic，这时也会注册到zk；
-
-
-
-消息会话工厂默认使用SimpleMessageConsumer消费者
-
-
-
-
-
-##会话工厂MessageSessionFactory
+##MessageSessionFactory
 
 作用：
 
@@ -336,40 +300,91 @@ private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
 
 4、获取指定MQ服务器上的统计信息
 
-
-
 实现类：
 
-![image-20181231111712303](/Users/wanghongzhan/Library/Application Support/typora-user-images/image-20181231111712303.png)
+![image-20181231111712303](assets/image-20181231111712303.png)
 
-* MetaBroadcastMessageSessionFactory
+* MetaBroadcastMessageSessionFactory：广播消息会话工厂，使用这个创建的Consumer在同一分组内的每台机器都能收到同一条消息，推荐一个应用只使用一个MessageSessionFactory。
 
+* AsyncMessageSessionFactory：用于创建异步单向发送消息的会话工厂。
+  使用场景：对于发送可靠性要求不那么高,但要求提高发送效率和降低对宿主应用的影响，提高宿主应用的稳定性，例如，收集日志或用户行为信息等场景。
+  注意：发送消息后返回的结果中不包含准确的messageId,partition,offset,这些值都是-1。
+
+* XAMessageSessionFactory：用于创建XA消息会话的工厂。
+
+* OrderedMessageSessionFactory：需要按照消息内容(例如某个id)散列到固定分区并要求有序的场景中使用。
+
+
+
+##SubscribeInfoManager
+
+​		订阅信息管理器，该组件维护了Map<group, Map<topic, SubscriberInfo>>这样的一组关系，对于每个Consumer Group维护了topic的订阅情况，SubscriberInfo类维护了以下信息：
+
+```java
+public class SubscriberInfo {
+    /** 消息监听器，用于消费消息 */
+    private final MessageListener messageListener;
+    /** 自定义的消息过滤器 */
+    private final ConsumerMessageFilter consumerMessageFilter;
+    /** 订阅每次接收的最大数据大小 */
+    private final int maxSize;
+    
+   	//省略。。。
+}
 ```
-广播消息会话工厂,使用这个创建的Consumer在同一分组内的每台机器都能收到同一条消息,推荐一个应用只使用一个MessageSessionFactory
+
+维护了各个分组下的各个topic的消息监听器和消息过滤器。
+
+​		当MessageConsumer被创建后，会通过subscribe()接口方法来订阅topic，接口如下：
+
+```java
+MessageConsumer subscribe(String topic, int maxSize, MessageListener messageListener, ConsumerMessageFilter consumerMessageFilter)
 ```
 
-* AsyncMessageSessionFactory
+消息者的创建过程如下：
 
+```java
+/**
+ * 异步消息消费者的创建示例
+ */
+public class AsyncConsumer {
+
+    public static void main(final String[] args) throws Exception {
+      //1、初始化客户端配置：
+      MetaClientConfig config = initMetaConfig();
+			//2、创建消息会话工厂：
+      MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(config);
+
+			//3、创建消费者配置：
+			final String group = "meta-example";
+			ConsumerConfig consumerConfig = new ConsumerConfig(group);
+
+			//4、创建消费者：
+      MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
+
+			//5、订阅消息，并消费消息
+			final String topic = "meta-test";
+      consumer.subscribe(topic, 1024 * 1024, new MessageListener() {
+
+          @Override
+          public void recieveMessages(final Message message) {
+              System.out.println("Receive message " + new String(message.getData()));
+          }
+
+          @Override
+          public Executor getExecutor() {
+              // Thread pool to process messages,maybe null.
+              return null;
+          }
+
+      }, null);
+
+			//6、完成消息订阅：
+      consumer.completeSubscribe();
+    }
+
+}
 ```
-用于创建异步单向发送消息的会话工厂. 
-使用场景: 
-	对于发送可靠性要求不那么高,但要求提高发送效率和降低对宿主应用的影响，提高宿主应用的稳定性.
-	例如,收集日志或用户行为信息等场景.
-注意:
-	发送消息后返回的结果中不包含准确的messageId,partition,offset,这些值都是-1
-```
-
-* XAMessageSessionFactory
-
-```
-用于创建XA消息会话的工厂
-```
-
-* OrderedMessageSessionFactory
-
-```
-需要按照消息内容(例如某个id)散列到固定分区并要求有序的场景中使用.
-```
 
 
 
@@ -377,7 +392,7 @@ private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
 
 
 
-##Consumer从MQ拉取消息的负载均衡策略
+##Consumer的负载均衡策略
 
 ​		我们知道，在MetaQ中Consumer会主动向MQ发起Pull消息的请求，这里Pull请求包含topic、分区、消费者分组名、拉取的起始偏移量和本次拉取的最大数据量大小，请求信息其实已经表明了该次请求要从MQ上的抓取哪些消息，那么这里的分区是如何确定的呢？就是通过client包中的LoadBalanceStrategy接口来实现，我们先看看改接口定义：
 
@@ -443,6 +458,56 @@ Consumer的balance策略实现在metaq中提供了两种：ConsisHashStrategy和
 细心的读者可能会问，该接口返回的是多个分区，而Pull请求中却明确声明了一个分区，那么如何从返回的多个分区中确定一个本次请求要从哪个分区Pull消息呢？我们知道MQ客户端默认会有cpus个线程并行一直从MQ上pull消息，每个线程都会遍历所有的topic，然后再遍历所有的分区，最后将pull请求放到pull的请求队列中。当消息被拉取下来后，MQ客户端通过监听机制通知所有监听了该topic的consumer进行消费。
 
 注意：这里的MQ客户端起始已经明确了多个consumerId，他们别人在不同的consumer group。
+
+
+
+
+
+
+
+
+
+## 生产者，Broker，消费者处理消息过程
+
+​		每个broker都可以配置一个或多个topic，一个topic可以有多个分区，但是在生产者看来，一个topic在所有broker上的所有分区组成一个分区列表来使用。
+
+​		在创建producer的时候，生产者会从zookeeper上获取publish的topic对应的broker和分区列表。生产者在通过zk获取分区列表之后，会按照brokerId和partition的顺序排列组织成一个有序的分区列表，发送的时候按照从头到尾循环往复的方式选择一个分区来发送消息。
+
+​		如果你想实现自己的负载均衡策略，可以实现相应的负载均衡策略接口。
+
+​		消息生产者发送消息后返回处理结果，结果分为成功，失败和超时。
+
+​		Broker在接收消息后，依次进行校验和检查，写入磁盘，向生产者返回处理结果。
+
+​		消费者在每次消费消息时，首先把offset加1，然后根据该偏移量找到相应的消息，然后开始消费。只有在成功消费一条消息后才会接着消费下一条。如果在消费某条消息失败（如异常），则会尝试重试消费这条消息，超过最大次数后仍然无法消费，则将消息存储在消费者的本地磁盘，由后台线程继续做重试，而主线程继续往后走，消费后续的消息。
+
+## Broker增加或减少时
+
+​		当broker server增加或减少时，client会重新进行负载均衡。Broker减少的瞬间，在负载均衡之前，已经发送到减少的那台broker但未到达服务器时，客户端将会捕获到发送异常，由业务决定如何处理，负载均衡之后将正常发送到其他服务器上。
+
+
+
+**什么场景下适合使用异步单向和log4j发送**
+
+1. 对于发送可靠性要求不那么高,但要求提高发送效率和降低对宿主应用的影响，提高宿主应用的稳定性.
+2. 不在乎发送结果成功与否。
+3. 从逻辑和耗时上几乎不对业务系统产生影响
+
+
+
+消息put到MQ服务器时，如果事先没有配置topic，则该topic是动态的topic，这时也会注册到zk；
+
+
+
+消息会话工厂默认使用SimpleMessageConsumer消费者
+
+
+
+
+
+
+
+
 
 
 
@@ -722,6 +787,8 @@ mysql存储需要传入JDBC数据源。
 
 ​		因为subscribe可以调用多次，为了减少跟zk交互次数，subscribe会将订阅信息保存在内存，completeSubscribe的时候一次性处理。
 
+​		一个消费者实例可以订阅多个topic，每个topic都有对应的MessageListener消息监听器（消息处理器）和ConsumerMessageFilter（消息过滤器），每个topic最多对应一个MessageListener和一个ConsumerMessageFilter。
+
 #### #消息可以带属性吗？
 
 ​		仅允许带一个字符串属性，消费者可依此过滤
@@ -846,9 +913,17 @@ ConsumerConfig.setConsumeFromMaxOffset
 
 
 
+####一个consumer可以有多个consumer group吗
 
+不可以，创建consumer时，必须指定一个consumer group
 
-
+```java
+final String group = "meta-example";
+ConsumerConfig consumerConfig = new ConsumerConfig(group);
+// 默认最大获取延迟为5秒，这里设置成100毫秒，请根据实际应用要求做设置，测试的时候如果使用默认值5秒，会有消费延迟的现象
+consumerConfig.setMaxDelayFetchTimeInMills(100);
+final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
+```
 
 ###生产者FAQ
 

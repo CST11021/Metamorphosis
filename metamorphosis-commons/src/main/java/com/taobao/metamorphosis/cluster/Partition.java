@@ -35,9 +35,9 @@ public class Partition implements Comparable<Partition>, Serializable {
 
     static final long serialVersionUID = -1L;
 
-    /** brokerId */
+    /** 表示分区所在的brokerId */
     private final int brokerId;
-    /** 分区索引 */
+    /** 表示分区索引 */
     private final int partition;
     private final String partStr;
     /** 表示是否自动ack，默认true，@JsonIgnore 序列化时会自动忽略*/

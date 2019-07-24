@@ -42,7 +42,11 @@ public interface FetchManager {
     public void stopFetchRunner() throws InterruptedException;
 
     /**
-     * 重设状态，重设状态后可重用并start
+     * 重设状态，包括：
+     * 1、统计抓取请求的次数
+     * 2、抓取消息的请求队列
+     * 3、从MQ服务器拉取消息进行消费的线程列表
+     *
      */
     public void resetFetchState();
 

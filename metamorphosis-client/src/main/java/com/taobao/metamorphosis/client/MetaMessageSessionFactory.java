@@ -198,12 +198,10 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
             };
             Runtime.getRuntime().addShutdownHook(this.shutdownHook);
 
-        }
-        catch (MetaClientException e) {
+        } catch (MetaClientException e) {
             this.shutdown();
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             this.shutdown();
             throw new MetaClientException("Construct message session factory failed.", e);
         }

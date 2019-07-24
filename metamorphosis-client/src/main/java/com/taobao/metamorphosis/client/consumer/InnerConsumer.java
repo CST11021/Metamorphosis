@@ -48,16 +48,27 @@ public interface InnerConsumer {
     MessageIterator fetch(final FetchRequest fetchRequest, long timeout, TimeUnit timeUnit) throws MetaClientException, InterruptedException;
 
     /**
-     * 返回topic对应的消息监听器
+     * 返回topic对应的消息处理器，consumer通过MessageListener接口来处理消息
      * 
      * @param topic
      * @return
      */
     MessageListener getMessageListener(final String topic);
 
-    public ConsumerMessageFilter getMessageFilter(final String topic);
+    /**
+     * 返回topic对应的消息过滤器
+     *
+     * @param topic
+     * @return
+     */
+    ConsumerMessageFilter getMessageFilter(final String topic);
 
-    public ConsumerConfig getConsumerConfig();
+    /**
+     * 获取consumer配置
+     *
+     * @return
+     */
+    ConsumerConfig getConsumerConfig();
 
     /**
      * 无法被消费者处理的消息，会调用该方法

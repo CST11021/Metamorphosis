@@ -77,7 +77,9 @@ public class MetaZookeeper {
     public final String brokerTopicsPath;
     // 当topic发布完成后，会记录在该路径节点     added by dennis,sinace 1.4.3
     public final String brokerTopicsPubPath;
-    // 当topic被订阅后，会记录在该路径节点，/meta/brokers/topics-sub
+    // 当topic被订阅后，会记录在该路径下，/meta/brokers/topics-sub/
+    // 1、brokerTopicsSubPath + ${topic} 就是topic在zk上的注册信息，当consumer完成订阅时，会监听brokerTopicsSubPath的子节点变更情况，一旦发现topic的订阅信息发生更变，则会重复均衡consumer的消费负载
+    // 2、brokerTopicsSubPath + ${topic} + "/" + ${brokerId} 路径则记录的是topic在各个broker上的分区信息，保存的信息对应 TopicBroker 类
     public final String brokerTopicsSubPath;
 
     public MetaZookeeper(final ZkClient zkClient, final String root) {
@@ -382,7 +384,7 @@ public class MetaZookeeper {
      * 返回topic到partition映射的map. 包括master和slave的所有partitions
      * 
      * @param topics
-     * @return
+     * @return 返回Map<topic, List<brokerId-分区索引>> 例如：{"meta-test": ["0-0", "0-1", "0-2"]} 表示"meta-test"这个topic在brokerId为0的MQ服务器上对应了三个分区索引
      */
     public Map<String, List<String>> getPartitionStringsForSubTopics(final Collection<String> topics) {
         final Map<String, List<String>> ret = new HashMap<String, List<String>>();
@@ -392,7 +394,7 @@ public class MetaZookeeper {
             for (final String broker : brokers) {
                 final String[] tmp = StringUtils.split(broker, "-");
                 if (tmp != null && tmp.length == 2) {
-                    String path = this.brokerTopicsSubPath + "/" + topic + "/" + broker;
+                    String path = this.brokerTopicsSubPath + "/" + topic + "/" + broker; // 例如：/meta/brokers/topics-sub/meta-test/0-m
                     String brokerData = ZkUtils.readData(this.zkClient, path);
                     try {
                         final TopicBroker topicBroker = TopicBroker.parse(brokerData);
@@ -499,7 +501,7 @@ public class MetaZookeeper {
         public String consumerDir = MetaZookeeper.this.consumersPath;
         // 消费者分组路径，默认：/meta/consumers/ + ${分组名}
         public String consumerGroupDir;
-        // 消费者的id路径，例如：/meta/consumers/${分组名}/ids
+        // 消费者的id路径，例如：/meta/consumers/${分组名}/ids，注意：/meta/consumers/${分组名}/ids/${consumerId} 节点保存了消费者订阅的topic信息，多个topic用","分隔
         public String consumerRegistryDir;
 
         public ZKGroupDirs(final String group) {
@@ -516,7 +518,10 @@ public class MetaZookeeper {
     public class ZKGroupTopicDirs extends ZKGroupDirs {
         public ZKGroupTopicDirs(final String topic, final String group) {
             super(group);
+            // /meta/consumers/ + ${分组名} + "/offsets/" + ${topic}
             this.consumerOffsetDir = this.consumerGroupDir + "/offsets/" + topic;
+            // topic路径：/meta/consumers/ + ${分组名} + "/owners/" + ${topic}
+            // 分区的路径：/meta/consumers/ + ${分组名} + "/owners/" + ${topic} + "/" + ${partition} 该节点为数据节点，节点保存了consumerId，表明该分区只能被对应consumerId消费，注意：一个分区只能被一个consumerId消费，但是一个consumerId可以消费多个分区，对应的策略参考 LoadBalanceStrategy 类
             this.consumerOwnerDir = this.consumerGroupDir + "/owners/" + topic;
         }
 
