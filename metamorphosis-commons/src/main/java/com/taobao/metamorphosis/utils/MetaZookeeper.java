@@ -499,7 +499,7 @@ public class MetaZookeeper {
 
         // 消费者路径，默认：/meta/consumers
         public String consumerDir = MetaZookeeper.this.consumersPath;
-        // 消费者分组路径，默认：/meta/consumers/ + ${分组名}
+        // 消费者分组路径，默认：/meta/consumers/${分组名}
         public String consumerGroupDir;
         // 消费者的id路径，例如：/meta/consumers/${分组名}/ids，注意：/meta/consumers/${分组名}/ids/${consumerId} 节点保存了消费者订阅的topic信息，多个topic用","分隔
         public String consumerRegistryDir;
@@ -518,10 +518,10 @@ public class MetaZookeeper {
     public class ZKGroupTopicDirs extends ZKGroupDirs {
         public ZKGroupTopicDirs(final String topic, final String group) {
             super(group);
-            // /meta/consumers/ + ${分组名} + "/offsets/" + ${topic}
+            // /meta/consumers/${分组名}/offsets/${topic}
             this.consumerOffsetDir = this.consumerGroupDir + "/offsets/" + topic;
-            // topic路径：/meta/consumers/ + ${分组名} + "/owners/" + ${topic}
-            // 分区的路径：/meta/consumers/ + ${分组名} + "/owners/" + ${topic} + "/" + ${partition} 该节点为数据节点，节点保存了consumerId，表明该分区只能被对应consumerId消费，注意：一个分区只能被一个consumerId消费，但是一个consumerId可以消费多个分区，对应的策略参考 LoadBalanceStrategy 类
+            // topic路径：/meta/consumers/${分组名}/owners/${topic}
+            // 分区的路径：/meta/consumers/${分组名}/owners/${topic}/${partition} 该节点为数据节点，节点保存了consumerId，表明该分区只能被对应consumerId消费，注意：一个分区只能被一个consumerId消费，但是一个consumerId可以消费多个分区，对应的策略参考 LoadBalanceStrategy 类
             this.consumerOwnerDir = this.consumerGroupDir + "/owners/" + topic;
         }
 

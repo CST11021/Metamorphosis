@@ -200,7 +200,10 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
                         // 消费者在zk上的路径信息
                         final ZKGroupDirs dirs = ConsumerZooKeeper.this.metaZookeeper.new ZKGroupDirs(consumerConfig.getGroup());
                         // 获取消费者实例的id，如果有配置消费者的id，则使用使用配置的id，否则使用uuid生成器
+                        // 例如：192.168.1.102-81337-7be42702-4770-4a6f-b462-a115a18da678
+                        // 如果 ConsumerConfig#consumerId 有配置的话，这里为consumerId
                         final String consumerUUID = ConsumerZooKeeper.this.getConsumerUUID(consumerConfig);
+                        // 例如：testGroup_192.168.1.102-81337-7be42702-4770-4a6f-b462-a115a18da678
                         final String consumerUUIDString = consumerConfig.getGroup() + "_" + consumerUUID;
 
                         //
