@@ -49,6 +49,7 @@ public class AsyncConsumer {
         // 3、创建消费者
         final String group = "meta-example";
         ConsumerConfig consumerConfig = new ConsumerConfig(group);
+        // consumerConfig.setConsumerId("consumer1"); // 这里不要设置consumerId，如果应用是集群部署，消费会被重复消费
         // 默认最大获取延迟为5秒，这里设置成100毫秒，请根据实际应用要求做设置，测试的时候如果使用默认值5秒，会有消费延迟的现象
         consumerConfig.setMaxDelayFetchTimeInMills(100);
         final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);

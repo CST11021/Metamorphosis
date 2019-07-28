@@ -1,7 +1,3 @@
-问题：
-
-
-
 
 
 ## Metamorphosis介绍
@@ -998,4 +994,62 @@ final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
 
 
 
-###其他
+###经典案例分析
+
+#### 关于消费者Id的一个坑
+
+如下消费者的创建到消费消息的代码：
+
+```java
+public class AsyncConsumer {
+
+    public static void main(final String[] args) throws Exception {
+        // 1、初始化客户端配置
+        MetaClientConfig config = initMetaConfig();
+
+        // 2、创建消息会话工厂：一般会话工厂会使用单例来创建
+        final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(config);
+
+        // 3、创建消费者
+        final String group = "meta-example";
+        ConsumerConfig consumerConfig = new ConsumerConfig("consumer1", group);
+        // 默认最大获取延迟为5秒，这里设置成100毫秒，请根据实际应用要求做设置，测试的时候如果使用默认值5秒，会有消费延迟的现象
+        consumerConfig.setMaxDelayFetchTimeInMills(100);
+        final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
+
+        // 4、订阅消息，并消费消息
+        final String topic = "meta-test";
+        consumer.subscribe(topic, 1024 * 1024, new MessageListener() {
+
+            @Override
+            public void recieveMessages(final Message message) {
+                System.out.println("Receive message " + new String(message.getData()));
+            }
+
+            @Override
+            public Executor getExecutor() {
+                // Thread pool to process messages,maybe null.
+                return null;
+            }
+
+        });
+        consumer.completeSubscribe();
+    }
+
+}
+```
+
+这里ConsumerConfig#consumerId设置为"consumer1"，假如meta-test这个topic对应的分区个数配置为5时，则，zk上注册的负载均衡结果为：
+
+<img src="/Users/wanghongzhan/1_Document/ideaProject/Metamorphosis/doc/assets/image-20190728175706061.png"/>
+
+说明：0-0、0-1、0-2、0-3、0-4表示0这个brokerId对应的四个分区，对应表示消费者，此时0到4这四个分区都可以被consumer1这个消费者消费，那么假如消费者所在的应用是集群部署的话，这里的消息就会被每个节点消费，导致每个应用都会消费一次MQ上的消息，也就说假如消费者应用集群为n时，则单个消息会被重复消息n次。如果要设置consumerId则每个应用在发布的时候需要确保配置为不同consumerId才行。
+
+所以在创建消费者时，ConsumerConfig#consumerId不建议设置，当consumerId为空时，MQ会自动帮我们创建不同的consumerId，消费者的负载均衡结果如下：
+
+<img src="/Users/wanghongzhan/1_Document/ideaProject/Metamorphosis/doc/assets/image-20190728180719463.png"/>
+
+说明：0-1、0-1、0-2这个三个分区被第一个节点消费，然后0-3、0-4会被第二节点消费，此时消息就不会被重复消费，一个消息只会被一个消费者应用节点消费一次。
+
+有同学可能会觉得奇怪一个应用节点依然对应多个分区，为什么消息就不会被重复消费了呢？其实，在consumerId设置为"consumer1"这种情况时，虽然0-0、0-1、0-2、0-3、0-4四个分区从zk上看只对应一个消费者节点，但是由于应用是集群部署的，并且注册到zk时名字都为"meta-example_consumer1"，所以实际上0-0、0-1、0-2、0-3、0-4四个分区看起来只被"meta-example_consumer1"消费，但其实consumer1对应的却是多个消费者节点。
+

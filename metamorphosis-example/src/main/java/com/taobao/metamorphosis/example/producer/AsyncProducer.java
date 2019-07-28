@@ -37,7 +37,7 @@ public class AsyncProducer {
         final MessageProducer producer = sessionFactory.createProducer();
 
         // 4、发布topic
-        final String topic = "slave-test";
+        final String topic = "meta-test";
         producer.publish(topic);
 
         // 5、发送消息
