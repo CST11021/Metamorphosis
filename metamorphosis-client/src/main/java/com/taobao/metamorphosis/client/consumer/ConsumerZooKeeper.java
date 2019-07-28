@@ -451,7 +451,7 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         private final Lock rebalanceLock = new ReentrantLock();
         /** 保存consumer消费哪些topic的哪些分区信息，Map<topic, Map<Partition, TopicPartitionRegInfo>> */
         final ConcurrentHashMap<String, ConcurrentHashMap<Partition, TopicPartitionRegInfo>> topicRegistry = new ConcurrentHashMap<String, ConcurrentHashMap<Partition, TopicPartitionRegInfo>>();
-        /** topic的订阅信息，topic对应的监听器等，Map<topic, SubscriberInfo> */
+        /** topic的订阅信息，topic对应的监听器过滤器等，Map<topic, SubscriberInfo> */
         private final ConcurrentHashMap<String, SubscriberInfo> topicSubcriberRegistry;
         /** 消费者配置信息 */
         private final ConsumerConfig consumerConfig;
@@ -702,8 +702,10 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             this.fetchManager.resetFetchState();
 
             final Set<Broker> newBrokers = new HashSet<Broker>();
+            // 遍历topic
             for (final Map.Entry<String/* topic */, ConcurrentHashMap<Partition, TopicPartitionRegInfo>> entry : this.topicRegistry.entrySet()) {
                 final String topic = entry.getKey();
+                // 遍历partition
                 for (final Map.Entry<Partition, TopicPartitionRegInfo> partEntry : entry.getValue().entrySet()) {
                     final Partition partition = partEntry.getKey();
                     final TopicPartitionRegInfo info = partEntry.getValue();
@@ -918,12 +920,12 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         }
 
         /**
-         * 添加分区的owner关系
+         * 添加分区的owner关系，就是注册那个分区被哪个consumerId消费
          * 
-         * @param topicDirs
-         * @param partition
-         * @param topic
-         * @param consumerThreadId
+         * @param topicDirs         zk上保存consumer的相关信息
+         * @param partition         被订阅的分区索引
+         * @param topic             被订阅的topic
+         * @param consumerThreadId  consumerId
          * @return
          */
         protected boolean ownPartition(final ZKGroupTopicDirs topicDirs, final String partition, final String topic, final String consumerThreadId) throws Exception {
@@ -945,7 +947,14 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             return true;
         }
 
-        // 获取offset信息并保存到本地
+        /**
+         * 获取offset信息并保存到本地
+         *
+         * @param topicDirs
+         * @param partitionString   分区信息，例如："0-0"，表示brokerId为0的MQ服务器对应的分区索引为0
+         * @param topic
+         * @param consumerThreadId
+         */
         protected void addPartitionTopicInfo(final ZKGroupTopicDirs topicDirs, final String partitionString, final String topic, final String consumerThreadId) {
             final Partition partition = new Partition(partitionString);
             final ConcurrentHashMap<Partition, TopicPartitionRegInfo> partitionTopicInfo =

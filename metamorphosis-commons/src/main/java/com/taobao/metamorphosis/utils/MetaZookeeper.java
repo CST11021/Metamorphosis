@@ -133,7 +133,7 @@ public class MetaZookeeper {
      */
     public Cluster getCluster() {
         final Cluster cluster = new Cluster();
-        // 获取"/brokers/ids"路径下的子节点
+        // 获取"/meta/brokers/ids/"路径下的子节点
         final List<String> nodes = ZkUtils.getChildren(this.zkClient, this.brokerIdsPath);
         for (final String node : nodes) {
             // String brokerZKString = readData(zkClient, brokerIdsPath + "/" + node);

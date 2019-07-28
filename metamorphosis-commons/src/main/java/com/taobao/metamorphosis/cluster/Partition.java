@@ -39,6 +39,7 @@ public class Partition implements Comparable<Partition>, Serializable {
     private final int brokerId;
     /** 表示分区索引 */
     private final int partition;
+    /** brokerId和分区索引，例如："0-0"、"0-1"等，横杠前的0表示brokerId，后面的数字表示分区索引 */
     private final String partStr;
     /** 表示是否自动ack，默认true，@JsonIgnore 序列化时会自动忽略*/
     @JsonIgnore

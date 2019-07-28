@@ -199,6 +199,9 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     /**
      * 重新计算brokerIdPath
+     * 返回值例如：
+     * /meta/brokers/ids/0/master
+     * /meta/brokers/ids/0/slave
      */
     public void resetBrokerIdPath() {
         this.brokerIdPath = this.metaZookeeper.brokerIdsPathOf(this.config.getBrokerId(), this.config.getSlaveId());
@@ -223,6 +226,9 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
             // 兼容老客户端，暂时加上
             if (!this.config.isSlave()) {
+                // BrokerZookeeper实例化的时候，这里的brokerIdsPath会赋值为：
+                // /meta/brokers/ids/0/master
+                // /meta/brokers/ids/0/slave
                 ZkUtils.updateEphemeralPath(
                         this.zkClient,
                         this.metaZookeeper.brokerIdsPath + "/" + this.config.getBrokerId(),
