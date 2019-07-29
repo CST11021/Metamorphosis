@@ -192,6 +192,7 @@ public class MetaZookeeper {
             if (broker.startsWith("slave")) {
                 int slaveId = -1;
                 try {
+                    // 去掉broker前面的5个字符
                     slaveId = Integer.parseInt(broker.substring(5));
                     if (slaveId < 0) {
                         logger.warn("skip invalid slave path:" + broker);
