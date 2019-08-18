@@ -32,35 +32,28 @@ import com.taobao.metamorphosis.utils.ZkUtils.ZKConfig;
  * @author ÎÞ»¨
  * @since 2011-6-27 ÏÂÎç06:44:48
  */
-
 public class SlaveMetaMessageSessionFactory extends MetaMessageSessionFactory {
 
     private static int brokerId = -1;
-
 
     private SlaveMetaMessageSessionFactory(final MetaClientConfig metaClientConfig) throws MetaClientException {
         super(metaClientConfig);
     }
 
-
-    public synchronized static SlaveMetaMessageSessionFactory create(final MetaClientConfig metaClientConfig,
-            final int brokerId) throws MetaClientException {
+    public synchronized static SlaveMetaMessageSessionFactory create(final MetaClientConfig metaClientConfig, final int brokerId) throws MetaClientException {
         SlaveMetaMessageSessionFactory.brokerId = brokerId;
 
         return new SlaveMetaMessageSessionFactory(metaClientConfig);
     }
 
-
     @Override
-    protected ConsumerZooKeeper initConsumerZooKeeper(final RemotingClientWrapper remotingClient,
-            final ZkClient zkClient, final ZKConfig zkConfig) {
+    protected ConsumerZooKeeper initConsumerZooKeeper(final RemotingClientWrapper remotingClient, final ZkClient zkClient, final ZKConfig zkConfig) {
         if (SlaveMetaMessageSessionFactory.brokerId < 0) {
             throw new IllegalStateException("please set brokerId at first");
         }
         return new SlaveConsumerZooKeeper(this.metaZookeeper, remotingClient, zkClient, zkConfig,
             SlaveMetaMessageSessionFactory.brokerId);
     }
-
 
     // for test
     static int getBrokerId() {

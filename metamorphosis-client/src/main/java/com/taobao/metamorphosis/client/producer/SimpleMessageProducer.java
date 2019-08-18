@@ -513,15 +513,13 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
                 partition = this.selectPartition(message);
             }
             if (partition == null) {
-                throw new MetaClientException("There is no aviable partition for topic " + topic
-                    + ",maybe you don't publish it at first?");
+                throw new MetaClientException("There is no aviable partition for topic " + topic + ",maybe you don't publish it at first?");
             }
             if (serverUrl == null) {
                 serverUrl = this.producerZooKeeper.selectBroker(topic, partition);
             }
             if (serverUrl == null) {
-                throw new MetaClientException("There is no aviable server right now for topic " + topic
-                    + " and partition " + partition + ",maybe you don't publish it at first?");
+                throw new MetaClientException("There is no aviable server right now for topic " + topic + " and partition " + partition + ",maybe you don't publish it at first?");
             }
 
             if (this.isInTransaction() && this.lastSentInfo.get() == null) {
@@ -529,6 +527,7 @@ public class SimpleMessageProducer implements MessageProducer, TransactionSessio
                 this.beforeSendMessageFirstTime(serverUrl);
             }
 
+            // 如果消息对象Message有设置 attribute 属性，则返回1，否则返回0
             final int flag = MessageFlagUtils.getFlag(message);
 
             final PutCommand putCommand = new PutCommand(

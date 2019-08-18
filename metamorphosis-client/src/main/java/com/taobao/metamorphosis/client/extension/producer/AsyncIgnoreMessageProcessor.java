@@ -30,6 +30,7 @@ import com.taobao.metamorphosis.cluster.Partition;
 
 
 /**
+ * 生产者异步单向发送消息失败时，会使用该类来处理发送失败的消息，默认会将消息保存到 MessageRecoverManager
  * 
  * @author 无花
  * @since 2011-10-27 上午11:43:35
@@ -42,9 +43,7 @@ class AsyncIgnoreMessageProcessor implements IgnoreMessageProcessor {
     private static final String STORAGE_PATH = System.getProperty("meta.async.storage.path",
         System.getProperty("user.home") + File.separator + ".meta_async_storage");
 
-    /**
-     * 本地磁盘缓存的消息条数限制
-     */
+    /** 本地磁盘缓存的消息条数限制，当超过50w个消息时，本地就会拒绝保存消息了 */
     private final int messageCountLimit = 500000;
 
     private MessageRecoverManager storageManager;
@@ -66,15 +65,12 @@ class AsyncIgnoreMessageProcessor implements IgnoreMessageProcessor {
         if (count < this.messageCountLimit) {
             this.storageManager.append(message, partition);
             return true;
-        }
-        else {
+        } else {
             log.info("local storage is full,ignore message");
             return false;
         }
     }
 
-
-    // for test
     void setStorageManager(MessageRecoverManager storageManager) {
         this.storageManager = storageManager;
     }

@@ -38,7 +38,6 @@ public class MetamorphosisSlaveBroker extends AbstractBrokerPlugin {
 
     private SubscribeHandler subscribeHandler;
 
-
     @Override
     public void init(final MetaMorphosisBroker metaMorphosisBroker, final Properties props) {
         this.broker = metaMorphosisBroker;
@@ -52,12 +51,25 @@ public class MetamorphosisSlaveBroker extends AbstractBrokerPlugin {
 
         try {
             this.subscribeHandler = new SubscribeHandler(this.broker);
-        }
-        catch (final MetaClientException e) {
+        } catch (final MetaClientException e) {
             throw new SubscribeMasterMessageException("Create subscribeHandler failed", e);
         }
     }
 
+    @Override
+    public String name() {
+        return "metaslave";
+    }
+
+    @Override
+    public void start() {
+        this.subscribeHandler.start();
+    }
+
+    @Override
+    public void stop() {
+        this.subscribeHandler.shutdown();
+    }
 
     private void putSlaveProperties(final MetaMorphosisBroker broker, final Properties props) {
         SlaveConfig slaveConfig = new SlaveConfig();
@@ -81,21 +93,4 @@ public class MetamorphosisSlaveBroker extends AbstractBrokerPlugin {
         broker.getBrokerZooKeeper().resetBrokerIdPath();
     }
 
-
-    @Override
-    public String name() {
-        return "metaslave";
-    }
-
-
-    @Override
-    public void start() {
-        this.subscribeHandler.start();
-    }
-
-
-    @Override
-    public void stop() {
-        this.subscribeHandler.shutdown();
-    }
 }

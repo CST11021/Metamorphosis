@@ -35,12 +35,8 @@ public interface ExtMessageSessionFactory extends BroadcastMessageSessionFactory
     /**
      * 创建消费者
      * 
-     * @param consumerConfig
-     *            消费者配置
-     * @param RecoverType
-     *            选择消息recover方式,
-     *            ConsumerRecoverType.DEFAULT,ConsumerRecoverType.NOTIFY<br>
-     *            目前不支持ConsumerRecoverType.NOTIFY
+     * @param consumerConfig    消费者配置
+     * @param RecoverType       选择消息recover方式, ConsumerRecoverType.DEFAULT, ConsumerRecoverType.NOTIFY, 目前不支持ConsumerRecoverType.NOTIFY
      * @return
      */
     public MessageConsumer createConsumer(ConsumerConfig consumerConfig, ConsumerRecoverType RecoverType);
@@ -49,27 +45,19 @@ public interface ExtMessageSessionFactory extends BroadcastMessageSessionFactory
     /**
      * 创建消费者
      * 
-     * @param consumerConfig
-     *            消费者配置
-     * @param offsetStorage
-     *            offset存储器
-     * @param RecoverType
-     *            选择消息recover方式,
-     *            ConsumerRecoverType.DEFAULT,ConsumerRecoverType.NOTIFY<br>
-     *            目前不支持ConsumerRecoverType.NOTIFY
+     * @param consumerConfig    消费者配置
+     * @param offsetStorage     offset存储器
+     * @param recoverType       选择消息recover方式, ConsumerRecoverType.DEFAULT, ConsumerRecoverType.NOTIFY, 目前不支持ConsumerRecoverType.NOTIFY
      * @return
      */
-    public MessageConsumer createConsumer(ConsumerConfig consumerConfig, OffsetStorage offsetStorage,
-            ConsumerRecoverType recoverType);
+    public MessageConsumer createConsumer(ConsumerConfig consumerConfig, OffsetStorage offsetStorage, ConsumerRecoverType recoverType);
 
 
     /**
      * 创建广播消费者
      * 
      * @param consumerConfig
-     * @param recoverType选择消息recover方式
-     *            , ConsumerRecoverType.DEFAULT,ConsumerRecoverType.NOTIFY.<br>
-     *            目前不支持ConsumerRecoverType.NOTIFY
+     * @param recoverType   选择消息recover方式, ConsumerRecoverType.DEFAULT, ConsumerRecoverType.NOTIFY, 目前不支持ConsumerRecoverType.NOTIFY
      * @return
      */
     public MessageConsumer createBroadcastConsumer(ConsumerConfig consumerConfig, ConsumerRecoverType recoverType);

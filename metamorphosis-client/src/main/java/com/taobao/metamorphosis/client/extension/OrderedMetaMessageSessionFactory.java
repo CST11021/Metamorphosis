@@ -44,13 +44,11 @@ public class OrderedMetaMessageSessionFactory extends MetaMessageSessionFactory 
     protected final MessageRecoverManager localMessageStorageManager;
     protected final ProducerDiamondManager producerDiamondManager;
 
-
     public OrderedMetaMessageSessionFactory(final MetaClientConfig metaClientConfig) throws MetaClientException {
         super(metaClientConfig);
         this.localMessageStorageManager = new OrderedLocalMessageStorageManager(metaClientConfig);
         this.producerDiamondManager = new ProducerDiamondManager(metaClientConfig);
     }
-
 
     /**
      * (non-Javadoc)
@@ -63,7 +61,6 @@ public class OrderedMetaMessageSessionFactory extends MetaMessageSessionFactory 
         this.localMessageStorageManager.shutdown();
     }
 
-
     /**
      * 创建消息生产者
      *
@@ -73,7 +70,6 @@ public class OrderedMetaMessageSessionFactory extends MetaMessageSessionFactory 
     public MessageProducer createProducer(final PartitionSelector partitionSelector) {
         return this.createProducer(partitionSelector, false);
     }
-
 
     /**
      * (non-Javadoc)
@@ -86,18 +82,10 @@ public class OrderedMetaMessageSessionFactory extends MetaMessageSessionFactory 
         return this.createProducer(new RoundRobinPartitionSelector(), false);
     }
 
-
-    /**
-     * (non-Javadoc)
-     *
-     * @see com.taobao.metamorphosis.client.MetaMessageSessionFactory#createProducer
-     * (boolean)
-     */
     @Override
     public MessageProducer createProducer(final boolean ordered) {
         return this.createProducer(new RoundRobinPartitionSelector(), ordered);
     }
-
 
     /**
      * 创建消息生产者
@@ -118,12 +106,10 @@ public class OrderedMetaMessageSessionFactory extends MetaMessageSessionFactory 
                 this.producerZooKeeper, this.sessionIdGenerator.generateId(), this.localMessageStorageManager));
     }
 
-
     @Override
     public MessageConsumer createConsumer(final ConsumerConfig consumerConfig) {
         return super.createConsumer(consumerConfig);
     }
-
 
     @Override
     public MessageConsumer createConsumer(final ConsumerConfig consumerConfig, final OffsetStorage offsetStorage) {

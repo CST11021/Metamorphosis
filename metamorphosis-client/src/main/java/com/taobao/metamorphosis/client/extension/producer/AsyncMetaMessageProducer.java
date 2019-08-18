@@ -93,26 +93,21 @@ public class AsyncMetaMessageProducer extends SimpleMessageProducer implements A
     public void asyncSendMessage(final Message message, final long timeout, final TimeUnit unit) {
         try {
             super.sendMessage(message, timeout, unit);
-        }
-        catch (final IllegalStateException e) {
+        } catch (final IllegalStateException e) {
             // 可能是producer已关闭
             log.warn(e);
-        }
-        catch (final InvalidMessageException e) {
+        } catch (final InvalidMessageException e) {
             // 非法的消息,这种消息直接扔掉,放在本地会永远都recover不出去
             log.warn(e);
-        }
-        catch (final MetaClientException e) {
+        } catch (final MetaClientException e) {
             // 处理发送失败的消息
             if (log.isDebugEnabled()) {
                 log.debug("save to local strage,and waitting for recover. cause:" + e.getMessage());
             }
             this.handleSendFailMessage(message);
-        }
-        catch (final InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-        }
-        catch (final Throwable e) {
+        } catch (final Throwable e) {
             // 其他没有预料到的情况
             if (log.isDebugEnabled()) {
                 log.debug("save to local strage,and waitting for recover. cause:", e);
@@ -126,14 +121,12 @@ public class AsyncMetaMessageProducer extends SimpleMessageProducer implements A
         this.ignoreMessageProcessor = ignoreMessageProcessor;
     }
 
-
     @Override
     protected BooleanCommand invokeToGroup(final String serverUrl, final Partition partition, final PutCommand putCommand, final Message message, final long timeout, final TimeUnit unit) throws InterruptedException, TimeoutException, NotifyRemotingException {
 
         try {
             return this.trySend(serverUrl, putCommand, timeout, unit);
-        }
-        catch (final MetaMessageOverflowException e) {
+        } catch (final MetaMessageOverflowException e) {
             if (log.isDebugEnabled()) {
                 log.debug("save to local strage,and waitting for recover. cause:" + e.getMessage());
             }
@@ -141,7 +134,6 @@ public class AsyncMetaMessageProducer extends SimpleMessageProducer implements A
         }
 
     }
-
     // 在上层做流量限制,避免大量数据包冲击remoting后造成OOM
     private BooleanCommand trySend(final String serverUrl, final PutCommand putCommand, final long timeout, final TimeUnit unit) throws NotifyRemotingException, InterruptedException {
         final int dataLength = putCommand.getData() != null ? putCommand.getData().length : 0;
@@ -172,10 +164,8 @@ public class AsyncMetaMessageProducer extends SimpleMessageProducer implements A
         if (this.ignoreMessageProcessor != null) {
             // 不管处理结果怎样都返回成功
             this.handleSendFailMessage(message);
-            return new BooleanCommand(HttpStatus.Success, "-1 " + putCommand.getPartition()
-                    + " -1", putCommand.getOpaque());
-        }
-        else {
+            return new BooleanCommand(HttpStatus.Success, "-1 " + putCommand.getPartition() + " -1", putCommand.getOpaque());
+        } else {
             throw e2;
         }
     }

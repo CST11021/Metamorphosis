@@ -37,10 +37,9 @@ import com.taobao.metamorphosis.server.utils.MetaConfig;
  * @author 无花,dennis<killme2008@gmail.com>
  * @since 2011-6-9 下午03:28:28
  */
-
 public class ServerStartup {
-    static final Log log = LogFactory.getLog(ServerStartup.class);
 
+    static final Log log = LogFactory.getLog(ServerStartup.class);
 
     public static void main(final String[] args) throws IOException, InterruptedException {
         final CommandLine line = StartupHelp.parseCmdLine(args, new PosixParser());
@@ -51,7 +50,6 @@ public class ServerStartup {
         broker.start();
     }
 
-
     private static void tryStartLocalZookeeper(final CommandLine line) throws IOException, InterruptedException {
         final String optionLocal = "l";
         // Startup a local zookeeper server
@@ -60,7 +58,6 @@ public class ServerStartup {
             EmbedZookeeperServer.getInstance().start();
         }
     }
-
 
     private static MetaConfig getMetaConfig(final CommandLine line) {
         final String optionStr = "f";
@@ -85,7 +82,6 @@ public class ServerStartup {
         System.out.println("准备启动服务器，配置为：" + metaConfig);
         return metaConfig;
     }
-
 
     static Map<String, Properties> getPluginsInfo(final CommandLine line) {
         final Properties properties = line.getOptionProperties("F");
