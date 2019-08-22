@@ -41,6 +41,13 @@ public class ServerStartup {
 
     static final Log log = LogFactory.getLog(ServerStartup.class);
 
+    /**
+     * MetaQ服务启动，启动时需要携带配置文件，例如：
+     * 在Program arguments中配置：
+     * Linux：-f /Users/wanghongzhan/whz/ideaProject/Metamorphosis/metamorphosis-dashboard/dev/server.ini
+     * windows：-f D:\myMoveDisk\6_fromGit\Metamorphosis\metamorphosis-dashboard\dev\server.ini
+     * @param args
+     */
     public static void main(final String[] args) throws IOException, InterruptedException {
         final CommandLine line = StartupHelp.parseCmdLine(args, new PosixParser());
         final Map<String, Properties> pluginsInfo = getPluginsInfo(line);
@@ -50,6 +57,13 @@ public class ServerStartup {
         broker.start();
     }
 
+    /**
+     * 启动本地的zk
+     *
+     * @param line
+     * @throws IOException
+     * @throws InterruptedException
+     */
     private static void tryStartLocalZookeeper(final CommandLine line) throws IOException, InterruptedException {
         final String optionLocal = "l";
         // Startup a local zookeeper server
@@ -59,6 +73,12 @@ public class ServerStartup {
         }
     }
 
+    /**
+     * 根据命令行配置，获取meta配置信息
+     *
+     * @param line
+     * @return
+     */
     private static MetaConfig getMetaConfig(final CommandLine line) {
         final String optionStr = "f";
 
@@ -68,9 +88,7 @@ public class ServerStartup {
             if (StringUtils.isBlank(configFilePath)) {
                 throw new MetamorphosisServerStartupException("Blank file path");
             }
-
-        }
-        else {
+        } else {
             System.err.println("Please tell me the broker configuration file path by -f option");
             System.exit(1);
         }
@@ -83,6 +101,12 @@ public class ServerStartup {
         return metaConfig;
     }
 
+    /**
+     * 根据命令行配置，获取插件信息
+     *
+     * @param line
+     * @return
+     */
     static Map<String, Properties> getPluginsInfo(final CommandLine line) {
         final Properties properties = line.getOptionProperties("F");
         final Map<String, Properties> pluginsInfo = new HashMap<String, Properties>();

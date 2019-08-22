@@ -34,9 +34,15 @@ abstract public class AbstractBrokerPlugin implements BrokerPlugin {
 
     protected static final Log log = LogFactory.getLog(AbstractBrokerPlugin.class);
 
+    /**
+     * 表示唯一的一个master broker
+     */
     protected MetaMorphosisBroker broker;
-    protected Properties props;
 
+    /**
+     * 插件（slave broker作为master broker的插件来启动）配置
+     */
+    protected Properties props;
 
     @Override
     public boolean equals(final Object obj) {
@@ -58,7 +64,6 @@ abstract public class AbstractBrokerPlugin implements BrokerPlugin {
         }
         return false;
     }
-
 
     @Override
     public int hashCode() {

@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,25 +17,24 @@
  */
 package com.taobao.metamorphosis.metaslave;
 
-import java.util.Properties;
-
-import org.apache.commons.lang.StringUtils;
-
 import com.taobao.metamorphosis.AbstractBrokerPlugin;
 import com.taobao.metamorphosis.exception.MetaClientException;
 import com.taobao.metamorphosis.server.assembly.MetaMorphosisBroker;
 import com.taobao.metamorphosis.server.utils.SlaveConfig;
+import org.apache.commons.lang.StringUtils;
+
+import java.util.Properties;
 
 
 /**
  * 代表一个向meta master同步消息数据的slaver
- * 
+ *
  * @author 无花
  * @since 2011-6-23 下午01:54:11
  */
-
 public class MetamorphosisSlaveBroker extends AbstractBrokerPlugin {
 
+    /** slave broker从master同步消息的实现全权委托给了SubscribeHandler */
     private SubscribeHandler subscribeHandler;
 
     @Override
@@ -76,8 +75,7 @@ public class MetamorphosisSlaveBroker extends AbstractBrokerPlugin {
         slaveConfig.setSlaveId(Integer.parseInt(props.getProperty("slaveId")));
         if (StringUtils.isNotBlank(props.getProperty("slaveGroup"))) {
             slaveConfig.setSlaveGroup(props.getProperty("slaveGroup"));
-        }
-        else {
+        } else {
             // set default slave group
             slaveConfig.setSlaveGroup(slaveConfig.getSlaveGroup() + "_" + slaveConfig.getSlaveId());
         }

@@ -31,12 +31,15 @@ interface BrokerPlugin {
 
     public void start();
 
-
     public void stop();
 
-
+    /**
+     * 初始化插件，slave broker 作为meta的插件启动，每个插件都基于一个master broker来启动
+     *
+     * @param metaMorphosisBroker
+     * @param props
+     */
     public void init(MetaMorphosisBroker metaMorphosisBroker, Properties props);
-
 
     public String name();
 

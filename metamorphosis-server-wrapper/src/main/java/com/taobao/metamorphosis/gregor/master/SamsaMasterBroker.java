@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,20 +16,6 @@
  *   wuhua <wq163@163.com> , boyan <killme2008@gmail.com>
  */
 package com.taobao.metamorphosis.gregor.master;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.CyclicBarrier;
-
-import org.I0Itec.zkclient.ZkClient;
 
 import com.taobao.gecko.core.util.StringUtils;
 import com.taobao.gecko.service.RemotingClient;
@@ -50,14 +36,19 @@ import com.taobao.metamorphosis.server.store.SegmentInfo;
 import com.taobao.metamorphosis.utils.MetaZookeeper;
 import com.taobao.metamorphosis.utils.ZkUtils;
 import com.taobao.metamorphosis.utils.test.ClockWatch;
+import org.I0Itec.zkclient.ZkClient;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.concurrent.CyclicBarrier;
 
 
 /**
  * Master broker,Mr. Samsa is gregor's farther
- * 
- * @author boyan(boyan@taobao.com)
+ *
+ * @author boyan(boyan @ taobao.com)
  * @date 2011-12-14
- * 
  */
 public class SamsaMasterBroker extends AbstractBrokerPlugin {
 
@@ -71,10 +62,9 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
 
     /**
      * 需要recover的offset信息
-     * 
-     * @author boyan(boyan@taobao.com)
+     *
+     * @author boyan(boyan @ taobao.com)
      * @date 2011-12-15
-     * 
      */
     static class OffsetInfo implements Comparable<OffsetInfo> {
         public final String offsetPath; // 在zk上的路径
@@ -108,11 +98,9 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
             }
             if (this.msgId > o.msgId) {
                 return 1;
-            }
-            else if (this.msgId < o.msgId) {
+            } else if (this.msgId < o.msgId) {
                 return -1;
-            }
-            else {
+            } else {
                 return 0;
             }
         }
@@ -134,10 +122,9 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
 
     /**
      * 需要recover的分区
-     * 
-     * @author boyan(boyan@taobao.com)
+     *
+     * @author boyan(boyan @ taobao.com)
      * @date 2011-12-15
-     * 
      */
     static class RecoverPartition implements Comparable<RecoverPartition> {
         private final String topic;
@@ -162,18 +149,16 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
             final int rt = this.topic.compareTo(o.topic);
             if (rt == 0) {
                 return this.partition - o.partition;
-            }
-            else {
+            } else {
                 return rt;
             }
         }
 
     }
 
-
     /**
      * 尽量均匀地根据factor因子划分分区做并行
-     * 
+     *
      * @param list
      * @param factor
      * @return
@@ -194,7 +179,6 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
         }
         return rt;
     }
-
 
     @Override
     public void start() {
@@ -230,18 +214,16 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
         // 并行线程数
         final int parallelHint =
                 Integer.valueOf(this.props.getProperty("recoverParallelHint",
-                    String.valueOf(Runtime.getRuntime().availableProcessors())));
+                        String.valueOf(Runtime.getRuntime().availableProcessors())));
         if (parallelRecover) {
             this.recoverParallel(storeManager, zkClient, consumersPath, brokerId, consumers, allRecoverParts,
-                parallelHint);
-        }
-        else {
+                    parallelHint);
+        } else {
             final long start = System.currentTimeMillis();
             try {
                 this.recoverPartitions(storeManager, zkClient, consumersPath, brokerId, consumers, allRecoverParts);
                 log.info("Recover offset successfully in " + (System.currentTimeMillis() - start) / 1000 + " seconds");
-            }
-            catch (final IOException e) {
+            } catch (final IOException e) {
                 throw new MetamorphosisServerStartupException("Recover offset on startup failed", e);
             }
         }
@@ -250,31 +232,27 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
         this.registerToZk();
     }
 
-
     private void registerToZk() {
         this.broker.getBrokerZooKeeper().getZkConfig().zkEnable = true;
         try {
             this.broker.getBrokerZooKeeper().reRegisterEveryThing();
-        }
-        catch (final Exception e) {
+        } catch (final Exception e) {
             throw new MetamorphosisServerStartupException("Register broker to zookeeper failed", e);
         }
     }
 
-
     private void recoverParallel(final MessageStoreManager storeManager, final ZkClient zkClient,
-            final String consumersPath, final int brokerId, final List<String> consumers,
-            final List<RecoverPartition> allRecoverParts, final int parallelHint) {
+                                 final String consumersPath, final int brokerId, final List<String> consumers,
+                                 final List<RecoverPartition> allRecoverParts, final int parallelHint) {
         log.info("Start to recover offset with " + parallelHint + " threads in parallel");
         final List<List<RecoverPartition>> forks = this.fork(allRecoverParts, parallelHint);
         assert forks.size() == parallelHint;
         final ClockWatch watch = new ClockWatch();
         final CyclicBarrier barrier =
                 this.startNRecoverThreads(storeManager, zkClient, consumersPath, brokerId, consumers, parallelHint,
-                    forks, watch);
+                        forks, watch);
         this.join(watch, barrier);
     }
-
 
     private void join(final ClockWatch watch, final CyclicBarrier barrier) {
         try {
@@ -282,19 +260,16 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
             barrier.await();
             barrier.await();
             log.info("Recover offset successfully in " + watch.getDurationInMillis() / 1000 + " seconds");
-        }
-        catch (final InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-        }
-        catch (final Exception e) {
+        } catch (final Exception e) {
             SamsaMasterBroker.log.error("Broken barrier", e);
         }
     }
 
-
     private CyclicBarrier startNRecoverThreads(final MessageStoreManager storeManager, final ZkClient zkClient,
-            final String consumersPath, final int brokerId, final List<String> consumers, final int parallelHint,
-            final List<List<RecoverPartition>> forks, final ClockWatch watch) {
+                                               final String consumersPath, final int brokerId, final List<String> consumers, final int parallelHint,
+                                               final List<List<RecoverPartition>> forks, final ClockWatch watch) {
         // 启动parallelHint个线程
         final CyclicBarrier barrier = new CyclicBarrier(parallelHint + 1, watch);
         for (int i = 0; i < parallelHint; i++) {
@@ -305,13 +280,11 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
                     try {
                         barrier.await();
                         SamsaMasterBroker.this.recoverPartitions(storeManager, zkClient, consumersPath, brokerId,
-                            consumers, recoverParts);
+                                consumers, recoverParts);
                         barrier.await();
-                    }
-                    catch (final InterruptedException e) {
+                    } catch (final InterruptedException e) {
                         Thread.currentThread().interrupt();
-                    }
-                    catch (final Exception e) {
+                    } catch (final Exception e) {
                         SamsaMasterBroker.log.error("Broken barrier", e);
                     }
                 }
@@ -320,10 +293,7 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
         return barrier;
     }
 
-
-    private void recoverPartitions(final MessageStoreManager storeManager, final ZkClient zkClient,
-            final String consumersPath, final int brokerId, final List<String> consumers,
-            final List<RecoverPartition> recoverParts) throws IOException {
+    private void recoverPartitions(final MessageStoreManager storeManager, final ZkClient zkClient, final String consumersPath, final int brokerId, final List<String> consumers, final List<RecoverPartition> recoverParts) throws IOException {
         // 遍历topic,partition,consumer
         for (final RecoverPartition recoverPartition : recoverParts) {
             try {
@@ -350,17 +320,14 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
                 this.recoverSegments(recoverPartition, store, segmentInfos, offsetInfos, recoveredOffsetInfos);
                 // 更新到zookeeper
                 this.update2zk(zkClient, offsetInfos, recoveredOffsetInfos);
-            }
-            catch (final IOException e) {
+            } catch (final IOException e) {
                 log.error("Unexpected IOException occured when recovering partition=" + recoverPartition);
                 throw e;
             }
         }
     }
 
-
-    private TreeMap<Long, List<OffsetInfo>> getOffsetInfosFromZk(final ZkClient zkClient, final String consumersPath,
-        final int brokerId, final List<String> consumers, final RecoverPartition recoverPartition) {
+    private TreeMap<Long, List<OffsetInfo>> getOffsetInfosFromZk(final ZkClient zkClient, final String consumersPath, final int brokerId, final List<String> consumers, final RecoverPartition recoverPartition) {
         final TreeMap<Long, List<OffsetInfo>> offsetInfos = new TreeMap<Long, List<OffsetInfo>>();
 
         // 从zk上获取需要recover的offset信息
@@ -389,10 +356,7 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
         return offsetInfos;
     }
 
-
-    private void recoverSegments(final RecoverPartition recoverPartition, final MessageStore store,
-            final List<SegmentInfo> segmentInfos, final TreeMap<Long, List<OffsetInfo>> offsetInfos,
-            final List<OffsetInfo> recoveredOffsetInfos) throws IOException {
+    private void recoverSegments(final RecoverPartition recoverPartition, final MessageStore store, final List<SegmentInfo> segmentInfos, final TreeMap<Long, List<OffsetInfo>> offsetInfos, final List<OffsetInfo> recoveredOffsetInfos) throws IOException {
         for (final SegmentInfo segInfo : segmentInfos) {
             // 没有需要纠偏的offset了，中断
             if (offsetInfos.isEmpty()) {
@@ -402,9 +366,7 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
         }
     }
 
-
-    private void update2zk(final ZkClient zkClient, final TreeMap<Long, List<OffsetInfo>> offsetInfos,
-            final List<OffsetInfo> recoveredOffsetInfos) {
+    private void update2zk(final ZkClient zkClient, final TreeMap<Long, List<OffsetInfo>> offsetInfos, final List<OffsetInfo> recoveredOffsetInfos) {
         if (!recoveredOffsetInfos.isEmpty()) {
             for (final OffsetInfo recoverOffsetInfo : recoveredOffsetInfos) {
                 // 有变更的才需要更新，减少对zk压力
@@ -413,10 +375,9 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
                     final String newInfo = recoverOffsetInfo.msgId + "-" + recoverOffsetInfo.offset;
                     try {
                         ZkUtils.updatePersistentPath(zkClient, recoverOffsetInfo.offsetPath, newInfo);
-                    }
-                    catch (final Exception e) {
+                    } catch (final Exception e) {
                         log.error(
-                            "Recover offset for " + recoverOffsetInfo.offsetPath + " failed, new info:" + newInfo, e);
+                                "Recover offset for " + recoverOffsetInfo.offsetPath + " failed, new info:" + newInfo, e);
                     }
                 }
             }
@@ -428,8 +389,7 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
                             + recoverOffsetInfo.oldMsgId + ",offset=" + recoverOffsetInfo.oldOffset);
                 }
             }
-        }
-        else {
+        } else {
             // 这种情况下应该是slave分区没有消息，全部都要纠偏到0
             for (final List<OffsetInfo> list : offsetInfos.values()) {
                 // msgId不为-1的才纠偏，减少对zk压力
@@ -438,8 +398,7 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
                         final String newInfo = "-1-0";
                         try {
                             ZkUtils.updatePersistentPath(zkClient, recoverOffsetInfo.offsetPath, newInfo);
-                        }
-                        catch (final Exception e) {
+                        } catch (final Exception e) {
                             log.error("Recover offset for " + recoverOffsetInfo.offsetPath + " failed, new info:"
                                     + newInfo, e);
                         }
@@ -449,10 +408,7 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
         }
     }
 
-
-    private void recoverSegment(final String topic, final MessageStore store,
-            final TreeMap<Long, List<OffsetInfo>> offsetInfos, final List<OffsetInfo> recoveredOffsetInfos,
-            final SegmentInfo segInfo) throws IOException {
+    private void recoverSegment(final String topic, final MessageStore store, final TreeMap<Long, List<OffsetInfo>> offsetInfos, final List<OffsetInfo> recoveredOffsetInfos, final SegmentInfo segInfo) throws IOException {
         final long minOffset = segInfo.startOffset;
         final long size = segInfo.size;
         final long maxOffset = minOffset + size;
@@ -474,8 +430,7 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
                     final Message msg = it.next();
                     msgList.add(new DecodeMessage(msg.getId(), startOffset + it.getOffset()));
                     msgOffset = it.getOffset();
-                }
-                catch (final InvalidMessageException e) {
+                } catch (final InvalidMessageException e) {
                     // 理论上不会遇到这种情况，预防万一还是打印日志
                     log.error("Message was corrupted,partition=" + store.getDescription() + ",offset=" + msgOffset);
                 }
@@ -504,9 +459,7 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
         recoveredOffsetInfos.addAll(segRecoverOffsetInfos);
     }
 
-
-    private void recoverOffset(final TreeMap<Long, List<OffsetInfo>> offsetInfos,
-            final Set<OffsetInfo> segRecoverOffsetInfos, final List<DecodeMessage> msgList) {
+    private void recoverOffset(final TreeMap<Long, List<OffsetInfo>> offsetInfos, final Set<OffsetInfo> segRecoverOffsetInfos, final List<DecodeMessage> msgList) {
 
         for (final DecodeMessage decodeMsg : msgList) {
             // 返回大于或者等于当前messageId的子集合，这个集合需要纠偏,这个过程会在本segment持续多次
@@ -537,22 +490,19 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
             final long msgId = Long.parseLong(offsetString.substring(0, index));
             final long offset = Long.parseLong(offsetString.substring(index + 1));
             return new OffsetInfo(path, msgId, offset);
-        }
-        else {
+        } else {
             log.warn("Skipped old consumers which version is before 1.4. The path:" + path + " and The value:"
                     + offsetString);
             return null;
         }
     }
 
-
     @Override
     public void stop() {
         if (this.remotingClient != null) {
             try {
                 this.remotingClient.stop();
-            }
-            catch (final NotifyRemotingException e) {
+            } catch (final NotifyRemotingException e) {
                 log.error("Stop remoting client failed", e);
             }
         }
@@ -563,7 +513,6 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
     private long checkSlaveIntervalInMills = 100;
 
     private int slaveContinuousFailureThreshold = 100;
-
 
     @Override
     public void init(final MetaMorphosisBroker metaMorphosisBroker, final Properties props) {
@@ -593,24 +542,21 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
             this.remotingClient.start();
             this.masterProcessor =
                     new SamsaCommandProcessor(metaMorphosisBroker.getStoreManager(),
-                        metaMorphosisBroker.getExecutorsManager(), metaMorphosisBroker.getStatsManager(),
-                        metaMorphosisBroker.getRemotingServer(), metaMorphosisBroker.getMetaConfig(),
-                        metaMorphosisBroker.getIdWorker(), metaMorphosisBroker.getBrokerZooKeeper(),
-                        this.remotingClient, metaMorphosisBroker.getConsumerFilterManager(), slave,
-                        callbackThreadCount, this.sendToSlaveTimeoutInMills, this.checkSlaveIntervalInMills,
-                        this.slaveContinuousFailureThreshold);
+                            metaMorphosisBroker.getExecutorsManager(), metaMorphosisBroker.getStatsManager(),
+                            metaMorphosisBroker.getRemotingServer(), metaMorphosisBroker.getMetaConfig(),
+                            metaMorphosisBroker.getIdWorker(), metaMorphosisBroker.getBrokerZooKeeper(),
+                            this.remotingClient, metaMorphosisBroker.getConsumerFilterManager(), slave,
+                            callbackThreadCount, this.sendToSlaveTimeoutInMills, this.checkSlaveIntervalInMills,
+                            this.slaveContinuousFailureThreshold);
             // 替换处理器
             this.broker.setBrokerProcessor(this.masterProcessor);
             log.info("Init samsa mater successfully with config:" + props);
-        }
-        catch (final NotifyRemotingException e) {
+        } catch (final NotifyRemotingException e) {
             throw new MetamorphosisServerStartupException("Init master processor failed", e);
-        }
-        catch (final InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
-
 
     private void setConfigs(final Properties props) {
         if (!StringUtils.isBlank(props.getProperty("sendToSlaveTimeoutInMills"))) {
@@ -633,7 +579,6 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
             }
         }
     }
-
 
     @Override
     public String name() {

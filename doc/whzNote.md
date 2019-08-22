@@ -65,7 +65,7 @@
 * Meta spout，用于将meta消息接入到twitter storm集群做实时分析
 * Tools，提供服务端管理和操作的一些工具
 
-<img src="img/metaq模块依赖.png"/>
+<img src="assets/metaq模块依赖.png"/>
 
 
 

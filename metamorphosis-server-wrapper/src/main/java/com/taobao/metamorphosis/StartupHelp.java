@@ -47,7 +47,6 @@ public class StartupHelp {
         return parseCmdLine(args, options(), parser);
     }
 
-
     public static CommandLine parseCmdLine(final String[] args, final Options options, final CommandLineParser parser) {
         final HelpFormatter hf = new HelpFormatter();
         try {
@@ -59,7 +58,6 @@ public class StartupHelp {
             throw new MetamorphosisServerStartupException("Parse command line failed", e);
         }
     }
-
 
     public static Options options() {
         final Options options = new Options();
@@ -77,7 +75,6 @@ public class StartupHelp {
 
         return options;
     }
-
 
     public static Properties getProps(final String path) {
         try {

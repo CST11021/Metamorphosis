@@ -156,7 +156,7 @@ public class MetaConfig extends Config implements Serializable, MetaConfigMBean 
     private List<String> topics = new ArrayList<String>();
     /** 保存配置文件中配置的topic及对应的TopicConfig，Map<topic, TopicConfig>*/
     private ConcurrentHashMap<String, TopicConfig> topicConfigMap = new ConcurrentHashMap<String, TopicConfig>();
-    /** Async slave config */
+    /** 异步的slave MQ配置，slave MQ作为master的插件来启动，slave的配置和master是一样的，当MQ作为slave来启动时，会有该配置项；slave会从mater同步消息*/
     private SlaveConfig slaveConfig;
     /** zk配置 */
     private ZKConfig zkConfig;

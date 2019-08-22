@@ -7,6 +7,7 @@ import com.taobao.metamorphosis.utils.Config;
 
 /**
  * Async slave config
+ * “Ï≤Ωµƒslave broker≈‰÷√
  * 
  * @author apple
  * 

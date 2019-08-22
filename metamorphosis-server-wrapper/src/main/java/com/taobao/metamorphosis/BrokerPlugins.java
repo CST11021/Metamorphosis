@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,17 +17,17 @@
  */
 package com.taobao.metamorphosis;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import com.taobao.metamorphosis.gregor.master.SamsaMasterBroker;
 import com.taobao.metamorphosis.gregor.slave.GregorSlaveBroker;
 import com.taobao.metamorphosis.http.MetamorphosisOnJettyBroker;
 import com.taobao.metamorphosis.metaslave.MetamorphosisSlaveBroker;
 import com.taobao.metamorphosis.server.assembly.MetaMorphosisBroker;
 import com.taobao.metamorphosis.server.exception.MetamorphosisServerStartupException;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -38,15 +38,16 @@ import com.taobao.metamorphosis.server.exception.MetamorphosisServerStartupExcep
 public class BrokerPlugins extends AbstractBrokerPlugin {
 
     /**
-     * 已注册的plugins
+     * 已注册的plugins, Map<plugin name, BrokerPlugin>
      */
-    private final Map<String/* plugin name */, BrokerPlugin> plugins = new HashMap<String, BrokerPlugin>();
+    private final Map<String, BrokerPlugin> plugins = new HashMap<String, BrokerPlugin>();
 
     /**
-     * 需要启动的plugins
+     * 需要启动的plugins, Map<plugin name, BrokerPlugin>
      */
-    private final Map<String/* plugin name */, Properties> pluginsInfo = new HashMap<String, Properties>();
+    private final Map<String, Properties> pluginsInfo = new HashMap<String, Properties>();
 
+    /** 用于标记plugins是否已经初始化 */
     private final AtomicBoolean isInited = new AtomicBoolean(false);
 
 
@@ -105,13 +106,16 @@ public class BrokerPlugins extends AbstractBrokerPlugin {
         }
     }
 
-
+    /**
+     * 注册插件
+     *
+     * @param pluginClass   插件类型
+     */
     void register(final Class<? extends BrokerPlugin> pluginClass) {
         try {
             final BrokerPlugin plugin = pluginClass.getConstructor(new Class[0]).newInstance();
             this.plugins.put(plugin.name(), plugin);
-        }
-        catch (final Exception e) {
+        } catch (final Exception e) {
             throw new MetamorphosisServerStartupException("Register broker plugin failed", e);
         }
     }
@@ -147,7 +151,7 @@ public class BrokerPlugins extends AbstractBrokerPlugin {
             protected void doExecute(final BrokerPlugin plugin) {
                 plugin.stop();
                 BrokerPlugins.log.info("stoped broker plugin:[" + plugin.name() + ":" + plugin.getClass().getName()
-                    + "]");
+                        + "]");
             }
         }.execute();
     }

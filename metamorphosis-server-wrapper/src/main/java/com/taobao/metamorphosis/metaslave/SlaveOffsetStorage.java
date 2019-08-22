@@ -46,18 +46,19 @@ import com.taobao.metamorphosis.server.store.MessageStoreManager;
  */
 public class SlaveOffsetStorage implements OffsetStorage {
     private final static Log log = LogFactory.getLog(SlaveOffsetStorage.class);
+
+    private static String offsetFormat = "topic=%s,group=%s,partition=%s,offset=%s";
+
     private final MetaMorphosisBroker broker;
     private final RemotingClientWrapper remotingClient;
     private final SlaveZooKeeper slaveZooKeeper;
 
 
-    public SlaveOffsetStorage(final MetaMorphosisBroker broker, final SlaveZooKeeper slaveZooKeeper,
-            final RemotingClientWrapper remotingClient) {
+    public SlaveOffsetStorage(final MetaMorphosisBroker broker, final SlaveZooKeeper slaveZooKeeper, final RemotingClientWrapper remotingClient) {
         this.broker = broker;
         this.remotingClient = remotingClient;
         this.slaveZooKeeper = slaveZooKeeper;
     }
-
 
     @Override
     public void close() {
@@ -72,20 +73,15 @@ public class SlaveOffsetStorage implements OffsetStorage {
         }
     }
 
-
     @Override
     public void commitOffset(final String group, final Collection<TopicPartitionRegInfo> infoList) {
         // do nothing
     }
 
-
     @Override
     public void initOffset(final String topic, final String group, final Partition partition, final long offset) {
         // do nothing
     }
-
-    private static String offsetFormat = "topic=%s,group=%s,partition=%s,offset=%s";
-
 
     @Override
     public TopicPartitionRegInfo load(final String topic, final String group, final Partition partition) {
@@ -118,7 +114,6 @@ public class SlaveOffsetStorage implements OffsetStorage {
             }
         }
     }
-
 
     /** 正确查到offset时返回,否则均抛出异常 */
     long queryOffsetInMaster(final String masterServerUrl, final Partition partition, final String topic)
@@ -160,7 +155,6 @@ public class SlaveOffsetStorage implements OffsetStorage {
                 + ",partition=" + partition.getPartition(), e);
         }
     }
-
 
     private void connectServer(final String serverUrl) throws NetworkException, InterruptedException {
         try {
