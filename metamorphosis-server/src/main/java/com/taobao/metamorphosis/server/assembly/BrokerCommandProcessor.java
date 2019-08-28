@@ -288,8 +288,7 @@ public class BrokerCommandProcessor implements CommandProcessor {
             final long messageId = this.idWorker.nextId();
             // 将消息保存到消息存储器，后续由消息存储器回写到磁盘
             store.append(messageId, request, new StoreAppendCallback(partition, partitionString, request, messageId, cb));
-        }
-        catch (final Exception e) {
+        } catch (final Exception e) {
             this.statsManager.statsPutFailed(request.getTopic(), partitionString, 1);
             log.error("Put message failed", e);
             if (cb != null) {

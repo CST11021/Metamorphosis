@@ -954,15 +954,17 @@ final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
 
 #### 生产者发送消息时，如何确定消息发送到那个MQ服务器？
 
-​		MetaQ分为主/从服务器，一般生产者将消息保存到master的MQ服务器，消费者也从master消费消息，当Master永久故障时，可以将slave作为master启动。
+​		生产者只会将消息保存到master服务器，然后slave从master同步消息，当Master永久故障时，可以将slave作为master启动。
 
+​		另外，消费者也会从master或slaver拉取消息进行消费，因为消息是持久化在MQ服务器上的（默认保留七天），消费者消费完消息后会将偏移量保存到zk，下次再次拉取时会根据偏移量重新获取消息，所以无论消息保存在master或slaver，对于消费者来说一样的。但是生产者只会将消息保存到master，因为slaver会从master同步消息，但是master不会从slaver同步消息。
 
+#### 生产者会push消息到slaver服务器吗
+
+​		不会。
 
 #### 消息的生产者支持的事务消息机制是什么？
 
 
-
-#### 生产者会push消息到slaver服务器吗
 
 
 

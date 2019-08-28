@@ -43,25 +43,29 @@ import com.taobao.metamorphosis.exception.MetaClientException;
  */
 public class XATransactionTemplate {
 
-    private XADataSource xaDataSource;
+    /** 事务超时时间 */
+    private int transactionTimeout;
 
-    private XAMessageProducer xaMessageProducer;
-
+    /** 事务管理器 */
     private TransactionManager transactionManager;
 
-    private int transactionTimeout;
+    /** XA数据源：例如mysql数据源 */
+    private XADataSource xaDataSource;
+
+    /** XA生产者 */
+    private XAMessageProducer xaMessageProducer;
 
 
     public XATransactionTemplate() {
         super();
     }
+
     public XATransactionTemplate(final TransactionManager transactionManager, final XADataSource xaDataSource, final XAMessageProducer xaMessageProducer) {
         super();
         this.xaDataSource = xaDataSource;
         this.xaMessageProducer = xaMessageProducer;
         this.transactionManager = transactionManager;
     }
-
 
     private void init() throws SystemException {
         if (this.getTransactionManager() == null) {
@@ -78,36 +82,41 @@ public class XATransactionTemplate {
 
     public Object executeCallback(final XACallback callback) {
         XAMessageProducer producer = null;
-        XAConnection conn = null;
+        XAConnection xaConnection = null;
         Transaction tx = null;
         Connection sqlConn = null;
         try {
             this.init();
-            producer = this.getXAMessageProducer();
-            conn = this.getXAConnection();
 
-            tx = this.beginTx(producer, conn);
-            sqlConn = conn.getConnection();
+            producer = this.getXAMessageProducer();
+            xaConnection = this.getXAConnection();
+
+            // 开始事务
+            tx = this.beginTx(producer, xaConnection);
+
+            // 获取mysql的连接对象
+            sqlConn = xaConnection.getConnection();
+
+            // 执行事务内的具体任务，通过status来标识是否回滚事务
             Status status = new Status();
             final Object rt = callback.execute(sqlConn, producer, status);
-            this.commitOrRollbackTx(producer, conn, tx, status.rollback);
+
+            // 根据返回的状态提交事务或者回滚事务
+            this.commitOrRollbackTx(producer, xaConnection, tx, status.rollback);
             return rt;
-        }
-        catch (final Exception e) {
+        } catch (final Exception e) {
             try {
-                this.commitOrRollbackTx(producer, conn, tx, true);
-            }
-            catch (final Exception ex) {
+                // 异常情况直接回滚事务
+                this.commitOrRollbackTx(producer, xaConnection, tx, true);
+            } catch (final Exception ex) {
                 throw new XAWrapException(ex);
             }
             throw new XAWrapException("Execute xa transaction callback error", e);
-        }
-        finally {
+        } finally {
             if (sqlConn != null) {
                 try {
                     sqlConn.close();
-                }
-                catch (final Exception e) {
+                } catch (final Exception e) {
                     throw new XAWrapException("Close jdbc connection failed", e);
                 }
             }
@@ -123,6 +132,18 @@ public class XATransactionTemplate {
         return xads.getXAConnection();
     }
 
+    /**
+     * 开始事务
+     *
+     * @param producer  XA生产者，用于获取XA数据源
+     * @param conn      XAConnection，用于获取XA数据源
+     * @return
+     * @throws SystemException
+     * @throws MetaClientException
+     * @throws SQLException
+     * @throws RollbackException
+     * @throws NotSupportedException
+     */
     private Transaction beginTx(final XAMessageProducer producer, final XAConnection conn) throws SystemException, MetaClientException, SQLException, RollbackException, NotSupportedException {
         this.transactionManager.begin();
         final Transaction tx = this.transactionManager.getTransaction();
@@ -136,6 +157,15 @@ public class XATransactionTemplate {
         return tx;
     }
 
+    /**
+     * 提交或者回滚事务
+     *
+     * @param producer  用于获取XAResource
+     * @param conn      用于获取XAResource
+     * @param tx
+     * @param error
+     * @throws Exception
+     */
     private void commitOrRollbackTx(final XAMessageProducer producer, final XAConnection conn, final Transaction tx, final boolean error) throws Exception {
 
         if (tx == null) {
@@ -154,8 +184,7 @@ public class XATransactionTemplate {
 
         if (error) {
             this.getTransactionManager().rollback();
-        }
-        else {
+        } else {
             this.getTransactionManager().commit();
         }
     }

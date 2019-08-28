@@ -31,7 +31,12 @@ import com.taobao.metamorphosis.client.producer.MessageProducer;
 
 
 /**
- * 发送者本地事务的简单例子
+ * 发送者本地事务的简单例子：
+ *
+ * 注意，这里所谓的本地事务消息，通俗来说就是批量发送一批消息，要么同时发送成功，要么同时发送失败，保证事务的ACID的特性。
+ * MessageProducer类有beginTransaction()，commit()和rollback()方法用来控制一个本地事务。
+ *
+ * 事务内可以发送多个不同的topic类型的消息
  * 
  * @author boyan(boyan@taobao.com)
  * @date 2011-8-26

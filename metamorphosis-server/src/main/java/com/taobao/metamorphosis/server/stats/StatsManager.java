@@ -71,13 +71,12 @@ public class StatsManager implements Service {
     private final RemotingServer remotingServer;
     private RealTimeStat realTimeStat;
     private final MetaConfig metaConfig;
+    /** 保存了所有要监控的topic的正则表达式 */
     private Set<Pattern> legalTopicPatSet = new HashSet<Pattern>();
 
     private final boolean startRealTimeStat = Boolean.valueOf(System.getProperty("meta.realtime.stat", "true"));
 
-
-    public StatsManager(final MetaConfig metaConfig, final MessageStoreManager messageStoreManager,
-            final RemotingServer remotingServer) {
+    public StatsManager(final MetaConfig metaConfig, final MessageStoreManager messageStoreManager, final RemotingServer remotingServer) {
         super();
         MetaStatLog.startRealTimeStat = this.startRealTimeStat;
         this.metaConfig = metaConfig;
@@ -113,7 +112,9 @@ public class StatsManager implements Service {
         this.makeTopicsPatSet();
     }
 
-
+    /**
+     * 读取配置中所有要监控的topic，然后保存下来
+     */
     private void makeTopicsPatSet() {
         final Set<Pattern> set = new HashSet<Pattern>();
         for (final TopicConfig topicConfig : this.metaConfig.getTopicConfigMap().values()) {
@@ -124,12 +125,16 @@ public class StatsManager implements Service {
         this.legalTopicPatSet = set;
     }
 
-
     public long getStartupTimestamp() {
         return this.startupTimestamp;
     }
 
-
+    /**
+     * 判断这个topic是否要监控的topic
+     *
+     * @param topic
+     * @return
+     */
     private boolean isStatTopic(final String topic) {
         for (final Pattern pat : this.legalTopicPatSet) {
             if (pat.matcher(topic).matches()) {
@@ -139,7 +144,12 @@ public class StatsManager implements Service {
         return false;
     }
 
-
+    /**
+     * 根据item返回统计信息
+     *
+     * @param item
+     * @return
+     */
     public String getStatsInfo(final String item) {
         final StringBuilder sb = new StringBuilder(1024);
         sb.append("STATS\r\n");
@@ -170,7 +180,11 @@ public class StatsManager implements Service {
         return sb.toString();
     }
 
-
+    /**
+     * 获取帮助信息
+     *
+     * @param sb
+     */
     private void appendHelp(final StringBuilder sb) {
         this.append(sb, "*EMPTY*", "Returns broker info.");
         this.append(sb, "help", "Returns help menu.");
@@ -180,7 +194,12 @@ public class StatsManager implements Service {
         this.append(sb, "config", "Returns broker's config file content.");
     }
 
-
+    /**
+     * 返回查看监控的topic信息
+     *
+     * @param item
+     * @param sb
+     */
     private void appendTopic(final String item, final StringBuilder sb) {
         final Map<String/* topic */, ConcurrentHashMap<Integer/* partition */, MessageStore>> stores =
                 this.messageStoreManager.getMessageStores();
@@ -188,7 +207,8 @@ public class StatsManager implements Service {
         long msgCount = 0;
         long bytes = 0;
         int partitionCount = 0;
-        int resultCode = 0;// 0:存在这个topic, 1:不存在这个topic, 2:发布了这个topic但还没消息数据,
+        // 0:存在这个topic, 1:不存在这个topic, 2:发布了这个topic但还没消息数据,
+        int resultCode = 0;
         if (subMap != null) {
             partitionCount = subMap.size();
             for (final MessageStore msgStore : subMap.values()) {
@@ -211,20 +231,13 @@ public class StatsManager implements Service {
         this.append(sb, "partitions", partitionCount);
         this.append(sb, "message_count", msgCount);
         this.append(sb, "bytes", bytes);
-        this.append(sb, "topic_realtime_put",
-            this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.CMD_PUT, item));
-        this.append(sb, "topic_realtime_get",
-            this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.CMD_GET, item));
-        this.append(sb, "topic_realtime_offset",
-            this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.CMD_OFFSET, item));
-        this.append(sb, "topic_realtime_get_miss",
-            this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.GET_MISS, item));
-        this.append(sb, "topic_realtime_put_failed",
-            this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.PUT_FAILED, item));
-        this.append(sb, "topic_realtime_message_size",
-            this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.MESSAGE_SIZE, item));
+        this.append(sb, "topic_realtime_put", this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.CMD_PUT, item));
+        this.append(sb, "topic_realtime_get", this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.CMD_GET, item));
+        this.append(sb, "topic_realtime_offset", this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.CMD_OFFSET, item));
+        this.append(sb, "topic_realtime_get_miss", this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.GET_MISS, item));
+        this.append(sb, "topic_realtime_put_failed", this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.PUT_FAILED, item));
+        this.append(sb, "topic_realtime_message_size", this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.MESSAGE_SIZE, item));
     }
-
 
     private void appendRealTime(final StringBuilder sb) {
         this.append(sb, "realtime_put", this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.CMD_PUT));
@@ -235,7 +248,6 @@ public class StatsManager implements Service {
         this.append(sb, "realtime_message_size",
             this.realTimeStat.getGroupedRealTimeStatResult(StatConstants.MESSAGE_SIZE));
     }
-
 
     private void appendOffsetInfo(final StringBuilder sb) {
         final Map<String/* topic */, ConcurrentHashMap<Integer/* partition */, MessageStore>> stores =
@@ -379,7 +391,6 @@ public class StatsManager implements Service {
 
     }
 
-
     public TopicStats getTopicStats(String topic) {
         final ConcurrentHashMap<Integer/* partition */, MessageStore> subMap =
                 this.messageStoreManager.getMessageStores().get(topic);
@@ -409,7 +420,6 @@ public class StatsManager implements Service {
             return null;
         }
     }
-
 
     public List<TopicStats> getTopicsStats() {
         List<TopicStats> result = new ArrayList<StatsManager.TopicStats>();
@@ -442,7 +452,6 @@ public class StatsManager implements Service {
         return result;
     }
 
-
     private void appendTopicsInfo(final StringBuilder sb) {
         for (TopicStats stats : this.getTopicsStats()) {
             this.append(sb, stats.getTopic(), "partitions", stats.getPartitions(), "message_count", stats
@@ -459,11 +468,9 @@ public class StatsManager implements Service {
         }
     }
 
-
     RealTimeStat getRealTimeStat() {
         return this.realTimeStat;
     }
-
 
     private void appendSystemStatsInfo(final StringBuilder sb) {
         this.append(sb, "pid", this.getPid());
@@ -488,7 +495,6 @@ public class StatsManager implements Service {
         this.append(sb, "config_checksum", this.metaConfig.getConfigFileChecksum());
     }
 
-
     void append(final StringBuilder sb, final Object... values) {
         boolean wasFirst = true;
         for (final Object value : values) {
@@ -503,51 +509,41 @@ public class StatsManager implements Service {
         sb.append("\r\n");
     }
 
-
     public long getTotalMessages() {
         return this.messageStoreManager.getTotalMessagesCount();
     }
-
 
     public int getTopicCount() {
         return this.messageStoreManager.getTopicCount();
     }
 
-
     public int getCurrentConnectionCount() {
         return this.remotingServer.getConnectionCount(Constants.DEFAULT_GROUP);
     }
-
 
     public long getCmdPuts() {
         return this.cmdPut.get();
     }
 
-
     public long getCmdPutFailed() {
         return this.putFailed.get();
     }
-
 
     public long getCmdGets() {
         return this.cmdGet.get();
     }
 
-
     public long getCmdOffsets() {
         return this.cmdOffset.get();
     }
-
 
     public long getCmdGetMiss() {
         return this.getMiss.get();
     }
 
-
     public long getCmdGetFailed() {
         return this.getFailed.get();
     }
-
 
     public String getPid() {
         final String name = ManagementFactory.getRuntimeMXBean().getName();
@@ -557,26 +553,21 @@ public class StatsManager implements Service {
         return name;
     }
 
-
     public long getUpTime() {
         return (System.currentTimeMillis() - this.startupTimestamp) / 1000;
     }
-
 
     public String getVersion() {
         return BuildProperties.VERSION;
     }
 
-
     public int getCurrentThreads() {
         return ManagementFactory.getThreadMXBean().getThreadCount();
     }
 
-
     public int getServerPort() {
         return this.remotingServer.getInetSocketAddress().getPort();
     }
-
 
     public void statsPut(final String topic, String partition, final int c) {
         this.statsRealtimePut(c);
@@ -585,11 +576,9 @@ public class StatsManager implements Service {
         }
     }
 
-
     public void statsRealtimePut(final int c) {
         this.cmdPut.addAndGet(c);
     }
-
 
     public void statsGet(final String topic, final String group, final int c) {
         this.cmdGet.addAndGet(c);
@@ -598,14 +587,12 @@ public class StatsManager implements Service {
         }
     }
 
-
     public void statsOffset(final String topic, final String group, final int c) {
         this.cmdOffset.addAndGet(c);
         if (this.isStatTopic(topic)) {
             MetaStatLog.addStatValue2(null, StatConstants.CMD_OFFSET, topic, group, c);
         }
     }
-
 
     public void statsGetMiss(final String topic, final String group, final int c) {
         this.getMiss.addAndGet(c);
@@ -614,14 +601,12 @@ public class StatsManager implements Service {
         }
     }
 
-
     public void statsPutFailed(final String topic, final String partition, final int c) {
         this.putFailed.addAndGet(c);
         if (this.isStatTopic(topic)) {
             MetaStatLog.addStatValue2(null, StatConstants.PUT_FAILED, topic, partition, c);
         }
     }
-
 
     public void statsGetFailed(final String topic, final String group, final int c) {
         this.getFailed.addAndGet(c);
@@ -630,13 +615,11 @@ public class StatsManager implements Service {
         }
     }
 
-
     public void statsMessageSize(final String topic, final int c) {
         if (this.isStatTopic(topic)) {
             MetaStatLog.addStatValue2(null, StatConstants.MESSAGE_SIZE, topic, c);
         }
     }
-
 
     public void statsTxBegin(final boolean isXA, final int c) {
         this.txBegin.addAndGet(c);
@@ -645,16 +628,13 @@ public class StatsManager implements Service {
         }
     }
 
-
     public void statsTxCommit(final int c) {
         this.txCommit.addAndGet(c);
     }
 
-
     public void statsTxRollback(final int c) {
         this.txRollback.addAndGet(c);
     }
-
 
     @Override
     public void dispose() {
@@ -672,12 +652,6 @@ public class StatsManager implements Service {
         this.realTimeStat = new RealTimeStat();
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.taobao.metamorphosis.server.Service#init()
-     */
     @Override
     public void init() {
         this.startupTimestamp = System.currentTimeMillis();

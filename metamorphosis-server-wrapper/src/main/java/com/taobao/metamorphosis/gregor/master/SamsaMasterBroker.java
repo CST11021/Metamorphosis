@@ -67,19 +67,20 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
      * @date 2011-12-15
      */
     static class OffsetInfo implements Comparable<OffsetInfo> {
-        public final String offsetPath; // 在zk上的路径
-        public long msgId; // 消息id
-        public long offset; // 绝对偏移量
+        /** 在zk上的路径 */
+        public final String offsetPath;
+        /** 消息id */
+        public long msgId;
+        /** 绝对偏移量 */
+        public long offset;
         public final long oldMsgId;
         private final long oldOffset;
-
 
         @Override
         public String toString() {
             return "OffsetInfo [offsetPath=" + this.offsetPath + ", msgId=" + this.msgId + ", offset=" + this.offset
                     + ", oldMsgId=" + this.oldMsgId + ", oldOffset=" + this.oldOffset + "]";
         }
-
 
         public OffsetInfo(final String offsetPath, final long msgId, final long offset) {
             super();
@@ -89,7 +90,6 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
             this.oldMsgId = msgId;
             this.oldOffset = offset;
         }
-
 
         @Override
         public int compareTo(final OffsetInfo o) {
@@ -104,7 +104,6 @@ public class SamsaMasterBroker extends AbstractBrokerPlugin {
                 return 0;
             }
         }
-
     }
 
     static class DecodeMessage {
