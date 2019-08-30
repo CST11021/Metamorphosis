@@ -52,8 +52,8 @@ public class TopicConfig extends Config {
     private boolean acceptSubscribe = true;
     /** 是否启用实时统计，启用则会在服务端对该topic的请求做实时统计，可以通过stats topic-name协议观察到该topic运行状况，可选 */
     private boolean stat;
-    /** 将 "group." 开头的配置项保存到这里 */
-    private Map<String/* group name */, String/* class name */> filterClassNames = new HashMap<String, String>();
+    /** 将 "group." 开头的配置项保存到这里, 该字段为实现服务端过滤消息的功能而添加的配置，Map<消费者分组的groupName, 过滤器全限定类名> */
+    private Map<String, String> filterClassNames = new HashMap<String, String>();
 
 
     public TopicConfig(final String topic, final MetaConfig metaConfig) {
