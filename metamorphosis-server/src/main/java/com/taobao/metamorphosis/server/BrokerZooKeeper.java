@@ -58,7 +58,11 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     /** 表示当前的MQ服务器 */
     private Broker broker = null;
-    /** 服务器集群中唯一的id，必须为整型0-1024之间。对服务器集群的定义是使用同一个zookeeper并且在zookeeper上的root path相同，具体参见zookeeper配置 */
+    /**
+     * 例如：/meta/brokers/ids/0/master
+     *      /meta/brokers/ids/0/slave
+     * 表示broker在zk上的路径信息，brokerId在服务器集群中是唯一的，必须为整型0-1024之间。
+     * 对服务器集群的定义是使用同一个zookeeper并且在zookeeper上的root path相同，具体参见zookeeper配置 */
     private String brokerIdPath;
     /** MQ服务端配置 */
     private final MetaConfig config;
@@ -208,7 +212,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
     }
 
     /**
-     * 注册broker到zk
+     * 注册broker到zk，即注册例如：/meta/brokers/ids/0/master 或 /meta/brokers/ids/0/slave 这样的节点信息
      * 
      * @throws Exception
      */
@@ -248,14 +252,14 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     /**
      * 根据配置创建一个{@link Broker}对象
+     *
      * @return
      * @throws Exception
      */
     public Broker getBroker() throws Exception {
         if (this.broker != null) {
             return this.broker;
-        }
-        else {
+        } else {
             final String hostName = this.getBrokerHostName();
             this.broker = new Broker(this.config.getBrokerId(), hostName, this.config.getServerPort(), this.config.getSlaveId());
             return this.broker;
@@ -264,13 +268,13 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     /**
      * 返回broker描述信息
+     *
      * @return
      */
     public String getBrokerString() {
         if (this.broker != null) {
             return this.broker.toString();
-        }
-        else {
+        } else {
             try {
                 return this.getBroker().toString();
             }
@@ -282,6 +286,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     /**
      * 获取MQ服务器所在的机器(IP),从 {@link MetaConfig#hostName} 获取，如果没有配置，默认为本地
+     *
      * @return
      * @throws Exception
      */
@@ -292,6 +297,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     /**
      * 给当前broker创建一个 master_config_checksum 节点
+     *
      * @throws Exception
      */
     public void registerMasterConfigFileChecksumInZk() throws Exception {
@@ -304,8 +310,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
                 ZkUtils.createEphemeralPath(
                         this.zkClient, this.masterConfigChecksumPath, String.valueOf(this.config.getConfigFileChecksum()));
             }
-        }
-        catch (final Exception e) {
+        } catch (final Exception e) {
             this.registerBrokerInZkFail = true;
             log.error("注册broker失败");
             throw e;
@@ -313,7 +318,10 @@ public class BrokerZooKeeper implements PropertyChangeListener {
     }
 
     /**
-     * 将broker从zk上注销
+     * 将broker从zk上注销，即删除 /meta/brokers/ids/0/master 或 /meta/brokers/ids/0/slave 的节点，
+     * 如果是master也会把 masterConfigChecksumPath 节点一并删除
+     *
+     *
      * @throws Exception
      */
     private void unregisterBrokerInZk() throws Exception {
@@ -329,8 +337,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         if (!this.config.isSlave()) {
             try {
                 ZkUtils.deletePath(this.zkClient, this.metaZookeeper.brokerIdsPath + "/" + this.config.getBrokerId());
-            }
-            catch (final Exception e) {
+            } catch (final Exception e) {
                 // 有slave时是删不掉的,写个空值进去
                 ZkUtils.updateEphemeralPath(this.zkClient,
                     this.metaZookeeper.brokerIdsPath + "/" + this.config.getBrokerId(), "");
@@ -341,7 +348,8 @@ public class BrokerZooKeeper implements PropertyChangeListener {
     }
 
     /**
-     * 将topic从zk上注销
+     * broker上发布的topic从zk上注销
+     *
      * @throws Exception
      */
     private void unregisterTopics() throws Exception {
@@ -351,20 +359,8 @@ public class BrokerZooKeeper implements PropertyChangeListener {
     }
 
     /**
-     * 将broker和topics从zk上注销
-     */
-    public void unregisterEveryThing() {
-        try {
-            this.unregisterBrokerInZk();
-            this.unregisterTopics();
-        }
-        catch (Exception e) {
-            log.error("Unregister broker failed", e);
-        }
-    }
-
-    /**
-     * 将topic从zk上注销
+     * 将topic从zk上注销，将 /meta/brokers/路径下的topics，topics-pub，topics-sub一并删除
+     *
      * @param topic
      */
     private void unregisterTopic(final String topic) {
@@ -387,6 +383,19 @@ public class BrokerZooKeeper implements PropertyChangeListener {
         }
         catch (Exception e) {
             log.error("Unregister topic " + topic + " failed,but don't worry about it.", e);
+        }
+    }
+
+    /**
+     * 将broker和broker相关的topics从zk上注销
+     */
+    public void unregisterEveryThing() {
+        try {
+            this.unregisterBrokerInZk();
+            this.unregisterTopics();
+        }
+        catch (Exception e) {
+            log.error("Unregister broker failed", e);
         }
     }
 
@@ -426,6 +435,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     /**
      * 比较两个配置是否一样
+     *
      * @param c1
      * @param c2
      * @return
@@ -446,6 +456,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     /**
      * 将broker和topic发布（注册）到zk
+     *
      * @throws Exception
      */
     public void reRegisterEveryThing() throws Exception {
@@ -461,6 +472,7 @@ public class BrokerZooKeeper implements PropertyChangeListener {
 
     /**
      * 发布topic到zk
+     *
      * @param topic
      * @throws Exception
      */

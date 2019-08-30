@@ -43,17 +43,22 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Cluster {
 
+    /** 用于随机从master/slaver集群中获取一台broker */
+    transient private final static Random random = new Random();
+
     /** Map<borkerId>, Set<Broker>> 这里的key为master的brokerId*/
     private final ConcurrentHashMap<Integer, Set<Broker>> brokers = new ConcurrentHashMap<Integer, Set<Broker>>();
-
-    transient private final static Random random = new Random();
 
     /** Map<brokerId, Set<Broker>> */
     public ConcurrentHashMap<Integer, Set<Broker>> getBrokers() {
         return this.brokers;
     }
 
-    /** 返回broker总数,包括master和slave */
+    /**
+     * 返回broker总数,包括master和slave
+     *
+     * @return
+     */
     public int size() {
         int size = 0;
         for (Map.Entry<Integer/* broker id */, Set<Broker>> entry : this.brokers.entrySet()) {
@@ -66,7 +71,8 @@ public class Cluster {
     }
 
     /**
-     * 随机获取一个broker，但优先返回master
+     * 根据master的brokerId，随机获取该master集群下的一个broker，优先返回master
+     *
      * @param id
      * @return
      */
@@ -107,10 +113,10 @@ public class Cluster {
     }
 
     /**
-     * 添加broker
+     * 添加一个broker到集群中
      *
-     * @param id
-     * @param broker
+     * @param id            表示master的brokerId
+     * @param broker        表示slaver broker
      */
     public void addBroker(int id, Broker broker) {
         Set<Broker> set = this.brokers.get(id);
@@ -122,10 +128,10 @@ public class Cluster {
     }
 
     /**
-     * 添加broker
+     * 添加多个broker到集群中
      *
-     * @param id
-     * @param brokers
+     * @param id            表示master的brokerId
+     * @param brokers       表示slaver broker
      */
     public void addBroker(int id, Set<Broker> brokers) {
         Set<Broker> set = this.brokers.get(id);
@@ -137,10 +143,10 @@ public class Cluster {
     }
 
     /**
-     * 移除broker
+     * 移除broker集群
      *
-     * @param id
-     * @return
+     * @param id        表示master的brokerId
+     * @return 返回被移除的broker
      */
     public Set<Broker> remove(int id) {
         return this.brokers.remove(id);
