@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,21 +16,6 @@
  *   wuhua <wq163@163.com> , boyan <killme2008@gmail.com>
  */
 package com.taobao.metamorphosis.server.assembly;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import javax.transaction.xa.XAException;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import com.taobao.gecko.service.timer.HashedWheelTimer;
 import com.taobao.gecko.service.timer.Timeout;
@@ -51,12 +36,7 @@ import com.taobao.metamorphosis.server.network.SessionContextImpl;
 import com.taobao.metamorphosis.server.stats.StatsManager;
 import com.taobao.metamorphosis.server.store.MessageStore;
 import com.taobao.metamorphosis.server.store.MessageStoreManager;
-import com.taobao.metamorphosis.server.transaction.HeuristicTransactionJournal;
-import com.taobao.metamorphosis.server.transaction.LocalTransaction;
-import com.taobao.metamorphosis.server.transaction.Transaction;
-import com.taobao.metamorphosis.server.transaction.TransactionRecoveryListener;
-import com.taobao.metamorphosis.server.transaction.TransactionStore;
-import com.taobao.metamorphosis.server.transaction.XATransaction;
+import com.taobao.metamorphosis.server.transaction.*;
 import com.taobao.metamorphosis.server.utils.MetaConfig;
 import com.taobao.metamorphosis.server.utils.MetaMBeanServer;
 import com.taobao.metamorphosis.transaction.LocalTransactionId;
@@ -64,14 +44,22 @@ import com.taobao.metamorphosis.transaction.TransactionId;
 import com.taobao.metamorphosis.transaction.XATransactionId;
 import com.taobao.metamorphosis.utils.IdWorker;
 import com.taobao.metamorphosis.utils.NamedThreadFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import javax.transaction.xa.XAException;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 /**
  * 事务命令处理器
- * 
- * @author boyan(boyan@taobao.com)
+ *
+ * @author boyan(boyan @ taobao.com)
  * @date 2011-8-18
- * 
  */
 public class TransactionalCommandProcessor extends CommandProcessorFilter implements TransactionalCommandProcessorMBean {
 
@@ -100,13 +88,12 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
 
 
     public TransactionalCommandProcessor(final MetaConfig metaConfig, final MessageStoreManager storeManager,
-            final IdWorker idWorker, final CommandProcessor next, final TransactionStore transactionStore,
-            final StatsManager stasManager) {
+                                         final IdWorker idWorker, final CommandProcessor next, final TransactionStore transactionStore,
+                                         final StatsManager stasManager) {
         super(next);
         try {
             this.heuristicTransactionJournal = new HeuristicTransactionJournal(metaConfig.getDataLogPath());
-        }
-        catch (final IOException e) {
+        } catch (final IOException e) {
             throw new MetamorphosisServerStartupException("Initialize HeuristicTransactionJournal failed", e);
         }
         this.metaConfig = metaConfig;
@@ -116,7 +103,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         this.statsManager = stasManager;
         this.txTimeoutTimer =
                 new HashedWheelTimer(new NamedThreadFactory("Tx-Timeout-Timer"), 500, TimeUnit.MILLISECONDS, 512,
-                    metaConfig.getMaxTxTimeoutTimerCapacity());
+                        metaConfig.getMaxTxTimeoutTimerCapacity());
         MetaMBeanServer.registMBean(this, null);
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         this.scheduleWriteHeuristicTransactions(metaConfig);
@@ -135,9 +122,8 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
             public void run() {
                 try {
                     TransactionalCommandProcessor.this.heuristicTransactionJournal
-                    .write(TransactionalCommandProcessor.this.xaHeuristicTransactions);
-                }
-                catch (final Exception e) {
+                            .write(TransactionalCommandProcessor.this.xaHeuristicTransactions);
+                } catch (final Exception e) {
                     log.error("Write xaHeuristicTransactions to journal failed", e);
                 }
 
@@ -151,7 +137,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
             throws Exception {
         final List<TransactionId> txs = new ArrayList<TransactionId>();
         synchronized (this.xaTransactions) {
-            for (final Iterator<XATransaction> iter = this.xaTransactions.values().iterator(); iter.hasNext();) {
+            for (final Iterator<XATransaction> iter = this.xaTransactions.values().iterator(); iter.hasNext(); ) {
                 final XATransaction tx = iter.next();
                 // Only tx that the unique qualifier is equals to the request
                 // one.
@@ -165,7 +151,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         }
         synchronized (this.xaHeuristicTransactions) {
             // 手工处理的事务，都是prepare状态的xa事务
-            for (final Iterator<XATransaction> iter = this.xaHeuristicTransactions.values().iterator(); iter.hasNext();) {
+            for (final Iterator<XATransaction> iter = this.xaHeuristicTransactions.values().iterator(); iter.hasNext(); ) {
                 final XATransaction tx = iter.next();
                 // Only tx that the unique qualifier is equals to the request
                 // one.
@@ -205,8 +191,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
                 transaction = new XATransaction(this, this.transactionStore, (XATransactionId) xid);
                 this.xaTransactions.put(xid, (XATransaction) transaction);
             }
-        }
-        else {
+        } else {
             this.statsManager.statsTxBegin(false, 1);
             final Map<TransactionId, Transaction> transactionMap = context.getTransactions();
             transaction = transactionMap.get(xid);
@@ -282,8 +267,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         try {
             this.heuristicTransactionJournal.write(this.xaHeuristicTransactions);
             this.heuristicTransactionJournal.close();
-        }
-        catch (final Exception e) {
+        } catch (final Exception e) {
             log.error("Close heuristicTransactionJournal failed", e);
         }
     }
@@ -304,15 +288,13 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
                             TransactionalCommandProcessor.this.processPutCommand(cmd, context, null);
                         }
                         TransactionalCommandProcessor.this.prepareTransaction(context, xid);
-                    }
-                    catch (final Throwable e) {
+                    } catch (final Throwable e) {
                         throw new RuntimeException(e);
                     }
 
                 }
             });
-        }
-        catch (final Throwable e) {
+        } catch (final Throwable e) {
             throw new MetamorphosisServerStartupException("Recover prepared transactions failed", e);
         }
     }
@@ -345,7 +327,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
                 // 恢复模式，不需要处理
                 if (cb != null) {
                     cb.putComplete(new BooleanCommand(HttpStatus.Forbidden, "The broker is in recover mode.", cmd
-                        .getOpaque()));
+                            .getOpaque()));
                 }
                 return;
             }
@@ -357,7 +339,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
                 this.statsManager.statsPutFailed(topic, partitionString, 1);
                 if (cb != null) {
                     cb.putComplete(new BooleanCommand(HttpStatus.InternalServerError,
-                        "Invalid partition for transaction command:" + partition, cmd.getOpaque()));
+                            "Invalid partition for transaction command:" + partition, cmd.getOpaque()));
                 }
                 return;
             }
@@ -366,8 +348,8 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
                 this.statsManager.statsPutFailed(topic, partitionString, 1);
                 if (cb != null) {
                     cb.putComplete(new BooleanCommand(HttpStatus.InternalServerError,
-                        "Could not get or create message store for topic=" + topic + ",partition=" + partition, cmd
-                        .getOpaque()));
+                            "Could not get or create message store for topic=" + topic + ",partition=" + partition, cmd
+                            .getOpaque()));
                 }
                 return;
             }
@@ -376,10 +358,9 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
             this.statsManager.statsPut(topic, partitionString, 1);
             if (cb != null) {
                 cb.putComplete(new BooleanCommand(HttpStatus.Success, this.genPutResultString(partition, msgId, -1),
-                    cmd.getOpaque()));
+                        cmd.getOpaque()));
             }
-        }
-        else {
+        } else {
             super.processPutCommand(cmd, context, cb);
         }
     }
@@ -387,7 +368,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
 
     /**
      * 返回形如"messageId partition offset"的字符号，返回给客户端
-     * 
+     *
      * @param partition
      * @param messageId
      * @param offset
@@ -396,7 +377,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
     private String genPutResultString(final int partition, final long messageId, final long offset) {
         final StringBuilder sb =
                 new StringBuilder(ByteUtils.stringSize(offset) + ByteUtils.stringSize(messageId)
-                    + ByteUtils.stringSize(partition) + 2);
+                        + ByteUtils.stringSize(partition) + 2);
         sb.append(messageId).append(" ").append(partition).append(" ").append(offset);
         return sb.toString();
     }
@@ -410,8 +391,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
             synchronized (this.xaTransactions) {
                 transaction = this.xaTransactions.get(xid);
             }
-        }
-        else {
+        } else {
             transaction = context.getTransactions().get(xid);
         }
 
@@ -426,22 +406,22 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
             }
             if (transaction != null) {
                 switch (transaction.getState()) {
-                case Transaction.HEURISTIC_COMMIT_STATE:
-                    XAException e = new XAException("XA transaction '" + xid + "' has been heuristically committed.");
-                    e.errorCode = XAException.XA_HEURCOM;
-                    throw e;
-                case Transaction.HEURISTIC_ROLLBACK_STATE:
-                    e = new XAException("XA transaction '" + xid + "' has been heuristically rolled back.");
-                    e.errorCode = XAException.XA_HEURRB;
-                    throw e;
-                case Transaction.HEURISTIC_COMPLETE_STATE:
-                    e = new XAException("XA transaction '" + xid + "' has been heuristically completed.");
-                    e.errorCode = XAException.XA_HEURHAZ;
-                    throw e;
-                default:
-                    log.warn("Invalid transaction state in xaHeuristicTransactions:" + transaction.getState());
-                    // 应该不会出现这种情况
-                    break;
+                    case Transaction.HEURISTIC_COMMIT_STATE:
+                        XAException e = new XAException("XA transaction '" + xid + "' has been heuristically committed.");
+                        e.errorCode = XAException.XA_HEURCOM;
+                        throw e;
+                    case Transaction.HEURISTIC_ROLLBACK_STATE:
+                        e = new XAException("XA transaction '" + xid + "' has been heuristically rolled back.");
+                        e.errorCode = XAException.XA_HEURRB;
+                        throw e;
+                    case Transaction.HEURISTIC_COMPLETE_STATE:
+                        e = new XAException("XA transaction '" + xid + "' has been heuristically completed.");
+                        e.errorCode = XAException.XA_HEURHAZ;
+                        throw e;
+                    default:
+                        log.warn("Invalid transaction state in xaHeuristicTransactions:" + transaction.getState());
+                        // 应该不会出现这种情况
+                        break;
                 }
             }
         }
@@ -449,8 +429,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
             final XAException e = new XAException("XA transaction '" + xid + "' has not been started.");
             e.errorCode = XAException.XAER_NOTA;
             throw e;
-        }
-        else {
+        } else {
             throw new MetamorphosisException("Local transaction '" + xid + "' has not been started.");
         }
     }
@@ -468,9 +447,9 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
 
     /**
      * 设置XA事务超时
-     * 
+     *
      * @param ctx
-     * @param xid
+     * @param tx
      * @throws MetamorphosisException
      * @throws XAException
      */

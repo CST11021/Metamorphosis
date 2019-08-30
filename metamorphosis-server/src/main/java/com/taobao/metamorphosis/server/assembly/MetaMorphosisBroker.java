@@ -135,7 +135,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
             throw new MetamorphosisServerStartupException("Initializing transaction store failed", e);
         }
 
-        //
+        // 服务端用于管理各个topic-consumerGroup的消息过滤器
         try {
             this.consumerFilterManager = new ConsumerFilterManager(metaConfig);
         } catch (final Exception e) {
@@ -270,7 +270,8 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
     }
 
     /**
-     * 注册命令处理器
+     * 注册命令处理器，客户端会想MQ发送各种请求，包括：GetCommand、PutCommand、OffsetCommand、HeartBeatRequestCommand、QuitCommand、StatsCommand、TransactionCommand
+     * 每种类型的请求都有对应的处理器来处理
      */
     private void registerProcessors() {
         this.remotingServer.registerProcessor(GetCommand.class, new GetProcessor(this.brokerProcessor, this.executorsManager.getGetExecutor()));

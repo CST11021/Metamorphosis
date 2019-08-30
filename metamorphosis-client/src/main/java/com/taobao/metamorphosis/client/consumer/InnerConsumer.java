@@ -36,11 +36,11 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 public interface InnerConsumer {
 
     /**
-     * 抓取消息
+     * 从broker抓取消息
      * 
-     * @param fetchRequest
-     * @param timeout
-     * @param timeUnit
+     * @param fetchRequest          抓取请求对象
+     * @param timeout               抓取消息的超时时间，默认10秒
+     * @param timeUnit              抓取消息的超时时间单位
      * @return
      * @throws MetaClientException
      * @throws InterruptedException

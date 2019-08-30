@@ -35,7 +35,7 @@ import com.taobao.metamorphosis.transaction.TransactionId;
 
 /**
  *
- * 消息生产者使用{@link PutCommand}命令想服务端发送消息，而服务端这边使用{@link PutProcessor}处理Put请求处理器
+ * 消息生产者使用{@link PutCommand}命令向服务端发送消息，而服务端这边使用{@link PutProcessor}处理Put请求处理器
  * 这里的请求会根据不同的命令调用不同的{@link RequestProcessor}对象来处理请求，具体调用对应关系由Gecko框架来实现
  * 
  * @author boyan
@@ -47,6 +47,8 @@ public class PutProcessor implements RequestProcessor<PutCommand> {
     static final Log log = LogFactory.getLog(PutProcessor.class);
 
     private final CommandProcessor processor;
+
+    /** 用于处理请求的线程池 */
     private final ThreadPoolExecutor executor;
 
 

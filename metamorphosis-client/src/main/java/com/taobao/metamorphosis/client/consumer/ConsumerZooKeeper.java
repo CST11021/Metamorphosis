@@ -127,61 +127,6 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
     }
 
     /**
-     * 将当前消息抓取器抓取的消息偏移量保存到zk
-     *
-     * @param fetchManager
-     */
-    public void commitOffsets(final FetchManager fetchManager) {
-        final ZKLoadRebalanceListener listener = this.getBrokerConnectionListener(fetchManager);
-        if (listener != null) {
-            listener.commitOffsets();
-        }
-    }
-
-    /**
-     * 注销consumer
-     * 
-     * @param fetchManager
-     */
-    public void unRegisterConsumer(final FetchManager fetchManager) {
-        try {
-            final FutureTask<ZKLoadRebalanceListener> futureTask =
-                    this.consumerLoadBalanceListeners.remove(fetchManager);
-            if (futureTask != null) {
-                final ZKLoadRebalanceListener listener = futureTask.get();
-                if (listener != null) {
-                    listener.stop();
-                    // 提交offsets
-                    listener.commitOffsets();
-                    this.zkClient.unsubscribeStateChanges(new ZKSessionExpireListenner(listener));
-                    final ZKGroupDirs dirs = this.metaZookeeper.new ZKGroupDirs(listener.consumerConfig.getGroup());
-                    this.zkClient.unsubscribeChildChanges(dirs.consumerRegistryDir, listener);
-                    log.info("unsubscribeChildChanges:" + dirs.consumerRegistryDir);
-                    // 移除监视订阅topic的分区变化
-                    for (final String topic : listener.topicSubcriberRegistry.keySet()) {
-                        final String partitionPath = this.metaZookeeper.brokerTopicsSubPath + "/" + topic;
-                        this.zkClient.unsubscribeChildChanges(partitionPath, listener);
-                        log.info("unsubscribeChildChanges:" + partitionPath);
-                    }
-                    // 删除ownership
-                    listener.releaseAllPartitionOwnership();
-                    // 删除临时节点
-                    ZkUtils.deletePath(this.zkClient, listener.dirs.consumerRegistryDir + "/"
-                            + listener.consumerIdString);
-
-                }
-            }
-        }
-        catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted when unRegisterConsumer", e);
-        }
-        catch (final Exception e) {
-            log.error("Error in unRegisterConsumer,maybe error when registerConsumer", e);
-        }
-    }
-
-    /**
      * 向zk注册消息消费者
      *
      * @param consumerConfig            消费者配置信息
@@ -227,6 +172,61 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
 
     }
 
+    /**
+     * 注销consumer
+     *
+     * @param fetchManager
+     */
+    public void unRegisterConsumer(final FetchManager fetchManager) {
+        try {
+            final FutureTask<ZKLoadRebalanceListener> futureTask =
+                    this.consumerLoadBalanceListeners.remove(fetchManager);
+            if (futureTask != null) {
+                final ZKLoadRebalanceListener listener = futureTask.get();
+                if (listener != null) {
+                    listener.stop();
+                    // 提交offsets
+                    listener.commitOffsets();
+                    this.zkClient.unsubscribeStateChanges(new ZKSessionExpireListenner(listener));
+                    final ZKGroupDirs dirs = this.metaZookeeper.new ZKGroupDirs(listener.consumerConfig.getGroup());
+                    this.zkClient.unsubscribeChildChanges(dirs.consumerRegistryDir, listener);
+                    log.info("unsubscribeChildChanges:" + dirs.consumerRegistryDir);
+                    // 移除监视订阅topic的分区变化
+                    for (final String topic : listener.topicSubcriberRegistry.keySet()) {
+                        final String partitionPath = this.metaZookeeper.brokerTopicsSubPath + "/" + topic;
+                        this.zkClient.unsubscribeChildChanges(partitionPath, listener);
+                        log.info("unsubscribeChildChanges:" + partitionPath);
+                    }
+                    // 删除ownership
+                    listener.releaseAllPartitionOwnership();
+                    // 删除临时节点
+                    ZkUtils.deletePath(this.zkClient, listener.dirs.consumerRegistryDir + "/"
+                            + listener.consumerIdString);
+
+                }
+            }
+        }
+        catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted when unRegisterConsumer", e);
+        }
+        catch (final Exception e) {
+            log.error("Error in unRegisterConsumer,maybe error when registerConsumer", e);
+        }
+    }
+
+    /**
+     * 将当前消息抓取器抓取的消息偏移量保存到zk
+     *
+     * @param fetchManager
+     */
+    public void commitOffsets(final FetchManager fetchManager) {
+        final ZKLoadRebalanceListener listener = this.getBrokerConnectionListener(fetchManager);
+        if (listener != null) {
+            listener.commitOffsets();
+        }
+    }
+
     public ZKLoadRebalanceListener getBrokerConnectionListener(final FetchManager fetchManager) {
         final FutureTask<ZKLoadRebalanceListener> task = this.consumerLoadBalanceListeners.get(fetchManager);
         if (task != null) {
@@ -242,10 +242,6 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         }
         return null;
     }
-
-
-
-
 
     /**
      * 注册消费者，并开始发起抓取消息的请求
@@ -365,6 +361,10 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         }
         return consumerUUID;
     }
+    /**
+     * 获取pid进程
+     * @return
+     */
     private String getPid() {
         final String name = ManagementFactory.getRuntimeMXBean().getName();
         if (name.contains("@")) {
@@ -372,8 +372,6 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
         }
         return name;
     }
-
-
 
     /**
      * 当zookeeper客户端状态变更时监听器
@@ -704,45 +702,47 @@ public class ConsumerZooKeeper implements ZkClientChangedListener {
             // 3、从MQ服务器拉取消息进行消费的线程列表
             this.fetchManager.resetFetchState();
 
+
+            // 一、遍历每个topic和topic下的每个分区，然后创建为每个分区创建一个抓取请求对象，放到抓取管理器中
             final Set<Broker> newBrokers = new HashSet<Broker>();
-            // 遍历topic
             for (final Map.Entry<String/* topic */, ConcurrentHashMap<Partition, TopicPartitionRegInfo>> entry : this.topicRegistry.entrySet()) {
                 final String topic = entry.getKey();
                 // 遍历partition
                 for (final Map.Entry<Partition, TopicPartitionRegInfo> partEntry : entry.getValue().entrySet()) {
+
+
                     final Partition partition = partEntry.getKey();
                     final TopicPartitionRegInfo info = partEntry.getValue();
-                    // 随机取master或slave的一个读,wuhua
-                    // 这里优先返回master的broker
+                    // 从集群中随机获取一个master或slave的broker，这里优先返回master的broker
                     final Broker broker = cluster.getBrokerRandom(partition.getBrokerId());
                     if (broker != null) {
                         newBrokers.add(broker);
                         final SubscriberInfo subscriberInfo = this.topicSubcriberRegistry.get(topic);
                         // 添加fetch请求
                         this.fetchManager.addFetchRequest(new FetchRequest(broker, 0L, info, subscriberInfo.getMaxSize()));
-                    }
-                    else {
+                    } else {
                         log.error("Could not find broker for broker id " + partition.getBrokerId() + ", it should not happen.");
                     }
+
+
                 }
             }
 
+            // 二、消费者连接每台MQ服务器，都连接上以后，开始发起抓取消息的请求
             for (Broker newOne : newBrokers) {
                 int times = 0;
                 NotifyRemotingException ne = null;
+                // 客户端连接每台MQ服务器，每台尝试连接3次
                 while (times++ < 3) {
-                    // 通信层客户端连接到MQ服务器
                     ConsumerZooKeeper.this.remotingClient.connectWithRef(newOne.getZKString(), this);
                     try {
                         ConsumerZooKeeper.this.remotingClient.awaitReadyInterrupt(newOne.getZKString(), 4000);
                         log.warn("Connected to " + newOne.getZKString());
                         break;
-                    }
-                    catch (InterruptedException e) {
+                    } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new IllegalStateException("Remoting client is interrupted", e);
-                    }
-                    catch (NotifyRemotingException e) {
+                    } catch (NotifyRemotingException e) {
                         times++;
                         ne = e;
                         continue;

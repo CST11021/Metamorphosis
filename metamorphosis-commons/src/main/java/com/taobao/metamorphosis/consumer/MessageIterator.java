@@ -36,13 +36,13 @@ import com.taobao.metamorphosis.utils.MessageUtils;
  */
 public class MessageIterator {
     private final String topic;
-    // 表示一次拉取的所有的消息数据
+    /** 表示一次拉取的所有的消息数据 */
     private final byte[] data;
-    // 表示当前迭代的偏移量，默认从0开始
+    /** 表示当前迭代的偏移量，默认从0开始 */
     private int offset;
-    // 表示当前偏移量对应的消息对象，比如偏移量是0，则该对象表示第一个消息对象
+    /** 表示当前偏移量对应的消息对象，比如偏移量是0，则该对象表示第一个消息对象 */
     private Message message;
-    // 表示当前偏移量对应的消息字节
+    /** 表示当前偏移量对应的消息字节 */
     private ByteBuffer currentMsgBuf;
 
 
@@ -104,11 +104,21 @@ public class MessageIterator {
     public ByteBuffer getCurrentMsgBuf() {
         return this.currentMsgBuf;
     }
-    // 获取消息集合的长度
+
+    /**
+     * 获取消息集合的长度
+     *
+     * @return
+     */
     public int getDataLength() {
         return this.data != null ? this.data.length : 0;
     }
-    // 获取上一个消息(这里是相对于偏移量的)
+
+    /**
+     * 获取上一个消息(这里是相对于偏移量的)
+     *
+     * @return
+     */
     public Message getPrevMessage() {
         return this.message;
     }

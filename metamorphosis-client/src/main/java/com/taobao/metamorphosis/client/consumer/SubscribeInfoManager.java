@@ -29,7 +29,7 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 public class SubscribeInfoManager {
 
     /** Map<group, Map<topic, SubscriberInfo>> 用于维护哪个topic被哪个监听器监听，{@link MessageListener}监听器用于消费消费*/
-    private final ConcurrentHashMap<String, ConcurrentHashMap<String, SubscriberInfo>> groupTopicSubcriberRegistry = new ConcurrentHashMap<String/* group */, ConcurrentHashMap<String, SubscriberInfo>>();
+    private final ConcurrentHashMap<String, ConcurrentHashMap<String, SubscriberInfo>> groupTopicSubcriberRegistry = new ConcurrentHashMap<String, ConcurrentHashMap<String, SubscriberInfo>>();
 
     /**
      * 订阅topic

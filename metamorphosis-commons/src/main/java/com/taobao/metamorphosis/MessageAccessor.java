@@ -28,25 +28,22 @@ import com.taobao.metamorphosis.cluster.Partition;
  * 
  */
 public class MessageAccessor {
+
     public static void setId(Message message, long id) {
         message.setId(id);
     }
-
 
     public static void setFlag(Message message, int flag) {
         message.setFlag(flag);
     }
 
-
     public static boolean isRollbackOnly(Message message) {
         return message.isRollbackOnly();
     }
 
-
     public static int getFlag(Message message) {
         return message.getFlag();
     }
-
 
     public static void setPartition(Message message, Partition partition) {
         message.setPartition(partition);

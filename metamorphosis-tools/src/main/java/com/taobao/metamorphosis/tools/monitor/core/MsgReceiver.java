@@ -35,24 +35,23 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 
 
 /**
- * 代表直连一台broker的消息接收者
+ * 代表直连一台broker的消息接收者，自身维护offset，非线程安全
  * 
  * @author 无花
  * @since 2011-5-24 上午11:35:48
  */
-// 自身维护offset,非线程安全
 public class MsgReceiver {
 
-    /** 一台broker上不同分区上的接收offset */
-    private final Map<String/* partition */, Long/* offset */> offsetMap = new HashMap<String, Long>();
-
-    final private MessageConsumer consumer;
+    private String serverUrl = StringUtils.EMPTY;
 
     final static private String group = "meta-monitor-receive";
 
-    private String serverUrl = StringUtils.EMPTY;
+    final private MessageConsumer consumer;
+
     private final MessageSessionFactory sessionFactory;
 
+    /** 一台broker上不同分区上的接收offset，记录分区对应的偏移量，Map<partition, offset> */
+    private final Map<String, Long> offsetMap = new HashMap<String, Long>();
 
     public MsgReceiver(String serverUrl, MonitorConfig monitorConfig) throws MetaClientException {
         this.serverUrl = serverUrl;
@@ -106,11 +105,9 @@ public class MsgReceiver {
         return result;
     }
 
-
     public void setOffset(Partition partition, long offset) {
         this.offsetMap.put(partition.toString(), offset);
     }
-
 
     public long getOffset(Partition partition) {
         String key = partition.toString();
@@ -120,7 +117,6 @@ public class MsgReceiver {
         }
         return this.offsetMap.get(key).longValue();
     }
-
 
     public void dispose() {
         try {

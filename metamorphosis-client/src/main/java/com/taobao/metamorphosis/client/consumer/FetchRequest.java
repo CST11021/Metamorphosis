@@ -44,10 +44,12 @@ public class FetchRequest implements Delayed {
     private long delay;
     /** 表示该请求从MQ服务器抓取消息的所在分区信息 */
     private TopicPartitionRegInfo topicPartitionRegInfo;
+    /** 表示该抓取请求，每次从MQ服务器拉取多少消息 */
     private int maxSize;
     private int originalMaxSize;
     /** 表示该请求指向的MQ服务器 */
     private Broker broker;
+    /** 表示这个请求重新投递的次数 */
     private int retries = 0;
     private long tmpOffset;
     /** 表示该请求对象要保存到的队列 */
@@ -102,6 +104,9 @@ public class FetchRequest implements Delayed {
         this.maxSize = 2 * this.maxSize;
     }
 
+    /**
+     * 拉取完消息后，如果发现，得到的消息量小于请求时的消息量大小的1/2时，会设置maxSize为原来的一半
+     */
     public void decreaseMaxSize() {
         if (this.maxSize < this.originalMaxSize) {
             this.maxSize = this.originalMaxSize;
@@ -159,8 +164,7 @@ public class FetchRequest implements Delayed {
     public long getOffset() {
         if (this.tmpOffset > 0) {
             return this.tmpOffset;
-        }
-        else {
+        } else {
             return this.topicPartitionRegInfo.getOffset().get();
         }
     }
@@ -182,8 +186,7 @@ public class FetchRequest implements Delayed {
                 this.topicPartitionRegInfo.setModified(true);
             }
             this.rollbackOffset();
-        }
-        else {
+        } else {
             this.tmpOffset = offset;
         }
     }

@@ -32,7 +32,7 @@ public class SubscriberInfo {
     private final MessageListener messageListener;
     /** 自定义的消息过滤器 */
     private final ConsumerMessageFilter consumerMessageFilter;
-    /** 订阅每次接收的最大数据大小 */
+    /** 订阅每次接收的最大数据大小，即消费者每次请求从MQ服务器拉取多少消息 */
     private final int maxSize;
 
 

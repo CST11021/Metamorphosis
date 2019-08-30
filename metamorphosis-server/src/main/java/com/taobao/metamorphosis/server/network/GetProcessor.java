@@ -31,7 +31,7 @@ import com.taobao.metamorphosis.server.CommandProcessor;
 
 
 /**
- * get请求处理器
+ * 用户处理来自客户端的get请求的处理器，及消费者从服务端拉取消息时，会调用该处理器来处理消息
  * 
  * @author boyan
  * @Date 2011-4-21
@@ -41,6 +41,7 @@ public class GetProcessor implements RequestProcessor<GetCommand> {
 
     public static final Log log = LogFactory.getLog(GetProcessor.class);
 
+    /** 用于处理请求的线程池 */
     private final ThreadPoolExecutor executor;
 
     private final CommandProcessor processor;
@@ -59,8 +60,7 @@ public class GetProcessor implements RequestProcessor<GetCommand> {
 
     @Override
     public void handleRequest(final GetCommand request, final Connection conn) {
-        final ResponseCommand response =
-                this.processor.processGetCommand(request, SessionContextHolder.getOrCreateSessionContext(conn, null));
+        final ResponseCommand response = this.processor.processGetCommand(request, SessionContextHolder.getOrCreateSessionContext(conn, null));
         if (response != null) {
             RemotingUtils.response(conn, response);
         }

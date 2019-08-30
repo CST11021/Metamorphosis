@@ -54,7 +54,7 @@ public class SimpleFetchManager implements FetchManager {
     /** 表示抓取消息的线程，线程数取决于{@link ConsumerConfig#fetchRunnerCount}配置，默认cpu个数，该线程对象是对{@link FetchRequestRunner}的封装 */
     private Thread[] fetchThreads;
 
-    /** 表示从MQ服务器拉取消息进行消费的线程列表 */
+    /** 表示从MQ服务器拉取消息进行消费的线程列表，fetchThreads的每个线程任务对应这里的每个requestRunner */
     private FetchRequestRunner[] requestRunners;
 
     /** 统计抓取请求的次数 */
@@ -72,6 +72,7 @@ public class SimpleFetchManager implements FetchManager {
 
     private final static int CACAHE_SIZE = Integer.parseInt(System.getProperty("metaq.consumer.message_ids.lru_cache.size", "4096"));
 
+    /** 用于缓存消息ID，当消息被消费国后，会将消息缓存起来，这样当本次请求中有一个消息消费异常时，抓取请求会重新投递，这样下次拉取到的消息可能有些已经被消费了，就不需要在重复消费了 */
     private static MessageIdCache messageIdCache = new ConcurrentLRUHashMap(CACAHE_SIZE);
 
     private static final ThreadLocal<TopicPartitionRegInfo> currentTopicRegInfo = new ThreadLocal<TopicPartitionRegInfo>();
@@ -175,6 +176,11 @@ public class SimpleFetchManager implements FetchManager {
         return request.getRetries() > this.consumerConfig.getMaxFetchRetries();
     }
 
+    /**
+     * 判断请求重新返回抓取队列的次数是否大于5（默认）次
+     * @param request
+     * @return
+     */
     boolean isRetryTooManyForIncrease(final FetchRequest request) {
         return request.getRetries() > this.consumerConfig.getMaxIncreaseFetchDataRetries();
     }
@@ -241,25 +247,26 @@ public class SimpleFetchManager implements FetchManager {
 
         /**
          * 处理拉取消息的请求，通知对应的消息监听器，处理抓取的消息
+         *
          * @param request
          */
         void processRequest(final FetchRequest request) {
             try {
+                // 从MQ服务器拉取消息，一次请求拉取多个消息
                 final MessageIterator iterator = SimpleFetchManager.this.consumer.fetch(request, -1, null);
+                // 获取topic对应的消息监听器
                 final MessageListener listener = SimpleFetchManager.this.consumer.getMessageListener(request.getTopic());
+                // 获取topic对应的消息处理器
                 final ConsumerMessageFilter filter = SimpleFetchManager.this.consumer.getMessageFilter(request.getTopic());
                 // 通知消息监听器处理消息
                 this.notifyListener(request, iterator, listener, filter, SimpleFetchManager.this.consumer.getConsumerConfig().getGroup());
-            }
-            catch (final MetaClientException e) {
+            } catch (final MetaClientException e) {
                 // 当消费失败时，会将该抓取的请求重新放回到队列里，然后重新发起抓取消息的请求
                 this.updateDelay(request);
                 this.LogAddRequest(request, e);
-            }
-            catch (final InterruptedException e) {
+            } catch (final InterruptedException e) {
                 this.reAddFetchRequest2Queue(request);
-            }
-            catch (final Throwable e) {
+            } catch (final Throwable e) {
                 this.updateDelay(request);
                 this.LogAddRequest(request, e);
             }
@@ -339,24 +346,21 @@ public class SimpleFetchManager implements FetchManager {
                                 }
                             }
                         });
-                    }
-                    catch (final RejectedExecutionException e) {
-                        log.error(
-                                "MessageListener线程池繁忙，无法处理消息,topic=" + request.getTopic() + ",partition="
-                                        + request.getPartition(), e);
+                    } catch (final RejectedExecutionException e) {
+                        log.error("MessageListener线程池繁忙，无法处理消息,topic=" + request.getTopic() + ",partition=" + request.getPartition(), e);
                         // MessageListener线程池繁忙，无法处理消息的时候会将消息重新放回消息队列中
                         this.reAddFetchRequest2Queue(request);
                     }
 
-                }
-                else {
+                } else {
                     this.receiveMessages(request, it, listener, filter, group);
                 }
             }
         }
 
         /**
-         * 将消息抓取的请求添加队列中
+         * 将消息抓取的请求重新添加到队列中
+         *
          * @param request
          */
         private void reAddFetchRequest2Queue(final FetchRequest request) {
@@ -385,9 +389,11 @@ public class SimpleFetchManager implements FetchManager {
          */
         private void receiveMessages(final FetchRequest request, final MessageIterator it, final MessageListener listener, final ConsumerMessageFilter filter, final String group) {
             if (it != null && it.hasNext()) {
+                // 同一条消息在处理失败情况下最大重试消费次数，默认3次，超过就跳过这条消息并调用RejectConsumptionHandler处理
                 if (this.processWhenRetryTooMany(request, it)) {
                     return;
                 }
+
                 final Partition partition = request.getPartitionObject();
                 if (this.processReceiveMessage(request, it, listener, filter, partition, group)) {
                     return;
@@ -395,13 +401,11 @@ public class SimpleFetchManager implements FetchManager {
                 this.postReceiveMessage(request, it, partition);
             }
             else {
-
                 // 尝试多次无法解析出获取的数据，可能需要增大maxSize
                 if (SimpleFetchManager.this.isRetryTooManyForIncrease(request) && it != null && it.getDataLength() > 0) {
                     // 将抓取请求的maxSize扩大为原来的1倍
                     request.increaseMaxSize();
-                    log.warn("警告，第" + request.getRetries() + "次无法拉取topic=" + request.getTopic() + ",partition="
-                            + request.getPartitionObject() + "的消息，递增maxSize=" + request.getMaxSize() + " Bytes");
+                    log.warn("警告，第" + request.getRetries() + "次无法拉取topic=" + request.getTopic() + ",partition=" + request.getPartitionObject() + "的消息，递增maxSize=" + request.getMaxSize() + " Bytes");
                 }
 
                 // 一定要判断it是否为null,否则正常的拉到结尾时(返回null)也将进行Retries记数,会导致以后再拉到消息时进入recover
@@ -409,33 +413,40 @@ public class SimpleFetchManager implements FetchManager {
                     request.incrementRetriesAndGet();
                 }
 
+                // 延迟请求的投递时间
                 this.updateDelay(request);
+                // 本次没有抓取到将消息，则将请求重新返回抓取队列中，并延迟投递，因为这时可能消费者的消费能力大于生产者的生产速度
                 this.reAddFetchRequest2Queue(request);
             }
         }
 
         /**
-         * 返回是否需要跳过后续的处理
+         * 处理当前的消息
          *
          * @param request
          * @param it
          * @param listener
          * @param partition
-         * @return
+         * @return 返回是否需要跳过后续的处理
          */
         private boolean processReceiveMessage(final FetchRequest request, final MessageIterator it, final MessageListener listener, final ConsumerMessageFilter filter, final Partition partition, final String group) {
             int count = 0;
             List<Long> inTransactionMsgIds = new ArrayList<Long>();
+            // 遍历当前抓取的所有消息
             while (it.hasNext()) {
+                // 获取迁移消息的偏移量
                 final int prevOffset = it.getOffset();
                 try {
                     final Message msg = it.next();
-                    // If the message is processed before,don't process it
-                    // again.
+                    // If the message is processed before,don't process it again.
+                    // 判断这个消息之前是否已经处理过了，每次抓取请求，抓取到的消息被正常消费后，都会缓存起来，因为当本次请求中有一个消息消费异常时，
+                    // 抓取请求会重新投递，这样下次拉取到的消息可能有些已经被消费了，就不需要在重复消费了
                     if (this.isProcessed(msg.getId(), group)) {
                         continue;
                     }
+
                     MessageAccessor.setPartition(msg, partition);
+                    // 消费者的消息过滤器是否需要过滤该消息，如果不过滤则表示该消息可以消费
                     boolean accept = this.isAcceptable(request, filter, group, msg);
                     if (accept) {
                         currentTopicRegInfo.set(request.getTopicPartitionRegInfo().clone(it));
@@ -446,16 +457,18 @@ public class SimpleFetchManager implements FetchManager {
                             currentTopicRegInfo.remove();
                         }
                     }
+
+                    // 判断消息是否需要回滚
                     // rollback message if it is in rollback only state.
                     if (MessageAccessor.isRollbackOnly(msg)) {
                         it.setOffset(prevOffset);
                         break;
                     }
+
                     if (partition.isAutoAck()) {
                         count++;
                         this.markProcessed(msg.getId(), group);
-                    }
-                    else {
+                    } else {
                         // 提交或者回滚都必须跳出循环
                         if (partition.isAcked()) {
                             count++;
@@ -475,20 +488,17 @@ public class SimpleFetchManager implements FetchManager {
                             count++;
                         }
                     }
-                }
-                catch (InterruptedException e) {
+                } catch (InterruptedException e) {
                     // Receive messages thread is interrupted
                     it.setOffset(prevOffset);
                     log.error("Process messages thread was interrupted,topic=" + request.getTopic() + ",partition=" + request.getPartition(), e);
                     break;
-                }
-                catch (final InvalidMessageException e) {
+                } catch (final InvalidMessageException e) {
                     MetaStatLog.addStat(null, StatConstants.INVALID_MSG_STAT, request.getTopic());
                     // 消息体非法，获取有效offset，重新发起查询
                     this.getOffsetAddRequest(request, e);
                     return true;
-                }
-                catch (final Throwable e) {
+                } catch (final Throwable e) {
                     // 将指针移到上一条消息
                     it.setOffset(prevOffset);
                     log.error("Process messages failed,topic=" + request.getTopic() + ",partition=" + request.getPartition(), e);
@@ -500,11 +510,17 @@ public class SimpleFetchManager implements FetchManager {
             return false;
         }
 
+        /**
+         * 判断这个消息之前是否已经处理过了，每次抓取请求，抓取到的消息被正常消费后，都会缓存起来，因为当本次请求中有一个消息消费异常时，抓取请求会重新投递，这样下次拉取到的消息可能有些已经被消费了，就不需要在重复消费了
+         *
+         * @param id        消息ID
+         * @param group     消费者分组
+         * @return
+         */
         private boolean isProcessed(final Long id, String group) {
             if (messageIdCache != null) {
                 return messageIdCache.get(this.cacheKey(id, group)) != null;
-            }
-            else {
+            } else {
                 return false;
             }
         }
@@ -513,6 +529,12 @@ public class SimpleFetchManager implements FetchManager {
             return group + id;
         }
 
+        /**
+         * 将消费过了的消息缓存起来
+         *
+         * @param msgId
+         * @param group
+         */
         private void markProcessed(final Long msgId, String group) {
             if (messageIdCache != null) {
                 messageIdCache.put(this.cacheKey(msgId, group), PROCESSED);
@@ -520,7 +542,7 @@ public class SimpleFetchManager implements FetchManager {
         }
 
         /**
-         * 判断客户端是否消息这个消息
+         * 消费者的消息过滤器是否需要过滤该消息
          *
          * @param request   消息抓取的请求
          * @param filter    消息过滤器
@@ -547,7 +569,7 @@ public class SimpleFetchManager implements FetchManager {
         }
 
         /**
-         * 判断同一条消息在处理失败情况下，是否超过了最大重试消费次数
+         * 判断同一抓取请求返回的消息在处理失败情况下，是否超过了最大重试消费次数，默认3次
          *
          * @param request
          * @param it
@@ -594,8 +616,7 @@ public class SimpleFetchManager implements FetchManager {
             // 如果offset仍然没有前进，递增重试次数
             if (it.getOffset() == 0) {
                 request.incrementRetriesAndGet();
-            }
-            else {
+            }else {
                 request.resetRetries();
             }
 
@@ -616,8 +637,7 @@ public class SimpleFetchManager implements FetchManager {
                     // 都不是，递增临时offset
                     this.ackRequest(request, it, false);
                 }
-            }
-            else {
+            } else {
                 // 自动ack模式
                 this.ackRequest(request, it, true);
             }

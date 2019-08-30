@@ -41,6 +41,7 @@ public class OffsetProcessor implements RequestProcessor<OffsetCommand> {
 
     public static final Log log = LogFactory.getLog(OffsetProcessor.class);
 
+    /** 用于处理请求的线程池 */
     private final ThreadPoolExecutor executor;
 
     private final CommandProcessor processor;
@@ -62,8 +63,7 @@ public class OffsetProcessor implements RequestProcessor<OffsetCommand> {
     @Override
     public void handleRequest(final OffsetCommand request, final Connection conn) {
         final ResponseCommand response =
-                this.processor
-                    .processOffsetCommand(request, SessionContextHolder.getOrCreateSessionContext(conn, null));
+                this.processor.processOffsetCommand(request, SessionContextHolder.getOrCreateSessionContext(conn, null));
         if (response != null) {
             RemotingUtils.response(conn, response);
         }

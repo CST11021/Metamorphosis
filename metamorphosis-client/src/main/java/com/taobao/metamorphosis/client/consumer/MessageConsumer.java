@@ -53,7 +53,7 @@ public interface MessageConsumer extends Shutdownable {
     public MessageIterator get(String topic, Partition partition, long offset, int maxSize) throws MetaClientException, InterruptedException;
 
     /**
-     * 获取指定topic和分区下面的消息，在指定时间内没有返回则抛出异常
+     * 根据topic，对应的分区，偏移量等信息从broker获取多个消息，在指定时间内没有返回则抛出异常
      * 
      * @param topic
      * @param partition
@@ -78,7 +78,7 @@ public interface MessageConsumer extends Shutdownable {
      * 调用此方法并不会使订阅关系立即生效， 只有在调用complete方法后才生效，此方法可做链式调用
      * 
      * @param topic             订阅的topic
-     * @param maxSize           每次消费者接收的最大数据大小
+     * @param maxSize           每次消费者接收的最大数据大小，即消费者每次从MQ抓取多少消息
      * @param messageListener   消息监听器
      */
     public MessageConsumer subscribe(String topic, int maxSize, MessageListener messageListener) throws MetaClientException;
@@ -90,7 +90,7 @@ public interface MessageConsumer extends Shutdownable {
      * 只有在调用complete方法后才生效，此方法可做链式调用
      * 
      * @param topic                 订阅的topic
-     * @param maxSize               每次消费者接收的最大数据大小
+     * @param maxSize               每次消费者接收的最大数据大小，即消费者每次从MQ抓取多少消息
      * @param messageListener       消息监听器
      * @param consumerMessageFilter message filter 消息监听器
      */

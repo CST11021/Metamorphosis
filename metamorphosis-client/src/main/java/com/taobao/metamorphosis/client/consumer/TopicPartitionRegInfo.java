@@ -25,7 +25,7 @@ import com.taobao.metamorphosis.consumer.MessageIterator;
 
 
 /**
- * 订阅消息的分区信息
+ * 订阅消息的分区信息，用于记录每个topic和分区下消息被消费的信息，比如记录偏移量等
  * 
  * @author boyan
  * @Date 2011-4-26

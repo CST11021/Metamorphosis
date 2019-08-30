@@ -96,11 +96,12 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
     /** Topic与订阅者的订阅关系，Map<Topic, 订阅者信息> */
     private final ConcurrentHashMap<String, SubscriberInfo> topicSubcriberRegistry = new ConcurrentHashMap<String, SubscriberInfo>();
 
-    // 消息拉取器，用于从MQ服务器拉取消息，并进行处理
+    /** 消息拉取器，用于从MQ服务器拉取消息，并进行处理 */
     private FetchManager fetchManager;
 
     private final ConcurrentHashSet<String> publishedTopics = new ConcurrentHashSet<String>();
 
+    /** 当消费者尝试多次都无法消费消息时会使用该处理器处理消息 */
     private RejectConsumptionHandler rejectConsumptionHandler;
 
 
@@ -146,27 +147,6 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         );
     }
 
-
-    public MetaMessageSessionFactory getParent() {
-        return this.messageSessionFactory;
-    }
-
-    public FetchManager getFetchManager() {
-        return this.fetchManager;
-    }
-
-    void setFetchManager(final FetchManager fetchManager) {
-        this.fetchManager = fetchManager;
-    }
-
-    ConcurrentHashMap<String, SubscriberInfo> getTopicSubcriberRegistry() {
-        return this.topicSubcriberRegistry;
-    }
-
-    @Override
-    public OffsetStorage getOffsetStorage() {
-        return this.offsetStorage;
-    }
 
     @Override
     public synchronized void shutdown() throws MetaClientException {
@@ -228,13 +208,13 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
     }
 
     @Override
-    public void appendCouldNotProcessMessage(final Message message) throws IOException {
-        if (log.isInfoEnabled()) {
-            log.info("Message could not process,save to local.MessageId=" + message.getId() + ",Topic="
-                    + message.getTopic() + ",Partition=" + message.getPartition());
+    public void completeSubscribe() throws MetaClientException {
+        this.checkState();
+        try {
+            this.consumerZooKeeper.registerConsumer(this.consumerConfig, this.fetchManager, this.topicSubcriberRegistry, this.offsetStorage, this.loadBalanceStrategy);
         }
-        if (this.rejectConsumptionHandler != null) {
-            this.rejectConsumptionHandler.rejectConsumption(message, this);
+        catch (final Exception e) {
+            throw new MetaClientException("注册订阅者失败", e);
         }
     }
 
@@ -244,34 +224,23 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         }
     }
 
+
+
+
     @Override
-    public void completeSubscribe() throws MetaClientException {
-        this.checkState();
-        try {
-            this.consumerZooKeeper.registerConsumer(this.consumerConfig, this.fetchManager,
-                this.topicSubcriberRegistry, this.offsetStorage, this.loadBalanceStrategy);
-        }
-        catch (final Exception e) {
-            throw new MetaClientException("注册订阅者失败", e);
-        }
+    public MessageIterator get(final String topic, final Partition partition, final long offset, final int maxSize) throws MetaClientException, InterruptedException {
+        return this.get(topic, partition, offset, maxSize, DEFAULT_OP_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
     @Override
-    public MessageListener getMessageListener(final String topic) {
-        final SubscriberInfo info = this.topicSubcriberRegistry.get(topic);
-        if (info == null) {
-            return null;
+    public MessageIterator get(final String topic, final Partition partition, final long offset, final int maxSize, final long timeout, final TimeUnit timeUnit) throws MetaClientException, InterruptedException {
+        if (!this.publishedTopics.contains(topic)) {
+            this.producerZooKeeper.publishTopic(topic, this);
+            this.publishedTopics.add(topic);
         }
-        return info.getMessageListener();
-    }
-
-    @Override
-    public ConsumerMessageFilter getMessageFilter(final String topic) {
-        final SubscriberInfo info = this.topicSubcriberRegistry.get(topic);
-        if (info == null) {
-            return null;
-        }
-        return info.getConsumerMessageFilter();
+        final Broker broker = new Broker(partition.getBrokerId(), this.producerZooKeeper.selectBroker(topic, partition));
+        final TopicPartitionRegInfo topicPartitionRegInfo = new TopicPartitionRegInfo(topic, partition, offset);
+        return this.fetch(new FetchRequest(broker, 0, topicPartitionRegInfo, maxSize), timeout, timeUnit);
     }
 
     @Override
@@ -317,12 +286,23 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         }
     }
 
+    /**
+     * 消息抓取管理会通过调用该方法，从MQ抓取消息
+     *
+     * @param fetchRequest
+     * @param timeout
+     * @param timeUnit
+     * @return
+     * @throws MetaClientException
+     * @throws InterruptedException
+     */
     @Override
     public MessageIterator fetch(final FetchRequest fetchRequest, long timeout, TimeUnit timeUnit) throws MetaClientException, InterruptedException {
         if (timeout <= 0 || timeUnit == null) {
             timeout = this.consumerConfig.getFetchTimeoutInMills();
             timeUnit = TimeUnit.MILLISECONDS;
         }
+
         final long start = System.currentTimeMillis();
         boolean success = false;
         try {
@@ -330,21 +310,18 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
             final String serverUrl = fetchRequest.getBroker().getZKString();
             if (!this.remotingClient.isConnected(serverUrl)) {
                 // Try to heal the connection.
-                ZKLoadRebalanceListener listener =
-                        this.consumerZooKeeper.getBrokerConnectionListener(this.fetchManager);
+                ZKLoadRebalanceListener listener = this.consumerZooKeeper.getBrokerConnectionListener(this.fetchManager);
                 if (listener.oldBrokerSet.contains(fetchRequest.getBroker())) {
                     this.remotingClient.connectWithRef(serverUrl, listener);
                 }
                 return null;
             }
 
-            final GetCommand getCmd =
-                    new GetCommand(fetchRequest.getTopic(), this.consumerConfig.getGroup(),
-                        fetchRequest.getPartition(), currentOffset, fetchRequest.getMaxSize(),
-                        OpaqueGenerator.getNextOpaque());
-
-
+            // 将 FetchRequest 转为 GetCommand 命令，然后使用阿里的gecko通信框架向MQ发起请求
+            final GetCommand getCmd = new GetCommand(fetchRequest.getTopic(), this.consumerConfig.getGroup(), fetchRequest.getPartition(), currentOffset, fetchRequest.getMaxSize(), OpaqueGenerator.getNextOpaque());
             final ResponseCommand response = this.remotingClient.invokeToGroup(serverUrl, getCmd, timeout, timeUnit);
+
+            // 如果MQ服务器返回的是DataCommand，说明正常拉取到了消息
             if (response instanceof DataCommand) {
                 final DataCommand dataCmd = (DataCommand) response;
                 final byte[] data = dataCmd.getData();
@@ -355,6 +332,7 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
                 success = true;
                 return new MessageIterator(fetchRequest.getTopic(), data);
             }
+            // 没有拉取到消息的情况
             else {
                 final BooleanCommand booleanCmd = (BooleanCommand) response;
                 switch (booleanCmd.getCode()) {
@@ -370,8 +348,7 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
                     fetchRequest.setOffset(Long.parseLong(booleanCmd.getErrorMsg()), -1, true);
                     return null;
                 default:
-                    throw new MetaClientException("Status:" + booleanCmd.getCode() + ",Error message:"
-                            + ((BooleanCommand) response).getErrorMsg());
+                    throw new MetaClientException("Status:" + booleanCmd.getCode() + ",Error message:" + ((BooleanCommand) response).getErrorMsg());
                 }
             }
 
@@ -401,6 +378,29 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         }
     }
 
+
+
+
+
+
+    @Override
+    public MessageListener getMessageListener(final String topic) {
+        final SubscriberInfo info = this.topicSubcriberRegistry.get(topic);
+        if (info == null) {
+            return null;
+        }
+        return info.getMessageListener();
+    }
+
+    @Override
+    public ConsumerMessageFilter getMessageFilter(final String topic) {
+        final SubscriberInfo info = this.topicSubcriberRegistry.get(topic);
+        if (info == null) {
+            return null;
+        }
+        return info.getConsumerMessageFilter();
+    }
+
     @Override
     public void setSubscriptions(final Collection<Subscription> subscriptions) throws MetaClientException {
         if (subscriptions == null) {
@@ -411,39 +411,16 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         }
     }
 
+
     @Override
-    public MessageIterator get(final String topic, final Partition partition, final long offset, final int maxSize, final long timeout, final TimeUnit timeUnit) throws MetaClientException, InterruptedException {
-        if (!this.publishedTopics.contains(topic)) {
-            this.producerZooKeeper.publishTopic(topic, this);
-            this.publishedTopics.add(topic);
+    public void appendCouldNotProcessMessage(final Message message) throws IOException {
+        if (log.isInfoEnabled()) {
+            log.info("Message could not process,save to local.MessageId=" + message.getId() + ",Topic="
+                    + message.getTopic() + ",Partition=" + message.getPartition());
         }
-        final Broker broker =
-                new Broker(partition.getBrokerId(), this.producerZooKeeper.selectBroker(topic, partition));
-        final TopicPartitionRegInfo topicPartitionRegInfo = new TopicPartitionRegInfo(topic, partition, offset);
-        return this.fetch(new FetchRequest(broker, 0, topicPartitionRegInfo, maxSize), timeout, timeUnit);
-    }
-
-    @Override
-    public RejectConsumptionHandler getRejectConsumptionHandler() {
-        return this.rejectConsumptionHandler;
-    }
-
-    @Override
-    public void setRejectConsumptionHandler(RejectConsumptionHandler rejectConsumptionHandler) {
-        if (rejectConsumptionHandler == null) {
-            throw new NullPointerException("Null rejectConsumptionHandler");
+        if (this.rejectConsumptionHandler != null) {
+            this.rejectConsumptionHandler.rejectConsumption(message, this);
         }
-        this.rejectConsumptionHandler = rejectConsumptionHandler;
-    }
-
-    @Override
-    public ConsumerConfig getConsumerConfig() {
-        return this.consumerConfig;
-    }
-
-    @Override
-    public MessageIterator get(final String topic, final Partition partition, final long offset, final int maxSize) throws MetaClientException, InterruptedException {
-        return this.get(topic, partition, offset, maxSize, DEFAULT_OP_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -488,5 +465,52 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
                 log.error("Append message to local recover manager failed", e);
             }
         }
+    }
+
+
+
+
+
+
+
+
+
+    public MetaMessageSessionFactory getParent() {
+        return this.messageSessionFactory;
+    }
+
+    public FetchManager getFetchManager() {
+        return this.fetchManager;
+    }
+
+    void setFetchManager(final FetchManager fetchManager) {
+        this.fetchManager = fetchManager;
+    }
+
+    ConcurrentHashMap<String, SubscriberInfo> getTopicSubcriberRegistry() {
+        return this.topicSubcriberRegistry;
+    }
+
+    @Override
+    public OffsetStorage getOffsetStorage() {
+        return this.offsetStorage;
+    }
+
+    @Override
+    public RejectConsumptionHandler getRejectConsumptionHandler() {
+        return this.rejectConsumptionHandler;
+    }
+
+    @Override
+    public void setRejectConsumptionHandler(RejectConsumptionHandler rejectConsumptionHandler) {
+        if (rejectConsumptionHandler == null) {
+            throw new NullPointerException("Null rejectConsumptionHandler");
+        }
+        this.rejectConsumptionHandler = rejectConsumptionHandler;
+    }
+
+    @Override
+    public ConsumerConfig getConsumerConfig() {
+        return this.consumerConfig;
     }
 }
