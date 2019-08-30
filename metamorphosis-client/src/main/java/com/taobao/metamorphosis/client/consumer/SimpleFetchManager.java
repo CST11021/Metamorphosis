@@ -451,6 +451,7 @@ public class SimpleFetchManager implements FetchManager {
                     if (accept) {
                         currentTopicRegInfo.set(request.getTopicPartitionRegInfo().clone(it));
                         try {
+                            // 通知监听器处理该消息
                             listener.recieveMessages(msg);
                         }
                         finally {
@@ -465,6 +466,10 @@ public class SimpleFetchManager implements FetchManager {
                         break;
                     }
 
+                    // Consumer可能需要一段时间才能处理完收到的数据。如果在这个过程中，Consumer出错了，异常退出了，而数据还没有处理完成，
+                    // 这段数据就丢失了。如果我们采用no-ack的方式进行确认，也就是说，每次Consumer接到数据后，而不管是否处理完成，MQ会立即把这个Message标记为完成，然后从queue中删除了。
+                    // 为了保证数据不被丢失，MQ支持消息确认机制，即ack。为了保证数据能被正确处理而不仅仅是被Consumer收到，我们就不能采用no-ack或者auto-ack，我们需要手动ack(manual-ack)。
+                    // 在数据处理完成后手动发送ack，这个时候Server才将Message删除。
                     if (partition.isAutoAck()) {
                         count++;
                         this.markProcessed(msg.getId(), group);
@@ -473,6 +478,7 @@ public class SimpleFetchManager implements FetchManager {
                         if (partition.isAcked()) {
                             count++;
                             // mark all in transaction messages were processed.
+                            //
                             for (Long msgId : inTransactionMsgIds) {
                                 this.markProcessed(msgId, group);
                             }
