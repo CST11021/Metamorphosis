@@ -458,11 +458,9 @@ public class ProducerZooKeeper implements ZkClientChangedListener {
         if (task != null) {
             try {
                 return task.get();
-            }
-            catch (final ExecutionException e) {
+            } catch (final ExecutionException e) {
                 throw ThreadUtils.launderThrowable(e.getCause());
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }

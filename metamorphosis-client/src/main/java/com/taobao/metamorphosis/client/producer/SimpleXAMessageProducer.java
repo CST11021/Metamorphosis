@@ -51,10 +51,13 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
 
     private static final String OVERWRITE_HOSTNAME_SYSTEM_PROPERTY = "metaq.client.xaproducer.hostname";
 
+    /** 保存该XA生产者发布的topic */
     final Set<String> publishedTopics = new ConcurrentHashSet<String>();
 
+    /** 用于随机从{@link #urls}中选取一个broker */
     private final Random rand = new Random();
 
+    /** 保存broker的url，这些broker都含有相同的topic */
     private volatile String[] urls;
 
 
@@ -95,12 +98,15 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
     }
 
     private void generateTransactionBrokerURLs() {
+        // 获取topic
         final List<Set<String>> brokerUrls = new ArrayList<Set<String>>();
         for (final String topic : this.publishedTopics) {
             brokerUrls.add(this.producerZooKeeper.getServerUrlSetByTopic(topic));
             // Listen for brokers changing.
             this.producerZooKeeper.onBrokerChange(topic, this);
         }
+
+        // 获取topic分布在每个broker的那些broker
         final Set<String> resultSet = intersect(brokerUrls);
         if (resultSet.isEmpty()) {
             throw new InvalidBrokerException("Could not select a common broker url for  topics:" + this.publishedTopics);
@@ -109,7 +115,6 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
         Arrays.sort(newUrls);
         // Set new urls array.
         this.urls = newUrls;
-
     }
 
     private String selectTransactionBrokerURL() {
@@ -120,6 +125,13 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
         return copiedUrls[this.rand.nextInt(copiedUrls.length)];
     }
 
+    /**
+     * 获取List中每个Set里都相同的元素，例如：[1, 3, 5], [2, 3, 4], [3, 6, 9]三个set，则返回[3]
+     *
+     * @param sets
+     * @param <T>
+     * @return
+     */
     static <T> Set<T> intersect(final List<Set<T>> sets) {
         if (sets == null || sets.size() == 0) {
             return null;
@@ -155,8 +167,7 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
             throw new IllegalArgumentException("Blank unique qualifier for SimpleXAMessageProducer");
         }
         if (StringUtils.containsAny(prefix, "\r\n\t: ")) {
-            throw new IllegalArgumentException(
-                    "Invalid unique qualifier,it should not contains newline,':' or blank characters.");
+            throw new IllegalArgumentException("Invalid unique qualifier,it should not contains newline,':' or blank characters.");
         }
     }
 
@@ -165,8 +176,7 @@ public class SimpleXAMessageProducer extends SimpleMessageProducer implements XA
         TransactionContext xares = this.transactionContext.get();
         if (xares != null) {
             return xares;
-        }
-        else {
+        } else {
             this.beginTransaction();
             xares = this.transactionContext.get();
             // 设置启用选定的broker
