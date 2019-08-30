@@ -661,6 +661,20 @@ ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>> stores；
 
 ​		理论上是可以的，因为消息传输也是通过字节的方式存储的，但是不建议直接在消息里存储文件，因为文件数据一般比较大，MQ的消息数据大小是有限制的
 
+####metaq消息过滤器的使用
+
+​		消息过滤器可以在消费端使用也可以在服务端使用，服务端使用的实现机制是，当消费者从MQ拉取消息时，MQ会根据配置的过滤器来过滤消息，服务端过滤消息需要自己实现消息过滤器，并打成jar包到meta安装目录下，然后在topic配置中配置对应的过滤器，例如如下配置，这里是直接在meta源码中添加了一个过滤器
+
+```ini
+[system]
+appClassPath=/Users/wanghongzhan/.m2/repository/com/taobao/metamorphosis/metamorphosis-server
+省略...
+
+[topic=meta-test]
+group.meta-example=com.taobao.metamorphosis.server.filter.ExampleConsumerMessageFilter
+省略...
+```
+
 
 
 
