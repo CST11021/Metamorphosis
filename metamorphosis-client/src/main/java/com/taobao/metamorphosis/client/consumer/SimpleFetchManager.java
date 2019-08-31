@@ -141,10 +141,19 @@ public class SimpleFetchManager implements FetchManager {
 
     }
 
+    /**
+     * 从请求队列中获取一个请求对象
+     *
+     * @return
+     * @throws InterruptedException
+     */
     FetchRequest takeFetchRequest() throws InterruptedException {
         return this.requestQueue.take();
     }
 
+    /**
+     * 终端所有任务
+     */
     private void interruptRunners() {
         // 中断所有任务
         if (this.fetchThreads != null) {
@@ -185,6 +194,11 @@ public class SimpleFetchManager implements FetchManager {
         return request.getRetries() > this.consumerConfig.getMaxIncreaseFetchDataRetries();
     }
 
+    /**
+     * 获取最大的延迟时间，当上一次没有抓取到的消息，抓取线程就会sleep，这里为设置sleep的最大时间，默认5秒，单位毫秒，测试的时候可以设置少点，不然会有消费延迟的现象
+     *
+     * @return
+     */
     long getMaxDelayFetchTimeInMills() {
         return this.consumerConfig.getMaxDelayFetchTimeInMills();
     }
@@ -220,6 +234,7 @@ public class SimpleFetchManager implements FetchManager {
 
         private static final int DELAY_NPARTS = 10;
 
+        /** 用于标识抓取线程是否停止 */
         private volatile boolean stopped = false;
 
         private long lastLogNoConnectionTime;
@@ -296,18 +311,23 @@ public class SimpleFetchManager implements FetchManager {
             this.reAddFetchRequest2Queue(request);
         }
 
+        /**
+         * 将offset记录到zk，然后发起一个新的请求，从MA拉取后续的消息
+         *
+         * @param request
+         * @param e
+         */
         private void getOffsetAddRequest(final FetchRequest request, final InvalidMessageException e) {
             try {
+                // 将提交偏移量，返回新的偏移量，即下次需要开始拉取的消息偏移量
                 final long newOffset = SimpleFetchManager.this.consumer.offset(request);
                 request.resetRetries();
                 if (!this.stopped) {
                     request.setOffset(newOffset, request.getLastMessageId(), request.getPartitionObject().isAutoAck());
                 }
-            }
-            catch (final MetaClientException ex) {
+            } catch (final MetaClientException ex) {
                 log.error("查询offset失败,topic=" + request.getTopic() + ",partition=" + request.getPartition(), e);
-            }
-            finally {
+            } finally {
                 this.reAddFetchRequest2Queue(request);
             }
         }
@@ -531,6 +551,13 @@ public class SimpleFetchManager implements FetchManager {
             }
         }
 
+        /**
+         * 已经处理过的消息会缓存起来，这里是用于获取缓存消息的ID
+         *
+         * @param id
+         * @param group
+         * @return
+         */
         private String cacheKey(final Long id, String group) {
             return group + id;
         }
@@ -603,7 +630,7 @@ public class SimpleFetchManager implements FetchManager {
                 }
 
                 request.resetRetries();
-                // 跳过这条不能处理的消息
+                // 尝试消费很多次，依然不能正常消费这条消息，则将该消息记录到本地，然后跳过这条不能处理的消息，
                 if (!this.stopped) {
                     request.setOffset(request.getOffset() + it.getOffset(), it.getPrevMessage().getId(), true);
                 }
@@ -649,18 +676,36 @@ public class SimpleFetchManager implements FetchManager {
             }
         }
 
+        /**
+         * 添加ack请求
+         *
+         * @param request
+         * @param it
+         * @param ack
+         */
         private void ackRequest(final FetchRequest request, final MessageIterator it, final boolean ack) {
             long msgId = it.getPrevMessage() != null ? it.getPrevMessage().getId() : -1;
             request.setOffset(request.getOffset() + it.getOffset(), msgId, ack);
             this.addRequst(request);
         }
 
+        /**
+         * 添加抓取请求到队列中
+         *
+         * @param request
+         */
         private void addRequst(final FetchRequest request) {
             final long delay = this.getRetryDelay(request);
             request.setDelay(delay);
             this.reAddFetchRequest2Queue(request);
         }
 
+        /**
+         * 获取抓取请求的延迟投递时间，延迟时间为：最大延迟时间/10*重试次数
+         *
+         * @param request
+         * @return
+         */
         private long getRetryDelay(final FetchRequest request) {
             final long maxDelayFetchTimeInMills = SimpleFetchManager.this.getMaxDelayFetchTimeInMills();
             final long nPartsDelayTime = maxDelayFetchTimeInMills / DELAY_NPARTS;
@@ -685,6 +730,7 @@ public class SimpleFetchManager implements FetchManager {
 
         /**
          * 获取下一次的延迟时间，即什么时候才能从消息抓取请求的队列中拿出来
+         *
          * @param request
          * @return
          */

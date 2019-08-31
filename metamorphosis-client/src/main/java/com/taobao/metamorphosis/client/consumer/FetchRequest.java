@@ -42,7 +42,7 @@ public class FetchRequest implements Delayed {
     /** 延后的时间戳，当前该抓取请求的对象被保存到队列后，通过设置该属性来实现延迟队列，即该请求对象被保存多久后才能从队列里取出 */
     private long delayTimeStamp;
     private long delay;
-    /** 表示该请求从MQ服务器抓取消息的所在分区信息 */
+    /** 表示该请求从MQ服务器抓取消息的所在分区及偏移量信息 */
     private TopicPartitionRegInfo topicPartitionRegInfo;
     /** 表示该抓取请求，每次从MQ服务器拉取多少消息 */
     private int maxSize;
@@ -51,6 +51,7 @@ public class FetchRequest implements Delayed {
     private Broker broker;
     /** 表示这个请求重新投递的次数 */
     private int retries = 0;
+    /** 临时的偏移量，如果没有特别声明tmpOffset, 即tmpOffset<0则每次{@link #getOffset()}会返回{@link TopicPartitionRegInfo#offset} */
     private long tmpOffset;
     /** 表示该请求对象要保存到的队列 */
     private FetchRequestQueue refQueue;
@@ -95,6 +96,9 @@ public class FetchRequest implements Delayed {
         return this.retries;
     }
 
+    /**
+     * 将maxSize设置为原来的2倍
+     */
     public void increaseMaxSize() {
         if (this.maxSize > MessageUtils.MAX_READ_BUFFER_SIZE) {
             log.warn("警告：maxSize超过最大限制" + MessageUtils.MAX_READ_BUFFER_SIZE
@@ -119,10 +123,18 @@ public class FetchRequest implements Delayed {
         }
     }
 
+    /**
+     * 重置抓取请求的重试次数
+     */
     public void resetRetries() {
         this.retries = 0;
     }
 
+    /**
+     * 抓取请求的重试次数+1
+     *
+     * @return
+     */
     public int incrementRetriesAndGet() {
         return ++this.retries;
     }
@@ -171,7 +183,8 @@ public class FetchRequest implements Delayed {
     /**
      * 更新offset，当ack为true则更新存储中的offset，并将临时offset设置为－1,否则仅更新临时offset
      * 
-     * @param offset
+     * @param offset    下一次要拉取消息的偏移量
+     * @param msgId     消费者最后一次处理的消息ID
      * @param ack
      */
     public void setOffset(final long offset, final long msgId, final boolean ack) {
