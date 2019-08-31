@@ -249,19 +249,15 @@ public class SimpleMessageConsumer implements MessageConsumer, InnerConsumer {
         boolean success = false;
         try {
             final long currentOffset = fetchRequest.getOffset();
-            final OffsetCommand offsetCmd =
-                    new OffsetCommand(fetchRequest.getTopic(), this.consumerConfig.getGroup(),
-                        fetchRequest.getPartition(), currentOffset, OpaqueGenerator.getNextOpaque());
+            final OffsetCommand offsetCmd = new OffsetCommand(fetchRequest.getTopic(), this.consumerConfig.getGroup(), fetchRequest.getPartition(), currentOffset, OpaqueGenerator.getNextOpaque());
             final String serverUrl = fetchRequest.getBroker().getZKString();
-            final BooleanCommand booleanCmd =
-                    (BooleanCommand) this.remotingClient.invokeToGroup(serverUrl, offsetCmd,
-                        this.consumerConfig.getFetchTimeoutInMills(), TimeUnit.MILLISECONDS);
+            final BooleanCommand booleanCmd = (BooleanCommand) this.remotingClient.invokeToGroup(serverUrl, offsetCmd, this.consumerConfig.getFetchTimeoutInMills(), TimeUnit.MILLISECONDS);
             switch (booleanCmd.getCode()) {
-            case HttpStatus.Success:
-                success = true;
-                return Long.parseLong(booleanCmd.getErrorMsg());
-            default:
-                throw new MetaClientException(booleanCmd.getErrorMsg());
+                case HttpStatus.Success:
+                    success = true;
+                    return Long.parseLong(booleanCmd.getErrorMsg());
+                default:
+                    throw new MetaClientException(booleanCmd.getErrorMsg());
             }
         }
         catch (final MetaClientException e) {

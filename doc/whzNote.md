@@ -707,7 +707,7 @@ group.meta-example=com.taobao.metamorphosis.server.filter.ExampleConsumerMessage
 
 
 
-#### #消费者是如何从服务端拉取消息进行消费的？
+#### 消费者是如何从服务端拉取消息进行消费的？
 
 ​		消息订阅时只是保存topic与MessageListener和ConsumerMessageFilter的映射关系，并将topic保存到订阅注册表（该注册表保存在客户端机器的内存中），此时还没启动异步线程从MQ服务器拉取消息。
 
@@ -717,7 +717,9 @@ group.meta-example=com.taobao.metamorphosis.server.filter.ExampleConsumerMessage
 
   当执行completeSubscribe时，消费者会遍历所有订阅的topic，然后根据每个topic创建一个抓取请求对象，并放到消息抓取管理器的请求队列中，然后再启动消息抓取管理器开启多个线程（默认是cpu个数）从服务器抓取消息，抓取到消息后会通知对应的消息监听器来处理消息。
 
-#### #消费者抓取消息的请求都包含哪些信息？
+消费者单次从MQ抓取多个消息，并记录内存，然后通知消息监听器一次处理消息，处理过后的消息会记录在内存缓存一起来，
+
+#### 消费者抓取消息的请求都包含哪些信息？
 
 ​		包括topic、拉取的目的分区、消费者分组名称、拉取的起始偏移量和本次拉取的最大数据量大小。
 
@@ -779,23 +781,13 @@ mysql存储需要传入JDBC数据源。
 
 ​		一个消费者实例可以订阅多个topic，每个topic都有对应的MessageListener消息监听器（消息处理器）和ConsumerMessageFilter（消息过滤器），每个topic最多对应一个MessageListener和一个ConsumerMessageFilter。
 
-#### #消息可以带属性吗？
+#### 消息可以带属性吗？
 
-​		仅允许带一个字符串属性，消费者可依此过滤
+​		仅允许带一个字符串属性，消费者可依此过滤。
 
-#### #消息ID怎么产生？
+#### 消息ID怎么产生？
 
-–Long类型，在发送成功后由服务器端返回
-
-–默认-1
-
-–42位时间 + 10 位 brokerId + 12位递增数字
-
-#### #消息体怎么产生？
-
-–消息体只要求是一个byte[]数组
-
-–序列化方式完全由用户决定
+消息ID有服务端生成，Long类型，在发送成功后由服务器端返回，生成规则：42位时间 + 10 位 brokerId + 12位递增数字
 
 
 
@@ -829,25 +821,13 @@ mysql存储需要传入JDBC数据源。
 
 单线程拉，运行在单线程中
 
+####保存消息偏移量的机制是什么？
 
+meta使用定时任务的方式将消息的偏移量保存到zk，默认5秒同步一次到zk，可设置
 
-####Pull的偏移量保存在哪里？
+``ConsumerConfig.setCommitOffsetPeriodInMills(long commitOffsetPeriodInMills)``
 
-–默认保存在zk
-
-–我们还提供文件、数据库的存储实现。
-
-–OffsetStorage接口，可自主实现。
-
-
-
-####偏移量多长时间保存一次？
-
-–默认5秒，可设置
-
-–**ConsumerConfig.setCommitOffsetPeriodInMills(long commitOffsetPeriodInMills)**
-
-
+偏移量，默认保存在zk，但还提供文件、数据库的存储实现，可通过OffsetStorage接口，可自主实现。
 
 ####新加入的消费者不想接收到以前发的消息怎么办？
 
@@ -869,14 +849,6 @@ ConsumerConfig.setConsumeFromMaxOffset
 
 –如果不想往下走就把这个参数设为int的最大值
 
-####消息能保证不重复接收吗？
-
-–因为每个分区物理隔离消息，理论上每个消费者接收的消息不会重复
-
-–在consumer重新负载均衡的时候，可能由于offset保存延迟，导致重复接收极小部分消息。
-
-
-
 ####可以设置pull请求的时间间隔吗？
 
 –可以，你可以设置允许的最大延迟时间，当响应为空的时候，每次递增最大延迟时间的1/10做延迟，不会超过设定的最大延迟时间。默认5秒。
@@ -894,6 +866,12 @@ ConsumerConfig consumerConfig = new ConsumerConfig(group);
 consumerConfig.setMaxDelayFetchTimeInMills(100);
 final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
 ```
+
+#### ~~消息能保证不重复接收吗？~~
+
+~~–因为每个分区物理隔离消息，理论上每个消费者接收的消息不会重复~~
+
+~~–在consumer重新负载均衡的时候，可能由于offset保存延迟，导致重复接收极小部分消息。~~
 
 ###生产者FAQ
 

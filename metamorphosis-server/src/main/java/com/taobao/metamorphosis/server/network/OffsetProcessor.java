@@ -62,8 +62,7 @@ public class OffsetProcessor implements RequestProcessor<OffsetCommand> {
 
     @Override
     public void handleRequest(final OffsetCommand request, final Connection conn) {
-        final ResponseCommand response =
-                this.processor.processOffsetCommand(request, SessionContextHolder.getOrCreateSessionContext(conn, null));
+        final ResponseCommand response = this.processor.processOffsetCommand(request, SessionContextHolder.getOrCreateSessionContext(conn, null));
         if (response != null) {
             RemotingUtils.response(conn, response);
         }

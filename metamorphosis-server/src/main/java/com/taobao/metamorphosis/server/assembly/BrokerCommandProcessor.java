@@ -465,8 +465,7 @@ public class BrokerCommandProcessor implements CommandProcessor {
         this.statsManager.statsOffset(request.getTopic(), request.getGroup(), 1);
         final MessageStore store = this.storeManager.getMessageStore(request.getTopic(), request.getPartition());
         if (store == null) {
-            return new BooleanCommand(HttpStatus.NotFound, "The topic `" + request.getTopic() + "` in partition `"
-                    + request.getPartition() + "` is not exists", request.getOpaque());
+            return new BooleanCommand(HttpStatus.NotFound, "The topic `" + request.getTopic() + "` in partition `" + request.getPartition() + "` is not exists", request.getOpaque());
         }
         final long offset = store.getNearestOffset(request.getOffset());
         return new BooleanCommand(HttpStatus.Success, String.valueOf(offset), request.getOpaque());

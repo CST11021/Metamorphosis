@@ -72,7 +72,9 @@ public class SimpleFetchManager implements FetchManager {
 
     private final static int CACAHE_SIZE = Integer.parseInt(System.getProperty("metaq.consumer.message_ids.lru_cache.size", "4096"));
 
-    /** 用于缓存消息ID，当消息被消费国后，会将消息缓存起来，这样当本次请求中有一个消息消费异常时，抓取请求会重新投递，这样下次拉取到的消息可能有些已经被消费了，就不需要在重复消费了 */
+    /**
+     * 用于缓存消息ID，当消息被消费国后，会将消息缓存起来，这样当本次请求中有一个消息消费异常时，抓取请求会重新投递，这样下次拉取到的消息可能有些已经被消费了，就不需要在重复消费了。
+     * 这里使用ConcurrentLRUHashMap：（最近最少使用）缓存替换策略，缓存大小为：4096 */
     private static MessageIdCache messageIdCache = new ConcurrentLRUHashMap(CACAHE_SIZE);
 
     private static final ThreadLocal<TopicPartitionRegInfo> currentTopicRegInfo = new ThreadLocal<TopicPartitionRegInfo>();
@@ -204,8 +206,7 @@ public class SimpleFetchManager implements FetchManager {
     }
 
     /**
-     * Set new message id cache to prevent duplicated messages for the same
-     * consumer group.
+     * Set new message id cache to prevent duplicated messages for the same consumer group.
      *
      * @since 1.4.6
      * @param newCache

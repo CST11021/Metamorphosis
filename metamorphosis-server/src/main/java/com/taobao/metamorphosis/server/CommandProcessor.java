@@ -69,6 +69,13 @@ public interface CommandProcessor extends Service {
     /** Under conditions that cannot use notify-remoting directly. */
     public ResponseCommand processGetCommand(GetCommand request, final SessionContext ctx, final boolean zeroCopy);
 
+    /**
+     * 客户端请求获取偏移量信息，客户端上传一个偏移量，然后MQ根据偏移量查找对应的偏移量地址
+     *
+     * @param request
+     * @param ctx
+     * @return 返回离指定offset往前追溯最近的可用offset ,当传入的offset超出范围的时候返回边界offset
+     */
     public ResponseCommand processOffsetCommand(OffsetCommand request, final SessionContext ctx);
 
     public void processQuitCommand(QuitCommand request, final SessionContext ctx);
