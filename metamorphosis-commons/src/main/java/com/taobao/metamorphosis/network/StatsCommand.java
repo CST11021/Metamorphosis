@@ -30,16 +30,16 @@ import com.taobao.gecko.core.buffer.IoBuffer;
  * 
  */
 public class StatsCommand extends AbstractRequestCommand {
-    static final long serialVersionUID = -1L;
-    // 统计项目名称，可以为空
-    private final String item;
 
+    static final long serialVersionUID = -1L;
+
+    /** 统计项目名称，可以为空 */
+    private final String item;
 
     public StatsCommand(final Integer opaque, final String item) {
         super(null, opaque);
         this.item = item;
     }
-
 
     public String getItem() {
         return this.item;
@@ -50,8 +50,7 @@ public class StatsCommand extends AbstractRequestCommand {
     public IoBuffer encode() {
         if (StringUtils.isBlank(this.item)) {
             return IoBuffer.wrap((MetaEncodeCommand.STATS_CMD + " " + " " + this.getOpaque() + "\r\n").getBytes());
-        }
-        else {
+        } else {
             final IoBuffer buf = IoBuffer.allocate(9 + this.item.length() + ByteUtils.stringSize(this.getOpaque()));
             ByteUtils.setArguments(buf, MetaEncodeCommand.STATS_CMD, this.item, this.getOpaque());
             buf.flip();

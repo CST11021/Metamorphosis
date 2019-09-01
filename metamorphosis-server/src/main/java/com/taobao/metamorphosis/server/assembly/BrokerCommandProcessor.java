@@ -478,8 +478,7 @@ public class BrokerCommandProcessor implements CommandProcessor {
             if (ctx.getConnection() != null) {
                 ctx.getConnection().close(false);
             }
-        }
-        catch (final NotifyRemotingException e) {
+        } catch (final NotifyRemotingException e) {
             // ignore
         }
 
@@ -560,41 +559,36 @@ public class BrokerCommandProcessor implements CommandProcessor {
         return null;
     }
 
+    // 事务相关的BrokerCommandProcessor都不支持
+
     @Override
     public void removeTransaction(final XATransactionId xid) {
         throw new UnsupportedOperationException("Unsupported removeTransaction");
     }
-
     @Override
     public Transaction getTransaction(final SessionContext context, final TransactionId xid) throws MetamorphosisException, XAException {
         throw new UnsupportedOperationException("Unsupported getTransaction");
     }
-
     @Override
     public void forgetTransaction(final SessionContext context, final TransactionId xid) throws Exception {
         throw new UnsupportedOperationException("Unsupported forgetTransaction");
     }
-
     @Override
     public void rollbackTransaction(final SessionContext context, final TransactionId xid) throws Exception {
         throw new UnsupportedOperationException("Unsupported rollbackTransaction");
     }
-
     @Override
     public void commitTransaction(final SessionContext context, final TransactionId xid, final boolean onePhase) throws Exception {
         throw new UnsupportedOperationException("Unsupported commitTransaction");
     }
-
     @Override
     public int prepareTransaction(final SessionContext context, final TransactionId xid) throws Exception {
         throw new UnsupportedOperationException("Unsupported prepareTransaction");
     }
-
     @Override
     public void beginTransaction(final SessionContext context, final TransactionId xid, final int seconds) throws Exception {
         throw new UnsupportedOperationException("Unsupported beginTransaction");
     }
-
     @Override
     public TransactionId[] getPreparedTransactions(final SessionContext context, String uniqueQualifier) throws Exception {
         throw new UnsupportedOperationException("Unsupported getPreparedTransactions");

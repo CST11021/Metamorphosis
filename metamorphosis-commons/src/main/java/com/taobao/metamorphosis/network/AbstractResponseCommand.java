@@ -1,12 +1,12 @@
 /*
  * (C) 2007-2012 Alibaba Group Holding Limited.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,80 +17,83 @@
  */
 package com.taobao.metamorphosis.network;
 
-import java.net.InetSocketAddress;
-
 import com.taobao.gecko.core.command.ResponseCommand;
 import com.taobao.gecko.core.command.ResponseStatus;
+
+import java.net.InetSocketAddress;
 
 
 /**
  * 应答命令基类
- * 
+ *
  * @author boyan
  * @Date 2011-6-2
- * 
  */
 public abstract class AbstractResponseCommand implements ResponseCommand, MetaEncodeCommand {
-    private Integer opaque;
-    private InetSocketAddress responseHost;
-    private long responseTime;
-    private ResponseStatus responseStatus;
+
     static final long serialVersionUID = -1L;
 
+    private Integer opaque;
+
+    /**
+     * 表示response的客户端
+     */
+    private InetSocketAddress responseHost;
+
+    /**
+     * 表示response的时间
+     */
+    private long responseTime;
+
+    /**
+     * 表示response的状态码
+     */
+    private ResponseStatus responseStatus;
 
     public AbstractResponseCommand(final Integer opaque) {
         super();
         this.opaque = opaque;
     }
 
-
     @Override
     public Integer getOpaque() {
         return this.opaque;
     }
-
 
     @Override
     public InetSocketAddress getResponseHost() {
         return this.responseHost;
     }
 
-
     @Override
     public void setResponseHost(final InetSocketAddress responseHost) {
         this.responseHost = responseHost;
     }
-
 
     @Override
     public long getResponseTime() {
         return this.responseTime;
     }
 
-
     @Override
     public void setResponseTime(final long responseTime) {
         this.responseTime = responseTime;
     }
-
 
     @Override
     public ResponseStatus getResponseStatus() {
         return this.responseStatus;
     }
 
-
     @Override
     public void setResponseStatus(final ResponseStatus responseStatus) {
         this.responseStatus = responseStatus;
     }
 
-
     @Override
     public void setOpaque(final Integer opaque) {
         this.opaque = opaque;
     }
-
 
     @Override
     public int hashCode() {
@@ -102,7 +105,6 @@ public abstract class AbstractResponseCommand implements ResponseCommand, MetaEn
         result = prime * result + (int) (this.responseTime ^ this.responseTime >>> 32);
         return result;
     }
-
 
     @Override
     public boolean equals(final Object obj) {
@@ -120,24 +122,21 @@ public abstract class AbstractResponseCommand implements ResponseCommand, MetaEn
             if (other.opaque != null) {
                 return false;
             }
-        }
-        else if (!this.opaque.equals(other.opaque)) {
+        } else if (!this.opaque.equals(other.opaque)) {
             return false;
         }
         if (this.responseHost == null) {
             if (other.responseHost != null) {
                 return false;
             }
-        }
-        else if (!this.responseHost.equals(other.responseHost)) {
+        } else if (!this.responseHost.equals(other.responseHost)) {
             return false;
         }
         if (this.responseStatus == null) {
             if (other.responseStatus != null) {
                 return false;
             }
-        }
-        else if (!this.responseStatus.equals(other.responseStatus)) {
+        } else if (!this.responseStatus.equals(other.responseStatus)) {
             return false;
         }
         if (this.responseTime != other.responseTime) {

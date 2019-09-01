@@ -28,9 +28,15 @@ import com.taobao.gecko.core.buffer.IoBuffer;
  * 
  * @author boyan(boyan@taobao.com)
  * @date 2011-12-14
+ *
+ *
+ * 这里SyncCommand继承PutCommand原因是以内，将master的消息同步到slaver，其实和生产者将消息put到MQ的所需要数据及协议是差不多的，
+ * 唯一不一样的是生产者不生成消息ID，消息ID由服务端生成，这里主从同步的命令协议需要额外添加一个消息ID
  * 
  */
 public class SyncCommand extends PutCommand {
+
+    /** 表示要同步的消息ID */
     private final long msgId;
 
     public SyncCommand(final String topic, final int partition, final byte[] data, final int flag, final long msgId, int checksum, final Integer opaque) {
@@ -45,11 +51,14 @@ public class SyncCommand extends PutCommand {
     @Override
     public IoBuffer encode() {
         final int dataLen = this.data == null ? 0 : this.data.length;
-        final IoBuffer buffer =
-                IoBuffer.allocate(13 + ByteUtils.stringSize(this.partition) + ByteUtils.stringSize(dataLen)
-                    + ByteUtils.stringSize(this.getOpaque()) + this.getTopic().length()
-                    + ByteUtils.stringSize(this.msgId) + ByteUtils.stringSize(this.flag)
-                    + ByteUtils.stringSize(this.checkSum) + dataLen);
+        final IoBuffer buffer = IoBuffer.allocate(13
+                + ByteUtils.stringSize(this.partition)
+                + ByteUtils.stringSize(dataLen)
+                + ByteUtils.stringSize(this.getOpaque())
+                + this.getTopic().length()
+                + ByteUtils.stringSize(this.msgId)
+                + ByteUtils.stringSize(this.flag)
+                + ByteUtils.stringSize(this.checkSum) + dataLen);
 
         ByteUtils.setArguments(buffer, MetaEncodeCommand.SYNC_CMD, this.getTopic(), this.partition, dataLen, this.flag,
             this.msgId, this.checkSum, this.getOpaque());

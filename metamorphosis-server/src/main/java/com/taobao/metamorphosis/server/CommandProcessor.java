@@ -89,23 +89,75 @@ public interface CommandProcessor extends Service {
     // 事务相关
     // -----------
 
+    /**
+     * 移除XA事务ID，当事务执行完成时，会调用该方法移除事务
+     *
+     * @param xid
+     */
     public void removeTransaction(final XATransactionId xid);
 
+    /**
+     * 根据事务ID获取事务
+     *
+     * @param context
+     * @param xid
+     * @return
+     * @throws MetamorphosisException
+     * @throws XAException
+     */
     public Transaction getTransaction(final SessionContext context, final TransactionId xid) throws MetamorphosisException, XAException;
 
     public void forgetTransaction(final SessionContext context, final TransactionId xid) throws Exception;
 
+    /**
+     * 回滚事务
+     *
+     * @param context
+     * @param xid
+     * @throws Exception
+     */
     public void rollbackTransaction(final SessionContext context, final TransactionId xid) throws Exception;
 
+    /**
+     * 提交事务
+     *
+     * @param context
+     * @param xid
+     * @param onePhase
+     * @throws Exception
+     */
     public void commitTransaction(final SessionContext context, final TransactionId xid, final boolean onePhase) throws Exception;
 
+    /**
+     * 事务准备
+     *
+     * @param context
+     * @param xid
+     * @return
+     * @throws Exception
+     */
     public int prepareTransaction(final SessionContext context, final TransactionId xid) throws Exception;
 
+    /**
+     * 开始事务
+     *
+     * @param context
+     * @param xid
+     * @param seconds
+     * @throws Exception
+     */
     public void beginTransaction(final SessionContext context, final TransactionId xid, final int seconds) throws Exception;
 
+    /**
+     * 获取本次请求的所有事务ID
+     *
+     * @param context
+     * @param uniqueQualifier
+     * @return
+     * @throws Exception
+     */
     public TransactionId[] getPreparedTransactions(final SessionContext context, String uniqueQualifier) throws Exception;
 
-    // public void setTransactionTimeout(final SessionContext ctx, final
-    // TransactionId xid, int seconds) throws Exception;
+    // public void setTransactionTimeout(final SessionContext ctx, final TransactionId xid, int seconds) throws Exception;
 
 }

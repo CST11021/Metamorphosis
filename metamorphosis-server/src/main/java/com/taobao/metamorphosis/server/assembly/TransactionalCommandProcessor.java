@@ -65,24 +65,28 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
 
     private static final Log LOG = LogFactory.getLog(TransactionalCommandProcessor.class);
 
-    private final TransactionStore transactionStore;
-    private final HeuristicTransactionJournal heuristicTransactionJournal;
-    // The prepared XA transactions.
-    private final Map<TransactionId, XATransaction> xaTransactions = new LinkedHashMap<TransactionId, XATransaction>();
+    private final IdWorker idWorker;
 
-    /**
-     * 手工提交或者回滚的事务
-     */
-    private Map<TransactionId, XATransaction> xaHeuristicTransactions =
-            new LinkedHashMap<TransactionId, XATransaction>();
+    private final MetaConfig metaConfig;
+
+    private final StatsManager statsManager;
 
     private final MessageStoreManager storeManager;
-    private final IdWorker idWorker;
-    private final StatsManager statsManager;
 
     private final Timer txTimeoutTimer;
 
-    private final MetaConfig metaConfig;
+    private final TransactionStore transactionStore;
+
+    private final HeuristicTransactionJournal heuristicTransactionJournal;
+
+    /** The prepared XA transactions. */
+    private final Map<TransactionId, XATransaction> xaTransactions = new LinkedHashMap<TransactionId, XATransaction>();
+
+    /** 手工提交或者回滚的事务 */
+    private Map<TransactionId, XATransaction> xaHeuristicTransactions = new LinkedHashMap<TransactionId, XATransaction>();
+
+
+
 
     private final ScheduledExecutorService scheduledExecutorService;
 
@@ -101,9 +105,8 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         this.storeManager = storeManager;
         this.transactionStore = transactionStore;
         this.statsManager = stasManager;
-        this.txTimeoutTimer =
-                new HashedWheelTimer(new NamedThreadFactory("Tx-Timeout-Timer"), 500, TimeUnit.MILLISECONDS, 512,
-                        metaConfig.getMaxTxTimeoutTimerCapacity());
+        this.txTimeoutTimer = new HashedWheelTimer(
+                new NamedThreadFactory("Tx-Timeout-Timer"), 500, TimeUnit.MILLISECONDS, 512, metaConfig.getMaxTxTimeoutTimerCapacity());
         MetaMBeanServer.registMBean(this, null);
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         this.scheduleWriteHeuristicTransactions(metaConfig);
@@ -131,10 +134,8 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         }, metaConfig.getCheckpointInterval(), metaConfig.getCheckpointInterval(), TimeUnit.MILLISECONDS);
     }
 
-
     @Override
-    public TransactionId[] getPreparedTransactions(final SessionContext context, final String uniqueQualifier)
-            throws Exception {
+    public TransactionId[] getPreparedTransactions(final SessionContext context, final String uniqueQualifier) throws Exception {
         final List<TransactionId> txs = new ArrayList<TransactionId>();
         synchronized (this.xaTransactions) {
             for (final Iterator<XATransaction> iter = this.xaTransactions.values().iterator(); iter.hasNext(); ) {
@@ -168,17 +169,14 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         return rc;
     }
 
-
     private boolean isValidTx(final String uniqueQualifier, final XATransaction tx) {
         assert tx.getUniqueQualifier() != null;
         // uniqueQualifier should not be null,but it may be sent by old clients.
         return tx.getUniqueQualifier().equals(uniqueQualifier) || uniqueQualifier == null;
     }
 
-
     @Override
-    public void beginTransaction(final SessionContext context, final TransactionId xid, final int seconds)
-            throws Exception {
+    public void beginTransaction(final SessionContext context, final TransactionId xid, final int seconds) throws Exception {
         Transaction transaction = null;
         if (xid.isXATransaction()) {
             this.statsManager.statsTxBegin(true, 1);
@@ -207,22 +205,18 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         }
     }
 
-
     @Override
     public int prepareTransaction(final SessionContext context, final TransactionId xid) throws Exception {
         final Transaction transaction = this.getTransaction(context, xid);
         return transaction.prepare();
     }
 
-
     @Override
-    public void commitTransaction(final SessionContext context, final TransactionId xid, final boolean onePhase)
-            throws Exception {
+    public void commitTransaction(final SessionContext context, final TransactionId xid, final boolean onePhase) throws Exception {
         this.statsManager.statsTxCommit(1);
         final Transaction transaction = this.getTransaction(context, xid);
         transaction.commit(onePhase);
     }
-
 
     @Override
     public void rollbackTransaction(final SessionContext context, final TransactionId xid) throws Exception {
@@ -230,7 +224,6 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         final Transaction transaction = this.getTransaction(context, xid);
         transaction.rollback();
     }
-
 
     @Override
     public void forgetTransaction(final SessionContext context, final TransactionId xid) throws Exception {
@@ -240,11 +233,11 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
             e.errorCode = XAException.XAER_NOTA;
             throw e;
         }
+
         synchronized (this.xaHeuristicTransactions) {
             this.xaHeuristicTransactions.remove(xid);
         }
     }
-
 
     @Override
     public void init() {
@@ -254,7 +247,6 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         this.recoverPreparedTransactions();
 
     }
-
 
     @Override
     public void dispose() {
@@ -271,7 +263,6 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
             log.error("Close heuristicTransactionJournal failed", e);
         }
     }
-
 
     void recoverPreparedTransactions() {
         try {
@@ -299,7 +290,6 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         }
     }
 
-
     @SuppressWarnings("unchecked")
     void recoverHeuristicTransactions() throws Exception {
         this.xaHeuristicTransactions = (Map<TransactionId, XATransaction>) this.heuristicTransactionJournal.read();
@@ -313,10 +303,8 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         }
     }
 
-
     @Override
-    public void processPutCommand(final PutCommand cmd, final SessionContext context, final PutCallback cb)
-            throws Exception {
+    public void processPutCommand(final PutCommand cmd, final SessionContext context, final PutCallback cb) throws Exception {
         Transaction transaction = null;
         if (cmd.getTransactionId() != null) {
             transaction = this.getTransaction(context, cmd.getTransactionId());
@@ -365,7 +353,6 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         }
     }
 
-
     /**
      * 返回形如"messageId partition offset"的字符号，返回给客户端
      *
@@ -382,10 +369,8 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         return sb.toString();
     }
 
-
     @Override
-    public Transaction getTransaction(final SessionContext context, final TransactionId xid)
-            throws MetamorphosisException, XAException {
+    public Transaction getTransaction(final SessionContext context, final TransactionId xid) throws MetamorphosisException, XAException {
         Transaction transaction = null;
         if (xid.isXATransaction()) {
             synchronized (this.xaTransactions) {
@@ -434,7 +419,6 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         }
     }
 
-
     @Override
     public void removeTransaction(final XATransactionId xid) {
         synchronized (this.xaTransactions) {
@@ -444,7 +428,6 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
 
     static final Log log = LogFactory.getLog(TransactionalCommandProcessor.class);
 
-
     /**
      * 设置XA事务超时
      *
@@ -453,8 +436,7 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
      * @throws MetamorphosisException
      * @throws XAException
      */
-    private void setTxTimeout(final SessionContext ctx, final Transaction tx, int seconds)
-            throws MetamorphosisException, XAException {
+    private void setTxTimeout(final SessionContext ctx, final Transaction tx, int seconds) throws MetamorphosisException, XAException {
         if (tx == null) {
             return;
         }
@@ -485,11 +467,9 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         }, seconds, TimeUnit.SECONDS));
     }
 
-
     /**
      * 以下为暴露给JMX MBean的接口方法
      */
-
     @Override
     public String[] getPreparedTransactions() throws Exception {
         final TransactionId[] ids = this.getPreparedTransactions(null, null);
@@ -500,12 +480,10 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         return rt;
     }
 
-
     @Override
     public int getPreparedTransactionCount() throws Exception {
         return this.getPreparedTransactions(null, null).length;
     }
-
 
     @Override
     public void commitTransactionHeuristically(final String txKey, final boolean onePhase) throws Exception {
@@ -524,11 +502,9 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
         }
     }
 
-
     public Map<TransactionId, XATransaction> getXAHeuristicTransactions() {
         return this.xaHeuristicTransactions;
     }
-
 
     @Override
     public void completeTransactionHeuristically(final String txKey) throws Exception {
@@ -548,7 +524,6 @@ public class TransactionalCommandProcessor extends CommandProcessorFilter implem
             this.xaHeuristicTransactions.put(xid, (XATransaction) transaction);
         }
     }
-
 
     @Override
     public void rollbackTransactionHeuristically(final String txKey) throws Exception {

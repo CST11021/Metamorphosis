@@ -40,17 +40,17 @@ import com.taobao.metamorphosis.transaction.XATransactionId;
  */
 public class XATransaction extends Transaction implements Serializable {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = -7059382594250215928L;
 
     private static final Log LOG = LogFactory.getLog(XATransaction.class);
 
+    /** 事务性存储引擎 */
     private transient TransactionStore transactionStore;
-    private XATransactionId xid;
-    private transient CommandProcessor brokerProcessor;
 
+    /** XA事务ID */
+    private XATransactionId xid;
+
+    private transient CommandProcessor brokerProcessor;
 
     public String getUniqueQualifier() {
         return this.xid.getUniqueQualifier();
@@ -60,9 +60,7 @@ public class XATransaction extends Transaction implements Serializable {
         super();
     }
 
-
-    public XATransaction(final CommandProcessor brokerProcessor, final TransactionStore transactionStore,
-            final XATransactionId xid) {
+    public XATransaction(final CommandProcessor brokerProcessor, final TransactionStore transactionStore, final XATransactionId xid) {
         this.transactionStore = transactionStore;
         this.xid = xid;
         this.brokerProcessor = brokerProcessor;
@@ -71,36 +69,29 @@ public class XATransaction extends Transaction implements Serializable {
         }
     }
 
-
     public TransactionStore getTransactionStore() {
         return this.transactionStore;
     }
-
 
     public void setTransactionStore(final TransactionStore transactionStore) {
         this.transactionStore = transactionStore;
     }
 
-
     public XATransactionId getXid() {
         return this.xid;
     }
-
 
     public void setXid(final XATransactionId xid) {
         this.xid = xid;
     }
 
-
     public CommandProcessor getBrokerProcessor() {
         return this.brokerProcessor;
     }
 
-
     public void setBrokerProcessor(final CommandProcessor brokerProcessor) {
         this.brokerProcessor = brokerProcessor;
     }
-
 
     @Override
     public void commit(final boolean onePhase) throws XAException, IOException {
@@ -132,7 +123,6 @@ public class XATransaction extends Transaction implements Serializable {
         }
     }
 
-
     private void storeCommit(final TransactionId txid, final boolean wasPrepared) throws XAException, IOException {
         try {
             this.transactionStore.commit(this.getTransactionId(), wasPrepared);
@@ -147,13 +137,11 @@ public class XATransaction extends Transaction implements Serializable {
         }
     }
 
-
     private void illegalStateTransition(final String callName) throws XAException {
         final XAException xae = new XAException("Cannot call " + callName + " now.");
         xae.errorCode = XAException.XAER_PROTO;
         throw xae;
     }
-
 
     private void checkForPreparedState(final boolean onePhase) throws XAException {
         if (!onePhase) {
@@ -163,7 +151,6 @@ public class XATransaction extends Transaction implements Serializable {
             throw xae;
         }
     }
-
 
     private void doPrePrepare() throws XAException, IOException {
         try {
@@ -181,7 +168,6 @@ public class XATransaction extends Transaction implements Serializable {
             throw xae;
         }
     }
-
 
     @Override
     public void rollback() throws XAException, IOException {
@@ -215,7 +201,6 @@ public class XATransaction extends Transaction implements Serializable {
 
     }
 
-
     @Override
     public int prepare() throws XAException, IOException {
         if (LOG.isDebugEnabled()) {
@@ -239,18 +224,15 @@ public class XATransaction extends Transaction implements Serializable {
         }
     }
 
-
     private void setStateFinished() {
         this.setState(Transaction.FINISHED_STATE);
         this.brokerProcessor.removeTransaction(this.xid);
     }
 
-
     @Override
     public TransactionId getTransactionId() {
         return this.xid;
     }
-
 
     @Override
     public Log getLog() {

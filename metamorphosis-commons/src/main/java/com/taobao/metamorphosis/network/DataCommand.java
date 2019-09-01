@@ -45,10 +45,51 @@ import com.taobao.gecko.core.buffer.IoBuffer;
  * 
  */
 public class DataCommand extends AbstractResponseCommand {
-    private final byte[] data;
+
     static final long serialVersionUID = -1L;
+
+    private final byte[] data;
+
     private boolean encodeHeader = false;
 
+    public DataCommand(final byte[] data, final Integer opaque) {
+        this(data, opaque, false);
+    }
+
+    public DataCommand(final byte[] data, final Integer opaque, boolean encodeHeader) {
+        super(opaque);
+        this.data = data;
+        this.encodeHeader = encodeHeader;
+    }
+
+    @Override
+    public final IoBuffer encode() {
+        if (this.encodeHeader) {
+            int totalDataLength = this.data != null ? this.data.length : 0;
+            final IoBuffer buffer =
+                    IoBuffer.allocate(9 + ByteUtils.stringSize(totalDataLength)
+                            + ByteUtils.stringSize(this.getOpaque()) + totalDataLength);
+            ByteUtils.setArguments(buffer, MetaEncodeCommand.VALUE_CMD, totalDataLength, this.getOpaque());
+            if (this.data != null) {
+                buffer.put(this.data);
+            }
+            buffer.flip();
+            return buffer;
+        }
+        else {
+            // We don't encode header,it is done by message set.
+            return null;
+        }
+    }
+
+    @Override
+    public boolean isBoolean() {
+        return false;
+    }
+
+    public byte[] getData() {
+        return this.data;
+    }
 
     @Override
     public int hashCode() {
@@ -80,49 +121,4 @@ public class DataCommand extends AbstractResponseCommand {
         }
         return true;
     }
-
-
-    public byte[] getData() {
-        return this.data;
-    }
-
-
-    public DataCommand(final byte[] data, final Integer opaque) {
-        this(data, opaque, false);
-    }
-
-
-    public DataCommand(final byte[] data, final Integer opaque, boolean encodeHeader) {
-        super(opaque);
-        this.data = data;
-        this.encodeHeader = encodeHeader;
-    }
-
-
-    @Override
-    public boolean isBoolean() {
-        return false;
-    }
-
-
-    @Override
-    public final IoBuffer encode() {
-        if (this.encodeHeader) {
-            int totalDataLength = this.data != null ? this.data.length : 0;
-            final IoBuffer buffer =
-                    IoBuffer.allocate(9 + ByteUtils.stringSize(totalDataLength)
-                        + ByteUtils.stringSize(this.getOpaque()) + totalDataLength);
-            ByteUtils.setArguments(buffer, MetaEncodeCommand.VALUE_CMD, totalDataLength, this.getOpaque());
-            if (this.data != null) {
-                buffer.put(this.data);
-            }
-            buffer.flip();
-            return buffer;
-        }
-        else {
-            // We don't encode header,it is done by message set.
-            return null;
-        }
-    }
-
 }

@@ -31,12 +31,16 @@ import com.taobao.metamorphosis.transaction.TransactionId;
  * 
  */
 public class SessionContextImpl implements SessionContext {
-    private final ConcurrentHashMap<TransactionId, Transaction> transactions =
-            new ConcurrentHashMap<TransactionId, Transaction>();
-    private String sessionId;
-    private Connection connection;
-    private boolean inRecoverMode;
 
+
+    private final ConcurrentHashMap<TransactionId, Transaction> transactions = new ConcurrentHashMap<TransactionId, Transaction>();
+
+    /** 表示当前请求的sessionId */
+    private String sessionId;
+
+    private Connection connection;
+
+    private boolean inRecoverMode;
 
     public SessionContextImpl(final String sessionId, final Connection connection) {
         super();
@@ -45,62 +49,32 @@ public class SessionContextImpl implements SessionContext {
     }
 
 
-    @Override
-    public boolean isInRecoverMode() {
-        return this.inRecoverMode;
-    }
 
-
-    public void setInRecoverMode(final boolean inRecoverMode) {
-        this.inRecoverMode = inRecoverMode;
-    }
-
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.server.network.SessionContext#getTransactions()
-     */
     @Override
     public ConcurrentHashMap<TransactionId, Transaction> getTransactions() {
         return this.transactions;
     }
-
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.server.network.SessionContext#getSessionId()
-     */
     @Override
     public String getSessionId() {
         return this.sessionId;
     }
-
-
     public void setSessionId(final String sessionId) {
         this.sessionId = sessionId;
     }
-
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.taobao.metamorphosis.server.network.SessionContext#getConnection()
-     */
     @Override
     public Connection getConnection() {
         return this.connection;
     }
-
-
     public void setConnection(final Connection connection) {
         this.connection = connection;
     }
-
+    @Override
+    public boolean isInRecoverMode() {
+        return this.inRecoverMode;
+    }
+    public void setInRecoverMode(final boolean inRecoverMode) {
+        this.inRecoverMode = inRecoverMode;
+    }
 
     @Override
     public int hashCode() {
@@ -111,7 +85,6 @@ public class SessionContextImpl implements SessionContext {
         result = prime * result + (this.transactions == null ? 0 : this.transactions.hashCode());
         return result;
     }
-
 
     @Override
     public boolean equals(final Object obj) {

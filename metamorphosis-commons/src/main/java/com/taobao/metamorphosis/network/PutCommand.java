@@ -45,7 +45,8 @@ public class PutCommand extends AbstractRequestCommand {
     protected int partition;
     /** 用于标识消息对象是否带有attribute属性，1：有，0：没有，具体参照{@link com.taobao.metamorphosis.utils.MessageFlagUtils#getFlag(Message)}*/
     protected final int flag;
-    protected int checkSum = -1; // added by dennis<killme2008@gmail.com>,issue
+    /** added by dennis<killme2008@gmail.com>,issue */
+    protected int checkSum = -1;
     /** 事务ID */
     private TransactionId transactionId;
 
@@ -77,22 +78,29 @@ public class PutCommand extends AbstractRequestCommand {
         final int dataLen = this.data == null ? 0 : this.data.length;
         final String transactionKey = this.transactionId != null ? this.transactionId.getTransactionKey() : null;
 
-        final IoBuffer buffer =
-                IoBuffer.allocate(11 + ByteUtils.stringSize(this.partition) + ByteUtils.stringSize(dataLen)
-                        + ByteUtils.stringSize(this.getOpaque()) + this.getTopic().length()
-                        + (transactionKey != null ? transactionKey.length() + 1 : 0) + ByteUtils.stringSize(this.flag)
-                        + ByteUtils.stringSize(this.checkSum) + dataLen);
+        // 分配该请求命令的内存大小
+        final IoBuffer buffer = IoBuffer.allocate(11
+                + ByteUtils.stringSize(this.partition)
+                + ByteUtils.stringSize(dataLen)
+                + ByteUtils.stringSize(this.getOpaque())
+                + this.getTopic().length()
+                + (transactionKey != null ? transactionKey.length() + 1 : 0)
+                + ByteUtils.stringSize(this.flag)
+                + ByteUtils.stringSize(this.checkSum) + dataLen);
+
         if (transactionKey != null) {
             ByteUtils.setArguments(buffer, MetaEncodeCommand.PUT_CMD, this.getTopic(), this.partition, dataLen,
                 this.flag, this.checkSum, transactionKey, this.getOpaque());
-        }
-        else {
+        } else {
             ByteUtils.setArguments(buffer, MetaEncodeCommand.PUT_CMD, this.getTopic(), this.partition, dataLen,
                 this.flag, this.checkSum, this.getOpaque());
         }
+
         if (this.data != null) {
             buffer.put(this.data);
         }
+
+        // ByteBuffer.flip()
         buffer.flip();
         return buffer;
     }

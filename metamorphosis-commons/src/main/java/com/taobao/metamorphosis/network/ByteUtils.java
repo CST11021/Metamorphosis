@@ -85,22 +85,26 @@ public final class ByteUtils {
         }
     }
 
+    /**
+     * 将args入参转为字节放入bb，并且在一个arg添加MetaEncodeCommand.SPACE，最后一个arg以MetaEncodeCommand.CRLF结束
+     *
+     * @param bb
+     * @param args
+     */
     public static final void setArguments(final IoBuffer bb, final Object... args) {
         boolean wasFirst = true;
         for (final Object o : args) {
             if (wasFirst) {
                 wasFirst = false;
-            }
-            else {
+            } else {
                 bb.put(MetaEncodeCommand.SPACE);
             }
+
             if (o instanceof byte[]) {
                 bb.put((byte[]) o);
-            }
-            else if (o instanceof String) {
+            } else if (o instanceof String) {
                 bb.put(getBytes((String) o));
-            }
-            else {
+            } else {
                 bb.put(getBytes(String.valueOf(o)));
             }
         }

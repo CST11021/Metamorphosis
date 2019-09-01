@@ -38,25 +38,24 @@ import com.taobao.metamorphosis.transaction.TransactionId;
  */
 public class LocalTransaction extends Transaction {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 3488724356970710207L;
 
     private static final Log LOG = LogFactory.getLog(LocalTransaction.class);
 
+    /** 事务性存储引擎 */
     private final transient TransactionStore transactionStore;
+
+    /** 事务ID */
     private final LocalTransactionId xid;
+
     private final transient SessionContext context;
 
 
-    public LocalTransaction(final TransactionStore transactionStore, final LocalTransactionId xid,
-            final SessionContext context) {
+    public LocalTransaction(final TransactionStore transactionStore, final LocalTransactionId xid, final SessionContext context) {
         this.transactionStore = transactionStore;
         this.xid = xid;
         this.context = context;
     }
-
 
     @Override
     public void commit(final boolean onePhase) throws XAException, IOException {
@@ -96,7 +95,6 @@ public class LocalTransaction extends Transaction {
         }
     }
 
-
     @Override
     public void rollback() throws XAException, IOException {
 
@@ -108,7 +106,6 @@ public class LocalTransaction extends Transaction {
         this.transactionStore.rollback(this.getTransactionId());
     }
 
-
     @Override
     public int prepare() throws XAException {
         final XAException xae = new XAException("Prepare not implemented on Local Transactions.");
@@ -116,12 +113,10 @@ public class LocalTransaction extends Transaction {
         throw xae;
     }
 
-
     @Override
     public TransactionId getTransactionId() {
         return this.xid;
     }
-
 
     @Override
     public Log getLog() {

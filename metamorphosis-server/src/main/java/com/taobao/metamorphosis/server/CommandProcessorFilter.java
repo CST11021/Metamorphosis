@@ -42,6 +42,9 @@ import com.taobao.metamorphosis.transaction.XATransactionId;
  */
 public class CommandProcessorFilter implements CommandProcessor {
 
+    /**
+     * Processor过滤器器，所有来自客户端的请求都会先由该CommandProcessor处理
+     */
     private final CommandProcessor next;
 
     public CommandProcessorFilter(final CommandProcessor next) {

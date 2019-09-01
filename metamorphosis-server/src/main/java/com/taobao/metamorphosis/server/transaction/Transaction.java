@@ -41,9 +41,15 @@ public abstract class Transaction implements Serializable {
      * 
      */
     private static final long serialVersionUID = -5907949950359568586L;
-    public static final byte START_STATE = 0; // can go to: 1,2,3
-    public static final byte IN_USE_STATE = 1; // can go to: 2,3
-    public static final byte PREPARED_STATE = 2; // can go to: 3
+
+    /** can go to: 1,2,3 */
+    public static final byte START_STATE = 0;
+
+    /** can go to: 2,3 */
+    public static final byte IN_USE_STATE = 1;
+
+    /** can go to: 3 */
+    public static final byte PREPARED_STATE = 2;
     public static final byte FINISHED_STATE = 3;
     public static final byte HEURISTIC_COMMIT_STATE = 4;
     public static final byte HEURISTIC_ROLLBACK_STATE = 5;
@@ -53,21 +59,17 @@ public abstract class Transaction implements Serializable {
 
     private volatile byte state = START_STATE;
 
-
     public byte getState() {
         return this.state;
     }
-
 
     public Timeout getTimeoutRef() {
         return this.timeoutRef;
     }
 
-
     public void setTimeoutRef(final Timeout timeoutRef) {
         this.timeoutRef = timeoutRef;
     }
-
 
     public void setState(final byte state) {
         if (state == FINISHED_STATE) {
@@ -79,7 +81,6 @@ public abstract class Transaction implements Serializable {
         this.state = state;
     }
 
-
     /**
      * 设置事务正在被使用中
      */
@@ -89,13 +90,11 @@ public abstract class Transaction implements Serializable {
         }
     }
 
-
     protected void cancelTimeout() {
         if (this.timeoutRef != null) {
             this.timeoutRef.cancel();
         }
     }
-
 
     public void prePrepare() throws Exception {
         // Is it ok to call prepare now given the state of the
@@ -111,21 +110,15 @@ public abstract class Transaction implements Serializable {
         }
     }
 
-
     public abstract void commit(boolean onePhase) throws XAException, IOException;
-
 
     public abstract void rollback() throws XAException, IOException;
 
-
     public abstract int prepare() throws XAException, IOException;
-
 
     public abstract TransactionId getTransactionId();
 
-
     public abstract Log getLog();
-
 
     public boolean isPrepared() {
         return this.getState() == PREPARED_STATE;

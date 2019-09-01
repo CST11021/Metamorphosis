@@ -148,8 +148,7 @@ public class MetaMorphosisBroker implements MetaMorphosisBrokerMBean {
                 this.remotingServer, metaConfig, this.idWorker, this.brokerZooKeeper, this.consumerFilterManager);
 
         // 事务命令处理器
-        this.brokerProcessor = new TransactionalCommandProcessor(
-                metaConfig, this.storeManager, this.idWorker, next, transactionStore, this.statsManager);
+        this.brokerProcessor = new TransactionalCommandProcessor(metaConfig, this.storeManager, this.idWorker, next, transactionStore, this.statsManager);
 
         MetaMBeanServer.registMBean(this, null);
     }

@@ -31,14 +31,14 @@ import com.taobao.gecko.core.command.kernel.BooleanAckCommand;
  */
 public class BooleanCommand extends AbstractResponseCommand implements BooleanAckCommand {
 
+    static final long serialVersionUID = -1L;
+
     private String message;
 
     /**
      * status code in http protocol
      */
     private final int code;
-    static final long serialVersionUID = -1L;
-
 
     public BooleanCommand(final int code, final String message, final Integer opaque) {
         super(opaque);
@@ -54,24 +54,20 @@ public class BooleanCommand extends AbstractResponseCommand implements BooleanAc
         this.message = message;
     }
 
-
     @Override
     public String getErrorMsg() {
         return this.message;
     }
 
-
     public int getCode() {
         return this.code;
     }
-
 
     @Override
     public void setErrorMsg(final String errorMsg) {
         this.message = errorMsg;
 
     }
-
 
     @Override
     public IoBuffer encode() {
@@ -88,7 +84,6 @@ public class BooleanCommand extends AbstractResponseCommand implements BooleanAc
         return buffer;
     }
 
-
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -97,7 +92,6 @@ public class BooleanCommand extends AbstractResponseCommand implements BooleanAc
         result = prime * result + (this.message == null ? 0 : this.message.hashCode());
         return result;
     }
-
 
     @Override
     public boolean equals(final Object obj) {
@@ -124,7 +118,6 @@ public class BooleanCommand extends AbstractResponseCommand implements BooleanAc
         }
         return true;
     }
-
 
     @Override
     public boolean isBoolean() {

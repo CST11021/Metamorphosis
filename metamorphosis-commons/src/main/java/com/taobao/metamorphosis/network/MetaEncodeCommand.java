@@ -29,7 +29,7 @@ import com.taobao.gecko.core.buffer.IoBuffer;
  */
 public interface MetaEncodeCommand {
     /**
-     * 编码协议
+     * 编码协议：将请求命令统一转为IoBuffer
      * 
      * @return 编码后的buffer
      */

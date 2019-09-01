@@ -31,13 +31,11 @@ public class QuitCommand extends AbstractRequestCommand {
 
     static final long serialVersionUID = -1L;
 
+    static final IoBuffer QUIT_BUF = IoBuffer.wrap((MetaEncodeCommand.QUIT_CMD + "\r\n").getBytes());
 
     public QuitCommand() {
         super(null, Integer.MAX_VALUE);
     }
-
-    static final IoBuffer QUIT_BUF = IoBuffer.wrap((MetaEncodeCommand.QUIT_CMD + "\r\n").getBytes());
-
 
     @Override
     public IoBuffer encode() {
