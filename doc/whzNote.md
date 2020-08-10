@@ -2,7 +2,7 @@
 
 ## Metamorphosis介绍
 
-​	Metamorphosis是一个高性能、高可用、可扩展的分布式消息中间件，思路起源于LinkedIn的Kafka，但并不是Kafka的一个Copy。具有消息存储顺序写、吞吐量大和支持本地和XA事务等特性，适用于大吞吐量、顺序消息、广播和日志数据传输等场景，目前在淘宝和支付宝有着广泛的应用。
+​		Metamorphosis是一个高性能、高可用、可扩展的分布式消息中间件，思路起源于LinkedIn的Kafka，但并不是Kafka的一个Copy。具有消息存储顺序写、吞吐量大和支持本地和XA事务等特性，适用于大吞吐量、顺序消息、广播和日志数据传输等场景，目前在淘宝和支付宝有着广泛的应用。
 
 ###特征
 * 生产者、服务器和消费者都可分布
@@ -39,37 +39,38 @@
 
 ### 架构示意
 
-![image-20190722223749189](assets/image-20190722223749189.png)
+<img src="assets/image-20190722223749189.png" width="60%"/>
+
+
 
 ​		从上图可以看出，有4个集群。其中，Broker集群存在MASTER-SLAVE结构。多台broker组成一个集群提供一些topic服务，生产者集群可以按照一定的路由规则往集群里某台broker的某个topic发送消息，消费者集群按照一定的路由规则拉取某台broker上的消息。
 
-###总体结构
+###总体架构
 
-<img src="assets/MetaQ总体结构.png" width=60%/>
+<img src="assets/MetaQ总体结构.png" width=40%/>
 
-###内部结构
-<img src="assets/MetaQ内部结构.png" width=60%/>
+<img src="assets/MetaQ内部结构.png" width=50%/>
 
 ###源代码结构
 
-* Client,生产者和消费者客户端
-* Client-extension，扩展的客户端。用于将消费处理失败的消息存入notify(未提供),和使用meta作为log4j appender，可以透明地使用log4j API发送消息到meta。
-* Commons，客户端和服务端一些公用的东西
-* Example,客户端使用的例子
-* http-client，使用http协议的客户端
-* server，服务端工程
-* server-wrapper，扩展的服务端，用于将其他插件集成到服务端，提供扩展功能
-    1.Meta gergor，用于高可用的同步复制
-    2.Meta slave，用于高可用的异步复制
-    3.http，提供http协议支持
-* Meta spout，用于将meta消息接入到twitter storm集群做实时分析
-* Tools，提供服务端管理和操作的一些工具
+* Client：生产者和消费者客户端
+* Client-extension：扩展的客户端，用于将消费处理失败的消息存入notify(未提供)和使用meta作为log4j appender，可以透明地使用log4j API发送消息到meta。
+* Commons：客户端和服务端一些公用的东西
+* Example：客户端使用的例子
+* http-client：使用http协议的客户端
+* server：服务端project
+* server-wrapper：扩展的服务端，用于将其他插件集成到服务端，提供扩展功能
+    1. Meta gergor：用于高可用的同步复制
+    2. Meta slave：用于高可用的异步复制
+    3. http，提供http协议支持
+* Meta spout：用于将meta消息接入到twitter storm集群做实时分析
+* Tools：提供服务端管理和操作的一些工具
 
-<img src="assets/metaq模块依赖.png"/>
+<img src="assets/image-20200809095622376.png" alt="image-20200809095622376" style="zoom:30%;" />
 
 
 
-## 客户端使用例子说明
+## metamorphosis-example模块案例说明
 
 metamorphosis-example里面有详细的使用例子，包括：
 
@@ -104,6 +105,10 @@ metamorphosis-example里面有详细的使用例子，包括：
 
 
 ## 配置参数说明
+
+<img src="assets/image-20200809100832796.png" alt="image-20200809100832796" style="zoom:40%;" />
+
+
 
 ###1.MetaQ服务器端配置
 
@@ -233,7 +238,7 @@ private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
 ####2.3消费者配置
 
 ```java
-/** MetaQ的消费者是以pull模型来从服务端拉取数据并消费，这个参数设置并行拉取的线程数，默认是CPU个数 */
+		/** MetaQ的消费者是以pull模型来从服务端拉取数据并消费，这个参数设置并行拉取的线程数，默认是CPU个数 */
     private int fetchRunnerCount = Runtime.getRuntime().availableProcessors();
     /** 当上一次没有抓取到的消息，抓取线程就会sleep，这里为设置sleep的最大时间，默认5秒，单位毫秒，测试的时候可以设置少点，不然会有消费延迟的现象 */
     private long maxDelayFetchTimeInMills = 5000;
@@ -475,7 +480,7 @@ Consumer的balance策略实现在metaq中提供了两种：ConsisHashStrategy和
 
 
 
-##答疑
+##FAQ
 
 ###服务端FAQ
 
@@ -773,7 +778,7 @@ mysql存储需要传入JDBC数据源。
 
 ​		在MetaQ里，消费者被认为是一个集群，也就是说认为是有一组的机器在共同分担消费一个topic。因此消费者配置`ConsumerConfig`中最重要的配置是group，每个消费者都必须告诉MetaQ它属于哪个group，然后MetaQ会找出这个group下所有注册上来的消费者，在他们之间做负载均衡，共同消费一个或多个topic。注意，不同group之间可以认为是不同的消费者，他们消费同一个topic下的消息的进度是不同。
 
-​	举例来说，假设你有一个topic为`business-logs`，是所有业务系统的日志。然后现在你对这些日志要做两个事情：一个是存储到HDFS这样的分布式文件系统，以便后续做分析处理；以个是Twitter Storm这样的实时分析系统，做实时的数据分析、告警和展现。显然，这里你就需要两个group，比如我们有一个group叫`hdfs-writer`，它有三台机器同时消费`business-logs`，将日志存储到HDFS集群。同时，你也有另一个group叫`storm-spouts`，有5台机器用来给storm集群喂数据。这两个group是隔离，虽然是消费同一个topic，但是两者是消费进度（消费了多少个消息，等待消费多少个消息等信息）是不同的。但是同一个group内，例如`hdfs-writer`的三台机器，这三台机器是共同消费`business-logs`下的消息，同一条消息只会被这`hdfs-writer`三台机器中的一台处理，但是这条消息还会被`twitter-spouts`等其他分组内的某一台机器消费。
+​	举例来说，假设你有一个topic为`business-logs`，是所有业务系统的日志。然后现在你对这些日志要做两个事情：一个是存储到HDFS这样的分布式文件系统，以便后续做分析处理；一个是Twitter Storm这样的实时分析系统，做实时的数据分析、告警和展现。显然，这里你就需要两个group，比如我们有一个group叫`hdfs-writer`，它有三台机器同时消费`business-logs`，将日志存储到HDFS集群。同时，你也有另一个group叫`storm-spouts`，有5台机器用来给storm集群喂数据。这两个group是隔离，虽然是消费同一个topic，但是两者是消费进度（消费了多少个消息，等待消费多少个消息等信息）是不同的。但是同一个group内，例如`hdfs-writer`的三台机器，这三台机器是共同消费`business-logs`下的消息，同一条消息只会被这`hdfs-writer`三台机器中的一台处理，但是这条消息还会被`twitter-spouts`等其他分组内的某一台机器消费。
 
 #### #为什么在调用subscribe还要调用一次completeSubscribe?
 

@@ -24,7 +24,7 @@ import com.taobao.metamorphosis.cluster.Partition;
 
 
 /**
- * A message with topic and data,a string attribute is optional.
+ * 带有topic和data的消息，attribute是可选的。
  * 
  * @author boyan
  * @Date 2011-4-19
@@ -34,6 +34,7 @@ import com.taobao.metamorphosis.cluster.Partition;
  */
 public class Message implements Serializable {
     static final long serialVersionUID = -1L;
+    /** 表示消息ID */
     private long id;
     /** 消息所属的topic */
     private String topic;
@@ -92,8 +93,7 @@ public class Message implements Serializable {
     }
 
     /**
-     * Returns the message's id.If it was sent success,the message id would be
-     * returned by broker,otherwise is zero.
+     * 返回消息的ID。如果发送成功，则代理将返回消息ID，否则为零。
      *
      * @return
      */

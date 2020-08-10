@@ -27,6 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
+ * »ùÓÚConcurrentHashMapµÄ´æ´¢Æ÷
+ *
  * @author dogun (yuexuqiang at gmail.com)
  */
 public class MemStore implements Store {

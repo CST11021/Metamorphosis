@@ -40,42 +40,6 @@ import com.taobao.metamorphosis.exception.MetaClientException;
  */
 public interface MessageSessionFactory extends Shutdownable {
 
-    /**
-     * 根据topic获取该topic下的所有分区
-     *
-     * @param topic
-     * @return partitions list
-     */
-    public List<Partition> getPartitionsForTopic(String topic);
-
-    /**
-     * Returns a topic browser to iterate all messages under the topic from all alive brokers.
-     *
-     * @param topic the topic
-     * @param maxSize fetch batch size in bytes.
-     * @param timeout timeout value to fetch messages.
-     * @param timeUnit timeout value unit.
-     * @since 1.4.5
-     * @return topic browser
-     */
-    public TopicBrowser createTopicBrowser(String topic, int maxSize, long timeout, TimeUnit timeUnit);
-
-    /**
-     * Returns a topic browser to iterate all messages under the topic from all alive brokers.
-     *
-     * @param topic the topic
-     * @since 1.4.5
-     * @return topic browser
-     * @see #createTopicBrowser(String, int, long, TimeUnit)
-     */
-    public TopicBrowser createTopicBrowser(String topic);
-
-
-
-
-
-
-
     // ---------
     // 创建生产者
     // ---------
@@ -134,6 +98,39 @@ public interface MessageSessionFactory extends Shutdownable {
      * @return
      */
     public MessageConsumer createConsumer(ConsumerConfig consumerConfig, OffsetStorage offsetStorage);
+
+
+
+
+    /**
+     * 根据topic获取该topic下的所有分区
+     *
+     * @param topic
+     * @return partitions list
+     */
+    public List<Partition> getPartitionsForTopic(String topic);
+
+    /**
+     * Returns a topic browser to iterate all messages under the topic from all alive brokers.
+     *
+     * @param topic the topic
+     * @param maxSize fetch batch size in bytes.
+     * @param timeout timeout value to fetch messages.
+     * @param timeUnit timeout value unit.
+     * @since 1.4.5
+     * @return topic browser
+     */
+    public TopicBrowser createTopicBrowser(String topic, int maxSize, long timeout, TimeUnit timeUnit);
+
+    /**
+     * Returns a topic browser to iterate all messages under the topic from all alive brokers.
+     *
+     * @param topic the topic
+     * @since 1.4.5
+     * @return topic browser
+     * @see #createTopicBrowser(String, int, long, TimeUnit)
+     */
+    public TopicBrowser createTopicBrowser(String topic);
 
     /**
      * Get statistics information from all brokers in this session factory.

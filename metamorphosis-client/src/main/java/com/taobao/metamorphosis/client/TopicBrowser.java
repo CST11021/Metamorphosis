@@ -8,12 +8,7 @@ import com.taobao.metamorphosis.cluster.Partition;
 
 
 /**
- * 用于查看该topic下的所有分区和消息
- *
- * Allows browsing of messages on a Topic.
- * 
- * A client uses a TopicBrowser to look at messages on a topic without consuming
- * them.
+ * 每个topic对应一个TopicBrowser实例，用于查看指定topic下的所有分区和消息
  * 
  * @author dennis<killme2008@gmail.com>
  * @since 1.4.5
@@ -22,24 +17,21 @@ import com.taobao.metamorphosis.cluster.Partition;
 public interface TopicBrowser extends Shutdownable {
 
     /**
-     * Returns an iterator to iterate all messages under this topic from all
-     * alive brokers.The iteration order is from the smallest broker's smallest
-     * partition to the biggest broker's biggest partition.Everytime it returns
-     * a new iterator.
+     * 返回一个迭代器，该迭代器用于访问该topic的下的所有分区消息
      * 
      * @return
      */
     public Iterator<Message> iterator();
 
     /**
-     * Returns topic's all alive partitions.
+     * 返回topic所有可用的分区列表
      * 
      * @return
      */
     public List<Partition> getPartitions();
 
     /**
-     * Returns the topic
+     * 返回该TopicBrowser实例对应的topic
      * 
      * @return
      */

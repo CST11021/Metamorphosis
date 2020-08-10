@@ -44,7 +44,7 @@
 			<artifactId>metamorphosis-commons</artifactId>
 		</dependency>
 
-		<!--spring-->
+		<!--第三方-->
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-beans</artifactId>
@@ -52,7 +52,18 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!--第三方-->
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+		</dependency>
+
+
+
+
+
+
+
+		<!--测试-->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -62,10 +73,6 @@
 			<groupId>org.easymock</groupId>
 			<artifactId>easymockclassextension</artifactId>
 			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>log4j</groupId>

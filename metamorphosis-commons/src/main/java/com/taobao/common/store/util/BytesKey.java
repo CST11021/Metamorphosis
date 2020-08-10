@@ -21,8 +21,7 @@ import java.io.Serializable;
 
 
 /**
- * 由于byte[]作为map的key时，会造成每次的key都不一样，所以必须封装一下。 <br />
- * 该类就是封装了byte[]
+ * 封装byte[]，当byte[]作为map的key时，可以通过重写hashCode()和equals()方法提高读写效率，所以有必要封装一下
  *
  * @author dogun (yuexuqiang at gmail.com)
  */
@@ -39,16 +38,11 @@ public class BytesKey implements Serializable {
         this.data = data;
     }
 
-    /**
-     * @return the data
-     */
+    // getter and setter
+
     public byte[] getData() {
         return data;
     }
-
-    /**
-     * @param data the data to set
-     */
     public void setData(final byte[] data) {
         this.data = data;
     }

@@ -35,6 +35,7 @@ import com.taobao.metamorphosis.utils.MessageUtils;
  * 
  */
 public class MessageIterator {
+    /** 消息所属的topic */
     private final String topic;
     /** 表示一次拉取的所有的消息数据 */
     private final byte[] data;

@@ -52,7 +52,7 @@ public interface MessageRecoverManager extends Shutdownable {
 
 
     /**
-     * 存入消息
+     * 将消息存到指定的分区
      * 
      * @param message
      * @param partition

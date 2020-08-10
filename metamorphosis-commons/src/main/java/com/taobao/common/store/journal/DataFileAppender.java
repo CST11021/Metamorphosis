@@ -61,21 +61,31 @@ public class DataFileAppender {
         return this.enqueueTryWait(opItem, sync, writeCommand);
     }
 
-
-    public OpItem store(final OpItem opItem, final BytesKey bytesKey, final byte[] data, final boolean sync)
-            throws IOException {
+    /**
+     * 保存消息到消息文件
+     *
+     * @param opItem        消息的信息
+     * @param bytesKey      表示消息ID
+     * @param data          对应消息对象Message
+     * @param sync          是否同步追加到消息文件中
+     * @return
+     * @throws IOException
+     */
+    public OpItem store(final OpItem opItem, final BytesKey bytesKey, final byte[] data, final boolean sync) throws IOException {
         if (this.shutdown) {
             throw new RuntimeException("DataFileAppender已经关闭");
         }
+
         opItem.key = bytesKey.getData();
         opItem.length = data.length;
+
+        // build WriteCommand
         final WriteCommand writeCommand = new WriteCommand(bytesKey, opItem, data, sync);
         return this.enqueueTryWait(opItem, sync, writeCommand);
     }
 
 
-    private OpItem enqueueTryWait(final OpItem opItem, final boolean sync, final WriteCommand writeCommand)
-            throws IOException {
+    private OpItem enqueueTryWait(final OpItem opItem, final boolean sync, final WriteCommand writeCommand) throws IOException {
         final WriteBatch batch = this.enqueue(writeCommand, sync);
         if (sync) {
             try {
@@ -284,7 +294,14 @@ public class DataFileAppender {
         }
     }
 
-
+    /**
+     *
+     *
+     * @param writeCommand
+     * @param sync
+     * @return
+     * @throws IOException
+     */
     private WriteBatch enqueue(final WriteCommand writeCommand, final boolean sync) throws IOException {
         WriteBatch result = null;
         this.enqueueLock.lock();
@@ -313,6 +330,7 @@ public class DataFileAppender {
                     this.empty.signalAll();
                 }
             }
+
             if (!sync) {
                 final InflyWriteData inflyWriteData = this.inflyWrites.get(writeCommand.bytesKey);
                 switch (writeCommand.opItem.op) {
@@ -400,10 +418,17 @@ public class DataFileAppender {
         return dataFile;
     }
 
+    /**
+     * 表示一个存储消息到消息文件的命令
+     */
     private class WriteCommand {
+        /** 表示消息id */
         final BytesKey bytesKey;
+        /** 消息信息 */
         final OpItem opItem;
+        /** 对应消息对象Message */
         final byte[] data;
+        /** 是否同步写入文件 */
         final boolean sync;
 
 

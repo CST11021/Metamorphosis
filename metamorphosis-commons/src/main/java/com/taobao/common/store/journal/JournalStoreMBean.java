@@ -42,7 +42,7 @@ public interface JournalStoreMBean {
     String getLogFilesInfo();
 
     /**
-     * 获取当前的文件编号
+     * 返回该分区下消息文件的个数，即当前可存储消息的文件编号
      * 
      * @return 当前的文件编号
      */
@@ -98,8 +98,18 @@ public interface JournalStoreMBean {
      */
     void check() throws IOException;
 
+    /**
+     * 返回消息的保存时间，即从保存到store开始后，间隔多久从store中移除消息
+     *
+     * @return
+     */
     long getIntervalForRemove();
 
+    /**
+     * 设置消息的保存时间，即从保存到store开始后，间隔多久从store中移除消息
+     *
+     * @param interval
+     */
     void setIntervalForRemove(long interval);
 
     long getIntervalForCompact();

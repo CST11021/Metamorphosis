@@ -316,7 +316,13 @@ public class LocalMessageStorageManager implements MessageRecoverManager {
 
     }
 
-
+    /**
+     * 将消息存到指定的分区
+     *
+     * @param message
+     * @param partition
+     * @throws IOException
+     */
     @Override
     public void append(final Message message, final Partition partition) throws IOException {
         final Store store = this.getOrCreateStore(message.getTopic(), partition);

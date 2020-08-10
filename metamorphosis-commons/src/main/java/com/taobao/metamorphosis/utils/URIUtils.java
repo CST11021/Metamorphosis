@@ -31,7 +31,6 @@ import java.util.Scanner;
  * @author нч╩╗
  * @since 2011-6-22 обнГ04:04:00
  */
-
 public class URIUtils {
 
     private static final String PARAMETER_SEPARATOR = "&";

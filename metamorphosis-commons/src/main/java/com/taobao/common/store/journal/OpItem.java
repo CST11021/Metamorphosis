@@ -28,16 +28,23 @@ import java.util.Arrays;
  */
 public class OpItem {
 
+    /** 表示从日志文件添加消息的操作 */
     public static final byte OP_ADD = 1;
+    /** 表示从日志文件删除消息的操作 */
     public static final byte OP_DEL = 2;
 
     public static final int KEY_LENGTH = 16;
     public static final int LENGTH = KEY_LENGTH + 1 + 4 + 8 + 4;
 
+    /** 表示操作类型，对应{@link #OP_ADD}或者{@link #OP_DEL} */
     byte op;
+    /** 消息ID */
     byte[] key;
+    /** 对应消息所在分区下的消息文件缩影，表示第几个消息文件 */
     int number;
+    /** 表示消息的偏移量，即所在消息文件的位置，对应{@link DataFile#position()} */
     volatile long offset;
+    /** 表示消息对象Message的字节大小 */
     int length;
 
     /**
