@@ -41,8 +41,7 @@ import com.taobao.metamorphosis.transaction.TransactionInfo;
 import com.taobao.metamorphosis.transaction.TransactionInfo.TransactionType;
 
 /**
- * Metamorphosis wire format type
- * MetamorphosisWireFormatType 负责Command的编码解码工作，MetamorphosisWireFormatType实现接口WireFormatType
+ * MetamorphosisWireFormatType：负责Command的编码解码工作，MetamorphosisWireFormatType实现继承自com.taobao.gecko.service.config.WireFormatType
  * 
  * @author boyan
  * @Date 2011-4-19

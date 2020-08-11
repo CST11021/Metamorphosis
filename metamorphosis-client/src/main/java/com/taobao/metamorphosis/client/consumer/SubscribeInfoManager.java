@@ -24,15 +24,16 @@ import com.taobao.metamorphosis.exception.MetaClientException;
 
 
 /**
- * 订阅信息管理器：用于维护哪个topic被哪个监听器监听，{@link MessageListener}监听器用于消费消费
+ * 订阅信息管理器：用于维护哪个topic被哪个监听器监听，{@link MessageListener}监听器用于消费消息
  */
 public class SubscribeInfoManager {
 
-    /** Map<group, Map<topic, SubscriberInfo>> 用于维护哪个topic被哪个监听器监听，{@link MessageListener}监听器用于消费消费*/
+    /** Map<group, Map<topic, SubscriberInfo>> 用于维护哪个topic被哪个监听器监听，{@link MessageListener}监听器用于消费消息 */
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, SubscriberInfo>> groupTopicSubcriberRegistry = new ConcurrentHashMap<String, ConcurrentHashMap<String, SubscriberInfo>>();
 
     /**
      * 订阅topic
+     *
      * @param topic                 表示被消费端订阅的topic
      * @param group                 消费端的group分组
      * @param maxSize               消费端单次接收消费的最大数据量
@@ -57,8 +58,9 @@ public class SubscribeInfoManager {
 
     /**
      * 获取group下的订阅信息
+     *
      * @param group
-     * @return
+     * @return Map<topic, SubscriberInfo>
      * @throws MetaClientException
      */
     private ConcurrentHashMap<String, SubscriberInfo> getTopicSubscriberRegistry(final String group) throws MetaClientException {
@@ -77,6 +79,7 @@ public class SubscribeInfoManager {
 
     /**
      * 获取topic对应的消息监听器
+     *
      * @param topic
      * @param group
      * @return
@@ -96,6 +99,7 @@ public class SubscribeInfoManager {
 
     /**
      * 移除group分组的订阅信息
+     *
      * @param group
      */
     public void removeGroup(final String group) {
@@ -104,6 +108,7 @@ public class SubscribeInfoManager {
 
     /**
      * 获取所有的订阅信息
+     *
      * @return
      */
     ConcurrentHashMap<String, ConcurrentHashMap<String, SubscriberInfo>> getGroupTopicSubcriberRegistry() {

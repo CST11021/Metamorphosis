@@ -305,7 +305,9 @@ private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
 
 
 
-##MessageSessionFactory
+##核心组件
+
+###会话工厂：MessageSessionFactory
 
 作用：
 
@@ -319,17 +321,86 @@ private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
 
 实现类：
 
-![image-20181231111712303](assets/image-20181231111712303.png)
+<img src="assets/image-20200810220520812.png" alt="image-20200810220520812" style="zoom:40%;"/>
 
-* MetaBroadcastMessageSessionFactory：广播消息会话工厂，使用这个创建的Consumer在同一分组内的每台机器都能收到同一条消息，推荐一个应用只使用一个MessageSessionFactory。
 
-* AsyncMessageSessionFactory：用于创建异步单向发送消息的会话工厂。
-  使用场景：对于发送可靠性要求不那么高,但要求提高发送效率和降低对宿主应用的影响，提高宿主应用的稳定性，例如，收集日志或用户行为信息等场景。
-  注意：发送消息后返回的结果中不包含准确的messageId,partition,offset,这些值都是-1。
 
-* XAMessageSessionFactory：用于创建XA消息会话的工厂。
+####AsyncMessageSessionFactory
 
-* OrderedMessageSessionFactory：需要按照消息内容(例如某个id)散列到固定分区并要求有序的场景中使用。
+用于创建异步单向发送消息的会话工厂。
+使用场景：对于发送可靠性要求不那么高,但要求提高发送效率和降低对宿主应用的影响，提高宿主应用的稳定性，例如，收集日志或用户行为信息等场景。
+注意：发送消息后返回的结果中不包含准确的messageId,partition,offset,这些值都是-1。
+
+####OrderedMessageSessionFactory
+
+需要按照消息内容(例如某个id)散列到固定分区并要求有序的场景中使用。
+
+####BroadcastMessageSessionFactory
+
+广播消息会话工厂，使用这个创建的Consumer在同一分组内的每台机器都能收到同一条消息，推荐一个应用只使用一个MessageSessionFactory。
+
+####XAMessageSessionFactory
+
+用于创建XA消息会话的工厂。
+
+####ExtMessageSessionFactory
+
+一个扩展的Meta会话工厂,提供一些扩展功能.
+
+
+
+###生产者：MessageProducer
+
+<img src="assets/image-20200810221632031.png" alt="image-20200810221632031" style="zoom:80%;" />
+
+####SimpleMessageProducer
+
+提供基础的生产者能力
+
+####AsyncMessageProducer
+
+异步的生产者
+
+####OrderedMessageProducer
+
+有序的生产者
+
+####XAMessageProducer
+
+XA生产者
+
+
+
+###消费者：MessageConsumer
+
+
+
+#### SimpleMessageConsumer
+
+
+
+
+
+生产者的分区选择器：PartitionSelector
+生产者发送消息回调：SendMessageCallback
+
+
+
+消费者的消息抓取器：FetchManager
+消费者的负载均衡策略：LoadBalanceStrategy
+MessageIdCache
+消费者异步消息监听器：MessageListener
+消费者的消息恢复管理器：RecoverManager
+消费者的拒绝处理器：RejectConsumptionHandler
+
+
+
+消息偏移量存储策略：OffsetStorage
+LocalOffsetStorage
+MysqlOffsetStorage
+TairOffsetStorage
+ZkOffsetStorage
+SlaveOffsetStorage
 
 
 

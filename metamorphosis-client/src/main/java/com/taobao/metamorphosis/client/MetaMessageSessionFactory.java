@@ -114,36 +114,35 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
 
     private static final int STATS_OPTIMEOUT = 3000;
 
-    //** 通讯客户端 */
+    /** 通讯客户端 */
     protected RemotingClientWrapper remotingClient;
-    //** MQ的客户端配置 */
+    /** MQ的客户端配置 */
     private final MetaClientConfig metaClientConfig;
-    //** 生产者和zk交互管理器 */
+    /** 生产者和zk交互管理器 */
     protected final ProducerZooKeeper producerZooKeeper;
-    //** 消费者和zk交互管理器 */
+    /** 消费者和zk交互管理器 */
     private final ConsumerZooKeeper consumerZooKeeper;
-    // private DiamondManager diamondManager;
-    //** 表示此工厂创建的所有子对象，如生产者、消费者等 */
+    /** 表示此工厂创建的所有子对象，如生产者、消费者等 */
     private final CopyOnWriteArrayList<Shutdownable> children = new CopyOnWriteArrayList<Shutdownable>();
-    //** 用于标识会话工厂是否关闭 */
+    /** 用于标识会话工厂是否关闭 */
     private volatile boolean shutdown;
-    //** 用于标识的钩子方法是否被调用 */
+    /** 用于标识的钩子方法是否被调用 */
     private volatile boolean isHutdownHookCalled = false;
-    //** 钩子线程，sessionFactory关闭时执行钩子 */
+    /** 钩子线程，sessionFactory关闭时执行钩子 */
     private final Thread shutdownHook;
-    //** 本地恢复消息管理器 */
+    /** 本地恢复消息管理器 */
     private final RecoverManager recoverManager;
-    //** 订阅关系管理器 */
+    /** 订阅关系管理器 */
     private final SubscribeInfoManager subscribeInfoManager;
-    //** ID生成器，全局唯一，用于生产SessionId */
+    /** ID生成器，全局唯一，用于生产SessionId */
     protected final IdGenerator sessionIdGenerator;
-    //** zk配置 */
+    /** zk配置 */
     private ZKConfig zkConfig;
-    //** zk客户端 */
+    /** zk客户端 */
     private volatile ZkClient zkClient;
-    //** Meta与zookeeper交互的辅助类 */
+    /** Meta与zookeeper交互的辅助类 */
     protected MetaZookeeper metaZookeeper;
-    //** 当新的zkClient建立的时候,调用该监听器方法 */
+    /** 当新的zkClient建立的时候,调用该监听器方法 */
     private final CopyOnWriteArrayList<ZkClientChangedListener> zkClientChangedListeners = new CopyOnWriteArrayList<ZkClientChangedListener>();
 
 
@@ -169,12 +168,14 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
 
             // 3、连接mateq服务器（如果有设置，则使用设置的url并连接指定MQ服务器，否则使用zk发现服务器）
             if (this.metaClientConfig.getServerUrl() != null) {
+                // remotingClient直连对应的mateq服务器
                 this.connectServer(this.metaClientConfig);
             } else {
+                // 读取zk配置，并初始化ZkClient
                 this.initZooKeeper();
             }
 
-            // 4、初始化其他信息
+            // 4、初始化其他组件
             this.producerZooKeeper = new ProducerZooKeeper(this.metaZookeeper, this.remotingClient, this.zkClient, metaClientConfig);
             this.sessionIdGenerator = new IdGenerator();
             this.consumerZooKeeper = this.initConsumerZooKeeper(this.remotingClient, this.zkClient, this.zkConfig);
@@ -457,6 +458,7 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
     }
     /**
      * 检查metaq的客户端配置
+     *
      * @param metaClientConfig      客户端配置信息
      * @throws MetaClientException
      */
@@ -487,7 +489,8 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
     /**
-     * 读取配置信息，并初始化ZkClient
+     * 读取zk配置，并初始化ZkClient
+     *
      * @throws MetaClientException
      */
     private void initZooKeeper() throws MetaClientException {
@@ -513,7 +516,7 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
         }
     }
     /**
-     * 通信层连接metaq服务器
+     * 通信层remotingClient连接metaq服务器
      *
      * @param metaClientConfig
      * @throws NetworkException
@@ -556,8 +559,8 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
                 zkConfig.zkSyncTimeMs = Integer.parseInt(properties.getProperty("zk.zkSyncTimeMs"));
             }
 
-            return zkConfig;// DiamondUtils.getZkConfig(this.diamondManager,
-            // 10000);
+            // DiamondUtils.getZkConfig(this.diamondManager, 10000);
+            return zkConfig;
         }
         catch (final IOException e) {
             log.error("zk配置失败", e);
@@ -599,34 +602,26 @@ public class MetaMessageSessionFactory implements MessageSessionFactory {
 
 
 
-    // --------------------
     // getter and setter...
-    // --------------------
 
     public RemotingClientWrapper getRemotingClient() {
         return this.remotingClient;
     }
-
     public SubscribeInfoManager getSubscribeInfoManager() {
         return this.subscribeInfoManager;
     }
-
     public MetaClientConfig getMetaClientConfig() {
         return this.metaClientConfig;
     }
-
     public ProducerZooKeeper getProducerZooKeeper() {
         return this.producerZooKeeper;
     }
-
     public ConsumerZooKeeper getConsumerZooKeeper() {
         return this.consumerZooKeeper;
     }
-
     public RecoverManager getRecoverStorageManager() {
         return this.recoverManager;
     }
-
     public CopyOnWriteArrayList<Shutdownable> getChildren() {
         return this.children;
     }

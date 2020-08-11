@@ -23,7 +23,7 @@ import com.taobao.metamorphosis.network.RemotingUtils;
 
 
 /**
- * Generator for Globally unique Strings.
+ * 用于生成全局唯一字符串
  * 
  * @author boyan
  */
