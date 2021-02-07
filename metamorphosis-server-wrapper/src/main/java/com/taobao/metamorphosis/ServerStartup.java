@@ -44,7 +44,7 @@ public class ServerStartup {
     /**
      * MetaQ服务启动，启动时需要携带配置文件，例如：
      * 在Program arguments中配置：
-     * Linux：-f /Users/wanghongzhan/whz/ideaProject/Metamorphosis/metamorphosis-dashboard/dev/server.ini
+     * Linux：-f /Users/wanghongzhan/1_Document/ideaProject/4_mq/Metamorphosis/metamorphosis-server-wrapper/conf/server.ini
      * windows：-f D:\myMoveDisk\6_fromGit\Metamorphosis\metamorphosis-dashboard\dev\server.ini
      * @param args
      */
