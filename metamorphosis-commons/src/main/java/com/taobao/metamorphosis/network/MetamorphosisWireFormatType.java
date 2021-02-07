@@ -65,11 +65,21 @@ public class MetamorphosisWireFormatType extends WireFormatType {
         return "metamorphosis";
     }
 
+    /**
+     * 返回一个用于获取编解码（序列化/反序列化）器的工厂对象
+     *
+     * @return
+     */
     @Override
     public CodecFactory newCodecFactory() {
         return new MetaCodecFactory();
     }
 
+    /**
+     * 返回一个用于创建心跳请求/响应命令对象的工厂
+     *
+     * @return
+     */
     @Override
     public CommandFactory newCommandFactory() {
         return new MetaCommandFactory();
@@ -82,6 +92,24 @@ public class MetamorphosisWireFormatType extends WireFormatType {
      */
     static class MetaCommandFactory implements CommandFactory {
 
+        /**
+         * 创建心跳请求命令
+         *
+         * @return
+         */
+        @Override
+        public HeartBeatRequestCommand createHeartBeatCommand() {
+            return new VersionCommand(OpaqueGenerator.getNextOpaque());
+        }
+
+        /**
+         * 创建服务端返回的心跳Ack
+         *
+         * @param request
+         * @param responseStatus
+         * @param errorMsg
+         * @return
+         */
         @Override
         public BooleanAckCommand createBooleanAckCommand(final CommandHeader request, final ResponseStatus responseStatus, final String errorMsg) {
             int httpCode = -1;
@@ -102,13 +130,6 @@ public class MetamorphosisWireFormatType extends WireFormatType {
             }
             return new BooleanCommand(httpCode, errorMsg, request.getOpaque());
         }
-
-        /** 创建心跳命令 */
-        @Override
-        public HeartBeatRequestCommand createHeartBeatCommand() {
-            return new VersionCommand(OpaqueGenerator.getNextOpaque());
-        }
-
     }
 
     /**

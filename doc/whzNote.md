@@ -4,7 +4,8 @@
 
 ​		Metamorphosis是一个高性能、高可用、可扩展的分布式消息中间件，思路起源于LinkedIn的Kafka，但并不是Kafka的一个Copy。具有消息存储顺序写、吞吐量大和支持本地和XA事务等特性，适用于大吞吐量、顺序消息、广播和日志数据传输等场景，目前在淘宝和支付宝有着广泛的应用。
 
-###特征
+### 特征
+
 * 生产者、服务器和消费者都可分布
 * 消息存储顺序写
 * 性能极高,吞吐量大
@@ -24,7 +25,7 @@
 
 
 
-###概念和术语
+### 概念和术语
 
 - 消息，全称为Message，是指在生产者、服务端和消费者之间传输数据。
 - 消息代理：全称为Message Broker，通俗来讲就是指该MQ的服务端或者说服务器。
@@ -45,13 +46,13 @@
 
 ​		从上图可以看出，有4个集群。其中，Broker集群存在MASTER-SLAVE结构。多台broker组成一个集群提供一些topic服务，生产者集群可以按照一定的路由规则往集群里某台broker的某个topic发送消息，消费者集群按照一定的路由规则拉取某台broker上的消息。
 
-###总体架构
+### 总体架构
 
 <img src="assets/MetaQ总体结构.png" width=40%/>
 
 <img src="assets/MetaQ内部结构.png" width=50%/>
 
-###源代码结构
+### 源代码结构
 
 * Client：生产者和消费者客户端
 * Client-extension：扩展的客户端，用于将消费处理失败的消息存入notify(未提供)和使用meta作为log4j appender，可以透明地使用log4j API发送消息到meta。
@@ -110,7 +111,7 @@ metamorphosis-example里面有详细的使用例子，包括：
 
 
 
-###1.MetaQ服务器端配置
+### 1.MetaQ服务器端配置
 
 ​	MetaQ服务启动时，需要在JVM携带启动的配置参数，该配置参数用于指定MQ服务器的配置文件，例如：
 
@@ -189,11 +190,11 @@ zk.zkSyncTimeMs=5000
 
 
 
-###2.MetaQ客户端配置
+### 2.MetaQ客户端配置
 
 
 
-####2.1客户端的zk配置
+#### 2.1客户端的zk配置
 
 对应ZKConfig.java类，配置项如下：
 
@@ -235,7 +236,7 @@ private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
 
 
 
-####2.3消费者配置
+#### 2.3消费者配置
 
 ```java
 		/** MetaQ的消费者是以pull模型来从服务端拉取数据并消费，这个参数设置并行拉取的线程数，默认是CPU个数 */
@@ -305,9 +306,9 @@ private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
 
 
 
-##核心组件
+## 核心组件
 
-###会话工厂：MessageSessionFactory
+### 会话工厂：MessageSessionFactory
 
 作用：
 
@@ -325,53 +326,53 @@ private int recoverThreadCount = Runtime.getRuntime().availableProcessors();
 
 
 
-####AsyncMessageSessionFactory
+#### AsyncMessageSessionFactory
 
 用于创建异步单向发送消息的会话工厂。
 使用场景：对于发送可靠性要求不那么高,但要求提高发送效率和降低对宿主应用的影响，提高宿主应用的稳定性，例如，收集日志或用户行为信息等场景。
 注意：发送消息后返回的结果中不包含准确的messageId,partition,offset,这些值都是-1。
 
-####OrderedMessageSessionFactory
+#### OrderedMessageSessionFactory
 
 需要按照消息内容(例如某个id)散列到固定分区并要求有序的场景中使用。
 
-####BroadcastMessageSessionFactory
+#### BroadcastMessageSessionFactory
 
 广播消息会话工厂，使用这个创建的Consumer在同一分组内的每台机器都能收到同一条消息，推荐一个应用只使用一个MessageSessionFactory。
 
-####XAMessageSessionFactory
+#### XAMessageSessionFactory
 
 用于创建XA消息会话的工厂。
 
-####ExtMessageSessionFactory
+#### ExtMessageSessionFactory
 
 一个扩展的Meta会话工厂,提供一些扩展功能.
 
 
 
-###生产者：MessageProducer
+### 生产者：MessageProducer
 
 <img src="assets/image-20200810221632031.png" alt="image-20200810221632031" style="zoom:80%;" />
 
-####SimpleMessageProducer
+#### SimpleMessageProducer
 
 提供基础的生产者能力
 
-####AsyncMessageProducer
+#### AsyncMessageProducer
 
 异步的生产者
 
-####OrderedMessageProducer
+#### OrderedMessageProducer
 
 有序的生产者
 
-####XAMessageProducer
+#### XAMessageProducer
 
 XA生产者
 
 
 
-###消费者：MessageConsumer
+### 消费者：MessageConsumer
 
 
 
@@ -387,7 +388,6 @@ XA生产者
 
 
 消费者的消息抓取器：FetchManager
-消费者的负载均衡策略：LoadBalanceStrategy
 MessageIdCache
 消费者异步消息监听器：MessageListener
 消费者的消息恢复管理器：RecoverManager
@@ -404,7 +404,7 @@ SlaveOffsetStorage
 
 
 
-##SubscribeInfoManager
+## SubscribeInfoManager
 
 ​		订阅信息管理器，该组件维护了Map<group, Map<topic, SubscriberInfo>>这样的一组关系，对于每个Consumer Group维护了topic的订阅情况，SubscriberInfo类维护了以下信息：
 
@@ -480,7 +480,7 @@ public class AsyncConsumer {
 
 
 
-##Consumer的负载均衡策略
+## Consumer的负载均衡策略
 
 ​		我们知道，在MetaQ中Consumer会主动向MQ发起Pull消息的请求，这里Pull请求包含topic、分区、消费者分组名、拉取的起始偏移量和本次拉取的最大数据量大小，请求信息其实已经表明了该次请求要从MQ上的抓取哪些消息，那么这里的分区是如何确定的呢？就是通过client包中的LoadBalanceStrategy接口来实现，我们先看看改接口定义：
 
@@ -537,7 +537,7 @@ Consumer的balance策略实现在metaq中提供了两种：ConsisHashStrategy和
 
 ​		默认的负载均衡策略，尽量使得负载在所有consumer之间平均分配，consumer之间分配的分区数差距不大于1。
 
-###ConsisHashStrategy
+### ConsisHashStrategy
 
 ​		[基于一致性哈希的负载均衡策略](https://www.jianshu.com/p/e968c081f563)
 
@@ -551,13 +551,13 @@ Consumer的balance策略实现在metaq中提供了两种：ConsisHashStrategy和
 
 
 
-##FAQ
+## FAQ
 
-###服务端FAQ
+### 服务端FAQ
 
 
 
-####MetaQ如何保证高可用，说说同步/异步复制
+#### MetaQ如何保证高可用，说说同步/异步复制
 
 ​		Metaq相比于kafka的一个重要特性就是消息高可用方案的实现，我们称之为HA方案（说明：*HA*是Hig*h A*vailable缩写，是双机集群系统简称，指高可用性集群，是保证业务连续性的有效解决*方案*，一般有两个或两个以上的节点，且分为活动节点及备用节点）。
 
@@ -620,7 +620,7 @@ bin/metaServer.sh start slave
 
 TODO
 
-####消费者是否会从slave服务器拉取消息
+#### 消费者是否会从slave服务器拉取消息
 
 ​		会；异步复制的slave将参与消费者的消费活动，消费者可以从slave中获取消息并消费，消费者会随机从master和slaves中挑选一台作为消费broker；
 
@@ -628,7 +628,7 @@ TODO
 
 
 
-####消息发送成功后，已经写入服务器磁盘？
+#### 消息发送成功后，已经写入服务器磁盘？
 
 ​		可以说是，也可以说不是，因为存在os和磁盘缓存。每条消息在返回应答前都先write到MQ，也就说MQ服务器可以确保接收到了来自客户端的消息，并且正确的写到了内存，但是由于缓存机制，在断电或者磁盘损坏的情况下，可能会导致内存里的消息没有写入到磁盘。
 
@@ -636,7 +636,7 @@ TODO
 
 ​		默认情况下，MQ的机制是每1000条消息force一次和每10秒force一次（可为全局或某个Topic配置参数），也可以配置使用Group commit的方式。
 
-####消息是怎么保存的？
+#### 消息是怎么保存的？
 
 ​		每条消息保存在一个分区，分区内是一系列文件，顺序写，固定大小切换文件。
 
@@ -654,7 +654,7 @@ TODO
 
 ​		为什么要这样进行设计呢，主要是为了提高查询效率（消费者从MQ拉取消息时，每次都是指定一个offset偏移量，MQ会根据该偏移量快速定位本次要拉取的消息位于哪个文件）。MessageStore将最后一个Segment变为可变Segment，因为最后一个Segment相当于文件尾，消息是有先后顺序的，必须将消息添加到最后一个Segment上。每次消息写入都会写到最后一个消息文件中，并且一点文件写满，则该文件会被设置为只读，只有最后一个消息文件才可以写入消息。
 
-####MQ上持久化的消息数据保留多久的，消息文件删除策略有哪些，怎么实现的？
+#### MQ上持久化的消息数据保留多久的，消息文件删除策略有哪些，怎么实现的？
 
 ​		MQ默认为保存7天，超过7天即删除。不过MQ支持配置，可以根据业务需求为每个Topic配置不同的保留时间。
 
@@ -681,7 +681,7 @@ private String deletePolicy = "delete,168";
 
 ​		并且MQ可以为每个topic配置不同的文件删除策略。
 
-####消息存储管理器多长时间做一次消息同步(将消息保存到磁盘)？
+#### 消息存储管理器多长时间做一次消息同步(将消息保存到磁盘)？
 
 ​		MQ通过配置参数来控制，消息同步，并且消息存储器初始化时，会监听配置对象的unflushInterval参数，当该参数改变时会重新初始化将消息保存到磁盘的定时任务。
 
@@ -693,7 +693,7 @@ private String deletePolicy = "delete,168";
 private int unflushInterval = 10000;
 ```
 
-####消息发送到服务器时，MetaQ是如何处理的？
+#### 消息发送到服务器时，MetaQ是如何处理的？
 
 ​		首先，MQ服务器启动后会一直监听生产者发送过来的消息并进行处理。
 
@@ -703,7 +703,7 @@ private int unflushInterval = 10000;
 
 ​		然后再根据topic和partition获取（或创建）MessageStore，然后将消息append到MessageStore中。当MQ确保将消息write到MessageStore后，再response给客户端，告诉客户端消息已经保存到了MQ中。
 
-####消息存储管理器是怎么设计的？
+#### 消息存储管理器是怎么设计的？
 
 ​		MessageStoreManager维护了topic，partition和对应消息存储器
 
@@ -723,21 +723,21 @@ ConcurrentHashMap<String, ConcurrentHashMap<Integer, MessageStore>> stores；
 * 3、如果unflushThreshold > 0，则是依赖组提交或者是超时提交
 ```
 
-####当topic变更时，MQ的消息存储器会做些什么？
+#### 当topic变更时，MQ的消息存储器会做些什么？
 
 ​		消息存储器初始化时，会保存一份该服务的topics，然后监听配置对象中topics参数，当topics参数改变时会触发监听器：这时会重新初始化topic有效性的校验规则、文件删除策略选择器和定时删除消息文件的任务执行器。
 
-####MQ单次消息传递最大数据大小是多少
+#### MQ单次消息传递最大数据大小是多少
 
 ​		MQ的消息体大小是可配置的，通过maxTransferSize参数配置，默认为1M，请根据你的最大消息大小酌情设置。以mateq下发消息为例，如果太小，每次无法传输一个完整的消息给消费者，导致消费者消费停滞，可设置成一个大数来取消限制。
 
 
 
-####MQ的消息类型可以是文件吗？
+#### MQ的消息类型可以是文件吗？
 
 ​		理论上是可以的，因为消息传输也是通过字节的方式存储的，但是不建议直接在消息里存储文件，因为文件数据一般比较大，MQ的消息数据大小是有限制的
 
-####metaq消息过滤器的使用
+#### metaq消息过滤器的使用
 
 ​		消息过滤器可以在消费端使用也可以在服务端使用，服务端使用的实现机制是，当消费者从MQ拉取消息时，MQ会根据配置的过滤器来过滤消息，服务端过滤消息需要自己实现消息过滤器，并打成jar包到meta安装目录下，然后在topic配置中配置对应的过滤器，例如如下配置，这里是直接在meta源码中添加了一个过滤器
 
@@ -773,7 +773,7 @@ group.meta-example=com.taobao.metamorphosis.server.filter.ExampleConsumerMessage
 
 
 
-###消费者FAQ
+### 消费者FAQ
 
 #### 客户端消费失败，MQ如何处理的？
 
@@ -889,7 +889,7 @@ mysql存储需要传入JDBC数据源。
 
 
 
-####处理消息的回调方法是运行在单线程还是多线程中?
+#### 处理消息的回调方法是运行在单线程还是多线程中?
 
 –多线程拉，不同分区消息的回调是运行在多线程环境中的
 
@@ -897,7 +897,7 @@ mysql存储需要传入JDBC数据源。
 
 单线程拉，运行在单线程中
 
-####保存消息偏移量的机制是什么？
+#### 保存消息偏移量的机制是什么？
 
 meta使用定时任务的方式将消息的偏移量保存到zk，默认5秒同步一次到zk，可设置
 
@@ -905,7 +905,7 @@ meta使用定时任务的方式将消息的偏移量保存到zk，默认5秒同�
 
 偏移量，默认保存在zk，但还提供文件、数据库的存储实现，可通过OffsetStorage接口，可自主实现。
 
-####新加入的消费者不想接收到以前发的消息怎么办？
+#### 新加入的消费者不想接收到以前发的消息怎么办？
 
 –新增的group和广播新增的机器有这个问题
 
@@ -915,7 +915,7 @@ ConsumerConfig.setConsumeFromMaxOffset
 
 
 
-####消息处理失败如何重试？
+#### 消息处理失败如何重试？
 
 –可选择跳过，设置最大重试次数，超过即跳过，默认5次
 
@@ -925,13 +925,13 @@ ConsumerConfig.setConsumeFromMaxOffset
 
 –如果不想往下走就把这个参数设为int的最大值
 
-####可以设置pull请求的时间间隔吗？
+#### 可以设置pull请求的时间间隔吗？
 
 –可以，你可以设置允许的最大延迟时间，当响应为空的时候，每次递增最大延迟时间的1/10做延迟，不会超过设定的最大延迟时间。默认5秒。
 
 
 
-####一个consumer可以有多个consumer group吗
+#### 一个consumer可以有多个consumer group吗
 
 不可以，创建consumer时，必须指定一个consumer group
 
@@ -949,7 +949,7 @@ final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
 
 ~~–在consumer重新负载均衡的时候，可能由于offset保存延迟，导致重复接收极小部分消息。~~
 
-###生产者FAQ
+### 生产者FAQ
 
 #### 生产者发送消息时，如果发送失败会进行重试吗？
 
@@ -1036,7 +1036,7 @@ final MessageConsumer consumer = sessionFactory.createConsumer(consumerConfig);
 
 
 
-###经典案例分析
+### 经典案例分析
 
 #### 关于消费者Id的一个坑
 
@@ -1083,13 +1083,13 @@ public class AsyncConsumer {
 
 这里ConsumerConfig#consumerId设置为"consumer1"，假如meta-test这个topic对应的分区个数配置为5时，则，zk上注册的负载均衡结果为：
 
-<img src="/Users/wanghongzhan/1_Document/ideaProject/Metamorphosis/doc/assets/image-20190728175706061.png"/>
+<img src="assets/image-20190728175706061.png"/>
 
 说明：0-0、0-1、0-2、0-3、0-4表示0这个brokerId对应的四个分区，对应表示消费者，此时0到4这四个分区都可以被consumer1这个消费者消费，那么假如消费者所在的应用是集群部署的话，这里的消息就会被每个节点消费，导致每个应用都会消费一次MQ上的消息，也就说假如消费者应用集群为n时，则单个消息会被重复消息n次。如果要设置consumerId则每个应用在发布的时候需要确保配置为不同consumerId才行。
 
 所以在创建消费者时，ConsumerConfig#consumerId不建议设置，当consumerId为空时，MQ会自动帮我们创建不同的consumerId，消费者的负载均衡结果如下：
 
-<img src="/Users/wanghongzhan/1_Document/ideaProject/Metamorphosis/doc/assets/image-20190728180719463.png"/>
+<img src="assets/image-20190728180719463.png"/>
 
 说明：0-1、0-1、0-2这个三个分区被第一个节点消费，然后0-3、0-4会被第二节点消费，此时消息就不会被重复消费，一个消息只会被一个消费者应用节点消费一次。
 

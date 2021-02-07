@@ -222,6 +222,7 @@ public class MessageStoreManager implements Service {
         }
         this.scheduledExecutorService = new ScheduledThreadPoolExecutor(tmpSet.size() + 5);
 
+        // scheduler：用于定时删除消息文件的任务执行器
         try {
             if (DirectSchedulerFactory.getInstance().getAllSchedulers().isEmpty()) {
                 DirectSchedulerFactory.getInstance().createVolatileScheduler(this.metaConfig.getQuartzThreadCount());
@@ -252,6 +253,7 @@ public class MessageStoreManager implements Service {
         // 新的有，旧的没有，提交任务
         for (final Integer unflushInterval : newUnflushIntervals) {
             if (!this.unflushIntervalMap.containsKey(unflushInterval) && unflushInterval > 0) {
+                // 定时执行FlushRunner任务
                 final ScheduledFuture<?> future = this.scheduledExecutorService.scheduleAtFixedRate(
                         new FlushRunner(unflushInterval), unflushInterval, unflushInterval, TimeUnit.MILLISECONDS);
                 this.unflushIntervalMap.put(unflushInterval, future);
@@ -530,6 +532,7 @@ public class MessageStoreManager implements Service {
 
     /**
      * 根据配置返回所有消息存储在磁盘的目录，不同的topic，不通的分区都有对应的目录
+     *
      * @param metaConfig
      * @return
      * @throws IOException
@@ -546,6 +549,8 @@ public class MessageStoreManager implements Service {
                 paths.add(topicConfig.getDataPath());
             }
         }
+
+        // 根据路径创建对应的File对象
         final Set<File> fileSet = new HashSet<File>();
         for (final String path : paths) {
             fileSet.add(this.getDataDir(path));

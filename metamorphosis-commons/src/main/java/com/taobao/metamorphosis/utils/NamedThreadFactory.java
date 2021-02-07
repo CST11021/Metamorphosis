@@ -51,12 +51,6 @@ public class NamedThreadFactory implements ThreadFactory {
         return name + "-" + poolNumber.getAndIncrement() + "-thread-";
     }
 
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.util.concurrent.ThreadFactory#newThread(java.lang.Runnable)
-     */
     @Override
     public Thread newThread(final Runnable r) {
         // ? 潜在的问题是最后创建的这个线程的计数会不会超过integer的最大值
