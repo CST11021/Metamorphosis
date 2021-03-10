@@ -6,7 +6,6 @@ import com.taobao.metamorphosis.utils.JSONUtils;
 
 
 /**
- * Topic's broker info to be registed in zookeeper.
  * 表示注册在zk上的topic信息，例如：{"numParts":1,"broker":"0-m"}
  * numParts表示topic的可用分区数量
  * broker中的0表示brokeId,m表示master，如果s表示是salve
@@ -23,7 +22,7 @@ public class TopicBroker implements Serializable {
     /** 这个应该是broker下默认的分区数 */
     private int numParts;
 
-    /** 表示brokerId */
+    /** 例如：0-m，0：表示brokerId，m：表示master */
     private String broker;
 
 
@@ -39,6 +38,7 @@ public class TopicBroker implements Serializable {
 
     /**
      * 将json数据解析为 TopicBroker 对象，例如：{"numParts":1,"broker":"0-m"}
+     *
      * @param json
      * @return
      * @throws Exception
@@ -49,6 +49,7 @@ public class TopicBroker implements Serializable {
 
     /**
      * 将 TopicBroker 转为JSON
+     *
      * @return
      * @throws Exception
      */

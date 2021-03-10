@@ -62,11 +62,9 @@ public class Broker {
             throw new RuntimeException(e);
         }
     }
-
     public Broker(final int id, final String host, final int port) {
         this(id, host, port, -1);
     }
-
     public Broker(final int id, final String host, final int port, final int slaveId) {
         super();
         this.id = id;
@@ -75,13 +73,19 @@ public class Broker {
         this.slaveId = slaveId;
     }
 
+    /**
+     * 从uri获取从服务器的id，如果该uri指向的master的mq服务器，则返回-1
+     *
+     * @param uri
+     * @return
+     */
     static int slaveIdByUri(final URI uri) {
         final String slaveIdStr = URIUtils.parseParameters(uri, "UTF-8").get("slaveId");
         return StringUtils.isNotBlank(slaveIdStr) ? Integer.parseInt(slaveIdStr) : -1;
     }
 
     /**
-     * 返回broker节点数据字符串 meta://host:port
+     * 返回broker节点数据字符串，例如：meta://host:port
      * 
      * @return
      */
