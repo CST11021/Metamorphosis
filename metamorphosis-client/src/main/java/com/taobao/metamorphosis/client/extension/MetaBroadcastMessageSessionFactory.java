@@ -39,7 +39,6 @@ import com.taobao.metamorphosis.network.RemotingUtils;
  * @author ÎÞ»¨
  * @since 2011-6-13 ÏÂÎç02:44:24
  */
-
 public class MetaBroadcastMessageSessionFactory extends MetaMessageSessionFactory implements BroadcastMessageSessionFactory {
 
     public MetaBroadcastMessageSessionFactory(final MetaClientConfig metaClientConfig) throws MetaClientException {
