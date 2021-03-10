@@ -59,7 +59,12 @@ public class MetaBroadcastMessageSessionFactory extends MetaMessageSessionFactor
 
         return this.createConsumer(updateGroupForBroadcast(consumerConfig), this.newLocalOffsetStorage(), recoverManager);
     }
-    // 创建一个LocalOffsetStorage对象，广播方式的topic的offset会保存在客户端本地
+
+    /**
+     * 创建一个LocalOffsetStorage对象，广播方式的topic的offset会保存在客户端本地
+     *
+     * @return
+     */
     private LocalOffsetStorage newLocalOffsetStorage() {
         try {
             return new LocalOffsetStorage();
